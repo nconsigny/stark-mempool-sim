@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 """Analytical queries and stable machine-readable reporting."""
 
+import copy
 import math
 
 from starksim.costs import (BUILD_BLOCK, PROVE_COST_CIRCUIT, PROVE_RECURSIVE,
                             VERIFY_RECV, CircuitCost)
+from starksim.outcomes import transaction_outcomes
+from starksim.recovery import recovery_state
+from starksim.work_metrics import cpu_accounting
 
 
 def _pearson(pairs):
@@ -351,6 +355,39 @@ def metrics(sim):
         "max_cpu_depth": sim.max_cpu_depth(),
         "unserved_wants": sim.unserved_wants,
     })
+    result.update(message_accounting(sim))
+    result.update(sim.plan_roots.metrics(sim.chain.discarded_mask()))
+    result["block_observations"] = copy.deepcopy(sim.block_observations)
+    result["transaction_outcomes"] = transaction_outcomes(sim)
+    result["outcomes_observed_until_ms"] = sim.engine.now
+    result.update(recovery_state(sim))
+    result.update(cpu_accounting(sim))
+    result["plan_deadlines"] = -1
+    if sim.plan_deadlines is not None:
+        result["plan_deadlines"] = sim.plan_deadlines.metrics(sim.engine.now)
+    result["selection_decisions"] = -1
+    if sim.selection_decisions is not None:
+        result["selection_decisions"] = sim.selection_decisions.metrics()
+    result["topology_fingerprint"] = sim.topology_fingerprint
+    result["workload_generator_version"] = sim.workload_generator_version
+    # Entry counts only: the timestamp tables are nodes x transactions and
+    # would dominate every record. Query them through evidence.diffusion.
+    result["transaction_evidence"] = -1
+    if sim.transaction_evidence is not None:
+        result["transaction_evidence"] = sim.transaction_evidence.summary()
+    result["duplicate_traffic"] = sim.duplicate_traffic.metrics("duplicate")
+    return result
+
+
+def message_accounting(sim):
+    """Attempted egress and message refusals, separate from accepted offers.
+
+    Payload kinds are shared across all stages. CPU job kinds, such as
+    verify_recv and verify_block, remain reasons in the existing drop records.
+    """
+    result = sim.attempted.metrics("attempted")
+    result.update(sim.egress_refused.metrics("egress_refused"))
+    result.update(sim.cpu_refused.metrics("cpu_refused"))
     return result
 
 
@@ -396,6 +433,7 @@ CSV_COLUMNS = [
     "circuit_trace_rows_per_hash", "circuit_trace_cap",
     "verify_sig_ms", "verify_stark_ms", "verify_message_ms",
     "fold_amortize",
+    "topology_fingerprint", "workload_generator_version",
 ]
 
 

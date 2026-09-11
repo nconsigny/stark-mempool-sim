@@ -37,13 +37,17 @@ above the physical capacity of the links.
     python -m bench.propagation
     python -m bench.propagation --nodes 500 --seeds 5
     python -m bench.propagation --objects 5 --spread 4000
+
+`--seed-start` defaults to zero; `--seeds` counts consecutive absolute seeds
+from that start without changing their random streams.
 """
 
 import argparse
 import statistics
 import sys
 
-from bench.common import (emit_json_record, print_table_header,
+from bench.common import (add_seed_start_argument, seed_range,
+                          emit_json_record, print_table_header,
                           random_regular_overlay, workload_parameters)
 from starksim.arena import KIND_PQ, KIND_PRIVACY
 from starksim.netsim import RELAY_ANNOUNCE_FETCH, RELAY_FLOOD, NetworkSim
@@ -140,7 +144,7 @@ def sweep(args, objects, spread):
     for kind, label in KINDS:
         for policy in POLICIES:
             runs = []
-            for seed in range(args.seeds):
+            for seed in seed_range(args):
                 runs.append(one_run(args.nodes, args.degree, args.uplink_mbps,
                                     args.latency, args.jitter, kind, policy,
                                     objects, spread, args.window, seed))
@@ -206,7 +210,7 @@ def emit_json_runs(args):
     for load, objects, spread in loads:
         for kind, label in KINDS:
             for policy in POLICIES:
-                for seed in range(args.seeds):
+                for seed in seed_range(args):
                     summary, sim = one_run(
                         args.nodes, args.degree, args.uplink_mbps,
                         args.latency, args.jitter, kind, policy, objects,
@@ -234,6 +238,7 @@ def main():
                         help="each object is observed for this long from its "
                              "own birth")
     parser.add_argument("--seeds", type=int, default=3)
+    add_seed_start_argument(parser)
     parser.add_argument("--json", action="store_true",
                         help="emit one JSON record per seed and case")
     args = parser.parse_args()

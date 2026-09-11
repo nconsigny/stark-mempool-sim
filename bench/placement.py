@@ -22,9 +22,14 @@ had and the results had to be qualified for.
 which is an upper bound on a shortest path, not a propagation time -- it ignores
 bandwidth, queueing and the fanout that makes real diffusion much faster than
 its diameter suggests. It is now the observed time for a transaction to reach
-90% of nodes, read from the trace, because by the end of a run every included
-transaction has been pruned from every node's view and only the trace still
-knows when each node learned of it.
+90% of nodes via raw-object admissions, read from the trace. This legacy
+statistic does not see a transaction carried inside a wrapper claim. JSON also
+reports evidence_diffusion and body_diffusion from first-admission timestamp
+tables, which survive pruning and are independent of the carrying object's id.
+duplicate_burden separates full message totals from byte shares attributed to
+followed transactions, accumulated as dup records are written rather than
+reconstructed from the trace string; attribution is unavailable when none were
+followed. The default text and its raw-admission statistic are unchanged.
 
 **Only one thing varies.** The first version swept slot length, which dragged
 the aggregation interval (`slot / 2`) and the birth rate (`slot / 10`) along
@@ -49,6 +54,9 @@ placement penalty stops being a delay and becomes an exclusion.
 
     python -m bench.placement
     python -m bench.placement --nodes 100 --seeds 6
+
+`--seed-start` defaults to zero; `--seeds` counts consecutive absolute seeds
+from that start without changing their random streams.
 """
 
 import argparse
@@ -58,10 +66,12 @@ import math
 import statistics
 import sys
 
-from bench.common import (emit_json_record, print_table_header,
+from bench.common import (add_seed_start_argument, seed_range,
+                          emit_json_record, print_table_header,
                           random_regular_overlay, workload_parameters)
 from starksim.arena import KIND_PQ
 from starksim.costs import CostTable
+from starksim.evidence import diffusion, streamed_duplicate_burden
 from starksim.netsim import NetworkSim
 from starksim.network import bytes_per_ms
 
@@ -80,7 +90,7 @@ def one_run(mode, nodes, degree, slot, tick_interval, latency, entry_subset,
                                      jitter_frac=0.0)
     trace = io.StringIO()
     sim = NetworkSim(overlay, seed=seed, capacity=bytes_per_ms(50),
-                     costs=CostTable(prove_recursive=lambda deps: 30.0),
+                     costs=CostTable(prove_recursive=30.0),
                      aggregation_interval=tick_interval, slot_length=slot,
                      proposer_mode=mode, proposer_id=0,
                      block_budget=block_budget,
@@ -104,9 +114,10 @@ def one_run(mode, nodes, degree, slot, tick_interval, latency, entry_subset,
 def diffusion_time(trace_text, nodes, fraction=0.9):
     """Observed time for a transaction to reach `fraction` of nodes.
 
-    Reconstructed from the trace, which is the only durable record: `adm` events
-    carry the object's birth time, so a delay is a subtraction, and they survive
-    the pruning that empties every node's view of anything included.
+    Legacy raw-object reconstruction: `adm` events carry the object's birth
+    time, so a delay is a subtraction. It excludes wrapper-carried evidence and
+    does not deduplicate readmissions at a node. Its original meaning is kept
+    for published comparisons; use evidence.diffusion for first verified reach.
 
     Returns the mean over transactions that got there and how many did. An
     object that never reached the fraction has no time and is not counted as a
@@ -117,8 +128,8 @@ def diffusion_time(trace_text, nodes, fraction=0.9):
     for line in trace_text.splitlines():
         event = json.loads(line)
         if event["e"] == "arr":
-            # Only leaves get an `arr`, which is what keeps wrapper admissions
-            # out of a transaction-diffusion measurement.
+            # Keys remain raw birth object ids for published comparisons;
+            # wrapper-carried claims deliberately do not enter this statistic.
             delays[event["o"]] = [0.0]           # the entry node, at no delay
         elif event["e"] == "adm" and event["o"] in delays:
             delays[event["o"]].append(event["t"] - event["born"])
@@ -158,7 +169,7 @@ def format_correlation(value, censored=None):
 def emit_json_runs(args, latencies):
     for latency in latencies:
         for mode in ("fixed", "rotating"):
-            for seed in range(args.seeds):
+            for seed in seed_range(args):
                 sim, trace_text = one_run(
                     mode, args.nodes, args.degree, args.slot,
                     args.tick_interval, latency, args.entry_subset,
@@ -180,6 +191,9 @@ def emit_json_runs(args, latencies):
                     "time_to_90_ms": observed,
                     "reached_90": reached,
                     "measured_txs": total,
+                    "evidence_diffusion": diffusion(sim),
+                    "body_diffusion": diffusion(sim, kind="body"),
+                    "duplicate_burden": streamed_duplicate_burden(sim),
                 }
                 emit_json_record("placement", workload, seed, sim, metrics)
 
@@ -206,6 +220,7 @@ def main():
     parser.add_argument("--latencies", default="25,50,100,200,400",
                         help="the only quantity swept; the ratio follows it")
     parser.add_argument("--seeds", type=int, default=4)
+    add_seed_start_argument(parser)
     parser.add_argument("--json", action="store_true",
                         help="emit one JSON record per seed, latency, and mode")
     args = parser.parse_args()
@@ -235,7 +250,7 @@ def main():
             included = []
             censored = []
             ratios = []
-            for seed in range(args.seeds):
+            for seed in seed_range(args):
                 sim, trace_text = one_run(mode, args.nodes, args.degree,
                                           args.slot, args.tick_interval,
                                           latency, args.entry_subset,

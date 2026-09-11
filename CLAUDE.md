@@ -34,7 +34,7 @@ evidence contract in [docs/results.md](docs/results.md) and the traps in
   - knowledge.py: per-node knowledge classification and tracing
 - tests/: unittests
 - bench/: reproducible measurement scripts
-- tools/: viewer fixtures, checks, and the paced live runner
+- tools/: viewer fixtures, checks, the paced live runner, and post-processing of bench JSON (on-chain overhead)
 - serve.py: static server with byte-range support for live traces
 - viewer.html: live view / replay of trace.jsonl
 

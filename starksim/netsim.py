@@ -15,7 +15,9 @@ import math
 import random
 
 from starksim import aggregation as _aggregation  # register built-in strategies
+from starksim.accounting import MessageCounts, WRAPPER_ENCODINGS
 from starksim.aggregation import input_composition
+from starksim.aggregation_metrics import BlockSelection, PlanRoots
 from starksim.arena import KIND_PQ, KIND_PRIVACY, Arena, useful_count
 from starksim.chain import (ChainState, InstantNotifier, OverlayNotifier,
                             ProposerSchedule)
@@ -24,8 +26,12 @@ from starksim.costs import (BUILD_BLOCK, PROVE_COST_BASES, PROVE_COST_CIRCUIT,
                             PROVE_RECURSIVE, VERIFY_RECV,
                             CircuitCost, CostTable)
 from starksim.derive import stable_fraction
+from starksim.decision_metrics import (PlanDeadlines, SelectionDecisions,
+                                       SelectionObservation)
 from starksim.engine import Engine, Job
+from starksim.evidence import FirstEvidence
 from starksim.knowledge import KnowledgeTracer
+from starksim.identity import topology_fingerprint
 from starksim.network import SizeModel
 from starksim.node import Node
 from starksim.payload import WireMessage, WrapperCore
@@ -45,6 +51,8 @@ from starksim.reporting import (CSV_COLUMNS, _pearson, csv_header, csv_row,
                                 variant as _variant)
 from starksim.strategies import get as get_strategy
 from starksim.trace import TOPOLOGY_EDGE_LIMIT, Tracer
+from starksim.wire_copies import WireCopies
+from starksim.work_metrics import PlanWork
 
 EV_DELIVER = "deliver"
 EV_BIRTH = "birth"
@@ -233,9 +241,11 @@ class _PlanRun:
     immutable decision, this is the state of carrying it out.
     """
 
-    __slots__ = ("plan", "node_id", "tick", "produced", "resolved", "claims")
+    __slots__ = ("plan", "node_id", "tick", "produced", "resolved", "claims",
+                 "work_started", "work_outcome", "work_charged_ms",
+                 "decision_ms")
 
-    def __init__(self, plan, node_id, tick):
+    def __init__(self, plan, node_id, tick, decision_ms):
         self.plan = plan
         self.node_id = node_id
         self.tick = tick
@@ -243,6 +253,10 @@ class _PlanRun:
         self.resolved = {}
         # Each job's frozen claim, decided at its start.
         self.claims = {}
+        self.work_started = False
+        self.work_outcome = None
+        self.work_charged_ms = 0.0
+        self.decision_ms = decision_ms
 
 
 def _message_bytes(job):
@@ -281,6 +295,7 @@ class NetworkSim:
         "messages_offered", "messages_delivered", "duplicates",
         "offered_bytes", "sent_bytes", "offered_bytes_by_kind",
         "offered_messages_by_kind", "offered_kind", "sent_kind",
+        "wrapper_copies",
         "ingress_kind", "duplicate_bytes", "ingress_bytes",
         "ingress_messages", "ingress_duplicate_bytes", "unserved_wants",
         "dropped_messages", "dropped_bytes", "dropped_by_kind",
@@ -293,6 +308,13 @@ class NetworkSim:
         "proofs_completed", "stale_proofs", "stale_deps_proved",
         "block_notices", "stale_by_node", "proof_jobs_cancelled",
         "proof_jobs_over_capacity",
+        "attempted", "egress_refused", "cpu_refused",
+        "plan_roots", "plan_work", "block_observations", "inclusion_times",
+        "plan_deadlines", "selection_decisions",
+        "expiry_times",
+        "pending_deliveries",
+        "transaction_evidence", "duplicate_traffic", "wire_copies",
+        "topology_fingerprint", "workload_generator_version",
     )
 
     def __init__(self, overlay, seed=42, size_model=None, capacity=None,
@@ -396,6 +418,7 @@ class NetworkSim:
                 f"egress:{node_id}", egress_queue_bytes,
                 None if egress_queue_bytes is None else _message_bytes))
         self.link_servers = {}
+        self.pending_deliveries = {}
         self.costs = costs if costs is not None else CostTable(seed=seed)
         self.verify_cost = verify_cost
         # One CPU per node, serialising everything it computes: processing a
@@ -428,6 +451,14 @@ class NetworkSim:
         # horizon on a saturated uplink, to exceed the physical capacity of the
         # link and so be obviously impossible.
         self.messages_offered = 0
+        self.attempted = MessageCounts(overlay.node_count)
+        self.egress_refused = MessageCounts(overlay.node_count)
+        self.cpu_refused = MessageCounts(overlay.node_count)
+        self.duplicate_traffic = MessageCounts(overlay.node_count)
+        self.transaction_evidence = FirstEvidence(overlay.node_count)
+        self.wire_copies = WireCopies()
+        self.topology_fingerprint = topology_fingerprint(overlay)
+        self.workload_generator_version = -1
         self.messages_delivered = 0
         self.duplicates = 0
         self.offered_bytes = [0] * overlay.node_count
@@ -440,6 +471,10 @@ class NetworkSim:
         # as a total. These are exact and never sampled.
         self.offered_kind = [dict() for _ in range(overlay.node_count)]
         self.sent_kind = [dict() for _ in range(overlay.node_count)]
+        # Completed recipient copies, not cores or unique proof identities.
+        # None disables this observer; storage is nodes x fixed encodings.
+        self.wrapper_copies = [dict.fromkeys(WRAPPER_ENCODINGS, 0)
+                               for _ in range(overlay.node_count)]
         self.ingress_kind = [dict() for _ in range(overlay.node_count)]
         self.offered_messages_by_kind = {}
         self.duplicate_bytes = 0
@@ -531,6 +566,19 @@ class NetworkSim:
         self._next_tick = 1
         self._next_slot = 1
         self.proofs_completed = 0
+        self.plan_roots = PlanRoots()
+        self.plan_work = PlanWork(overlay.node_count)
+        interval = None
+        if self.aggregation_trigger in CLOCKED_TRIGGERS:
+            interval = self.aggregation_interval
+        self.plan_deadlines = PlanDeadlines(overlay.node_count, interval)
+        self.selection_decisions = None
+        if (get_strategy("selection", self.selection_strategy)
+                is _aggregation.eip_priority):
+            self.selection_decisions = SelectionDecisions(overlay.node_count)
+        self.block_observations = []
+        self.inclusion_times = {}
+        self.expiry_times = {}
         self.stale_proofs = 0
         # Dependencies that were already included when a proof over them began.
         # This is the cost of learning late: a node that has not yet heard about
@@ -727,6 +775,9 @@ class NetworkSim:
         self.knowledge.mark(node_id, 1 << obj.leaf_index)
         targets = node.originate(obj, now, body_mask,
                                  relay=self.relay_policy != RELAY_WRAPPER_ONLY)
+        if self.transaction_evidence is not None:
+            self.transaction_evidence.admit(node_id, body_mask, now)
+            self.transaction_evidence.body(node_id, body_mask, now)
         self._trace_drops(node.id, node.enforce_candidate_limit(
                               self.arena, self._protected_candidate(node.id)),
                           "evicted")
@@ -931,13 +982,14 @@ class NetworkSim:
         else:
             duration = size / self.capacity
         kind = payload.kind
+        self.attempted.record(sender_id, kind, size)
         accepted = self.egress[sender_id].submit(
             Job(duration, on_done=self._egress_done, tag=message))
         if not accepted:
-            # The send buffer was full. Nothing crossed and nothing was offered,
-            # so this is counted as a loss rather than as traffic -- charging it
-            # as offered bytes would inflate the very figure that is meant to
-            # bound what the links can carry.
+            # Refused bytes are attempted demand, not accepted offers or wire
+            # traffic. CPU refusals happen after ingress and cannot enter this
+            # sender-side accounting identity.
+            self.egress_refused.record(sender_id, kind, size)
             self.dropped_messages += 1
             self.dropped_bytes += size
             self.dropped_by_kind[kind] = self.dropped_by_kind.get(kind, 0) + 1
@@ -970,6 +1022,8 @@ class NetworkSim:
         admitted. That asymmetry is the point of modelling a bounded CPU queue:
         under overload a node pays for reception and gets nothing for it.
         """
+        self.cpu_refused.record(message.receiver, message.payload.kind,
+                                message.size_bytes())
         self.dropped_messages += 1
         self.dropped_by_kind[what] = self.dropped_by_kind.get(what, 0) + 1
         self.dropped_by_node[message.receiver] += 1
@@ -984,6 +1038,26 @@ class NetworkSim:
     def _egress_done(self, job):
         """The last byte has left the sender. Now it travels."""
         message = job.tag
+        self.pending_deliveries[id(message)] = message
+        if self.wire_copies is not None:
+            payload = message.payload
+            if payload.kind == "object":
+                obj = self.arena.objects.get(payload.content_id)
+                if obj is not None and obj.is_leaf():
+                    self.wire_copies.raw_body(obj.leaf_index)
+            elif payload.kind == "wrapper":
+                self.wire_copies.wrapper(payload.body_mask, payload.core.tx_mask)
+        if message.payload.kind == "wrapper":
+            self.plan_work.emitted(message.payload.core.proof_object_id)
+            if self.wrapper_copies is not None:
+                payload = message.payload
+                if payload.proof_by_ref:
+                    encoding = "proof_reference"
+                elif payload.core.mode == 0:
+                    encoding = "mode_zero_witnesses"
+                else:
+                    encoding = "full_proof"
+                self.wrapper_copies[message.sender][encoding] += 1
         self.sent_bytes[message.sender] += message.size_bytes()
         table = self.sent_kind[message.sender]
         kind = message.payload.kind
@@ -1008,12 +1082,16 @@ class NetworkSim:
 
     def _link_done(self, job):
         message = job.tag
+        self.pending_deliveries[id(message)] = message
         latency = self.overlay.latency(message.sender, message.receiver)
         self.engine.schedule(latency, EV_DELIVER, message)
 
     # -- delivery ----------------------------------------------------------
 
     def _on_deliver(self, engine, message):
+        self.pending_deliveries.pop(id(message), None)
+        bodies_before = self.nodes[message.receiver].view.bodies
+        duplicates_before = self.duplicates
         self.knowledge.mark(message.receiver, self._delivered_leaves(message),
                             peer=message.sender,
                             obj=self._delivered_object(message),
@@ -1062,6 +1140,14 @@ class NetworkSim:
             self._deliver_block(message)
         else:
             self._deliver_body(message)
+        if self.transaction_evidence is not None:
+            self.transaction_evidence.body(
+                message.receiver,
+                self.nodes[message.receiver].view.bodies & ~bodies_before,
+                self.engine.now)
+        if self.duplicates > duplicates_before:
+            self.duplicate_traffic.record(message.receiver, kind,
+                                          message.size_bytes())
 
     def _deliver_body(self, message):
         """A full object arrived, pushed or requested.
@@ -1121,7 +1207,17 @@ class NetworkSim:
         node = self.nodes[message.receiver]
         obj = self._object_of(message)
         # A full object transfer brings every body it covers.
-        node.finish_receive(obj, self.engine.now, self.arena.coverage(obj))
+        bodies = self.arena.coverage(obj)
+        node.finish_receive(obj, self.engine.now, bodies)
+        if self.transaction_evidence is not None:
+            claimed = obj.claimed
+            if obj.is_leaf():
+                claimed = 1 << obj.leaf_index
+            # Synthetic aggregates without a frozen claim cannot be interpreted
+            # by an observer without traversing arena provenance.
+            if claimed is not None:
+                self.transaction_evidence.admit(node.id, claimed, self.engine.now)
+            self.transaction_evidence.body(node.id, bodies, self.engine.now)
         self._material[node.id] += 1
         self.tracer.emit("adm", node.id, t=round(self.engine.now, 3),
                          o=obj.id, born=round(obj.born, 3))
@@ -1294,9 +1390,22 @@ class NetworkSim:
             # A cancelled fifty-job tree is one abandoned plan, not fifty.
             self.proof_jobs_cancelled += len(dropped)
             self.plans_abandoned += len({job.tag[0] for job in dropped})
-        selection = get_strategy("selection", self.selection_strategy)(
+            for job in dropped:
+                self.plan_work.finish(job.tag[0], "cancelled")
+                self._finish_plan_observation(job.tag[0], "cancelled")
+        selector = get_strategy("selection", self.selection_strategy)
+        observed = None
+        options = {}
+        if (self.selection_decisions is not None
+                and selector is _aggregation.eip_priority):
+            observed = SelectionObservation()
+            options["observation"] = observed
+        selection = selector(
             node, self.arena, tick, self._selection_costs, self.proving_budget,
-            self._previous_aggregate(node))
+            self._previous_aggregate(node), **options)
+        if observed is not None:
+            self.selection_decisions.record(node_id, tick, observed,
+                                             selection.claimed)
         if selection.is_empty():
             return None
         # A strategy may only choose from what this node holds. The shipped
@@ -1345,6 +1454,10 @@ class NetworkSim:
             self._emit_wrapper(node, live[0], tick)
             return None
         plan = get_strategy("fold_plan", self.fold_plan)(selection)
+        run = _PlanRun(plan, node_id, tick, self.engine.now)
+        self.plan_work.submit(node_id)
+        if self.plan_deadlines is not None:
+            self.plan_deadlines.submit(run)
         if self.prove_cost_basis == PROVE_COST_CIRCUIT:
             # Whether one proof can hold a job's verification is decided by the
             # trace length, a protocol constant, so an over-capacity job is
@@ -1360,8 +1473,9 @@ class NetworkSim:
                 if not circuit.fits(*self._job_composition(node, job)):
                     self.proof_jobs_over_capacity += 1
                     self.plans_abandoned += 1
+                    self.plan_work.finish(run, "refused_over_capacity")
+                    self._finish_plan_observation(run, "refused_over_capacity")
                     return None
-        run = _PlanRun(plan, node_id, tick)
         for job in plan.jobs:
             # Priced by what this job proves, not by what the plan as a whole
             # will assert. Charging every fold for the whole selection would
@@ -1409,8 +1523,17 @@ class NetworkSim:
                                     and queued.tag[0] is run))
                 self.proof_jobs_cancelled += len(withdrawn)
                 self.plans_abandoned += 1
+                self.plan_work.finish(run, "refused_queue")
+                self._finish_plan_observation(run, "refused_queue")
                 return None
         return run
+
+    def _finish_plan_observation(self, run, outcome, emitted=False):
+        if self.plan_deadlines is not None:
+            self.plan_deadlines.finish(run, outcome, self.engine.now, emitted)
+        # A terminal run can remain referenced by an active internal job;
+        # it no longer needs any observation timestamp.
+        run.decision_ms = None
 
     def _held_witness_mask(self, node):
         """Transactions whose witness this node can actually put on the wire.
@@ -1525,6 +1648,9 @@ class NetworkSim:
         work that produced nothing.
         """
         run, plan_job = job.tag
+        if self.plan_deadlines is not None:
+            self.plan_deadlines.start(run, self.engine.now)
+        self.plan_work.start(run)
         inputs = self._resolve(run, plan_job)
         run.resolved[plan_job.index] = inputs
         run.claims[plan_job.index] = self._freeze_claim(
@@ -1537,8 +1663,12 @@ class NetworkSim:
         run = job.tag[0]
         self.knowledge.mark(run.node_id)
         run, plan_job = job.tag
+        run.work_charged_ms += job.duration
         inputs = run.resolved.get(plan_job.index) or self._resolve(run, plan_job)
         if not inputs:
+            if plan_job.index == run.plan.root:
+                self.plan_work.finish(run, "cancelled")
+                self._finish_plan_observation(run, "cancelled")
             return
         node = self.nodes[run.node_id]
         aggregate = self.arena.new_aggregate(inputs, self.engine.now,
@@ -1547,10 +1677,17 @@ class NetworkSim:
                                                 plan_job.index, 0))
         run.produced[plan_job.index] = aggregate
         self.proofs_completed += 1
+        self.plan_work.nodes[run.node_id]["proofs"] += 1
         if plan_job.index != run.plan.root:
             return
+        self.plan_roots.record(aggregate.claimed)
+        self.plan_work.finish(run, "completed")
+        self.plan_work.root(aggregate.id, node.id)
         # The root is what the network sees. Everything below it was internal.
         node.finish_receive(aggregate, self.engine.now)
+        if self.transaction_evidence is not None:
+            self.transaction_evidence.admit(node.id, aggregate.claimed,
+                                            self.engine.now)
         self._material[node.id] += 1
         self._trace_drops(node.id, node.enforce_candidate_limit(
                               self.arena, self._protected_candidate(node.id)),
@@ -1561,7 +1698,8 @@ class NetworkSim:
         self._trace_drops(node.id, node.supersede(run.plan.selection.inputs),
                           "superseded")
         self.own_aggregate[run.node_id] = aggregate
-        self._emit_wrapper(node, aggregate, run.tick)
+        core = self._emit_wrapper(node, aggregate, run.tick)
+        self._finish_plan_observation(run, "completed", emitted=core is not None)
 
     def _previous_aggregate(self, node):
         """This node's last aggregate, if it still holds it.
@@ -1774,6 +1912,7 @@ class NetworkSim:
         payload = message.payload
         core = payload.core
         node = self.nodes[message.receiver]
+        bodies_before = node.view.bodies
         # The class this job was checking, named again at completion: during
         # an upgrade the same proof id has a witness job and a proof job in
         # flight, and which evidence gets installed is the finished job's.
@@ -1782,14 +1921,21 @@ class NetworkSim:
         if useful_count(core.tx_mask, node.known_discarded()) == 0:
             node.abandon_wrapper(core.proof_object_id,
                                  witness_backed=witness_backed)
+            if self.transaction_evidence is not None:
+                self.transaction_evidence.body(
+                    node.id, node.view.bodies & ~bodies_before, self.engine.now)
             self.discarded_after_work += 1
             return
         bodies = node.finish_wrapper(core.proof_object_id,
                                      witness_backed=witness_backed)
+        if self.transaction_evidence is not None:
+            self.transaction_evidence.body(node.id, bodies, self.engine.now)
         aggregate = self.arena.objects.get(core.proof_object_id)
         if aggregate is None:
             return
         node.finish_receive(aggregate, self.engine.now, bodies)
+        if self.transaction_evidence is not None:
+            self.transaction_evidence.admit(node.id, core.tx_mask, self.engine.now)
         self._material[node.id] += 1
         # Knowledge arriving through aggregation is still knowledge arriving, so
         # this is recorded like any other admission -- tagged `via`, because the
@@ -1848,6 +1994,7 @@ class NetworkSim:
             newly_expired = self.chain.expire(mask)
             self.knowledge.mark_all(newly_expired)
             if newly_expired:
+                self.expiry_times[leaf_index] = now
                 due += 1
                 # Every node's view of what is settled has moved, and a node
                 # that was idle because its only plan was infeasible may now
@@ -1879,15 +2026,18 @@ class NetworkSim:
             body_mask = proposer.view.bodies
         else:
             body_mask = None
+        observation = BlockSelection(known_discarded, body_mask)
         picked, claimed = proposer.select_by_coverage(
             self.arena, self.block_budget + 1, known_discarded,
-            body_mask=body_mask)
+            body_mask=body_mask, observation=observation)
+        discarded_before = self.chain.discarded_mask()
         delays = []
         attempted = claimed & ~known_discarded
         for leaf in self.arena.leaves_in(
                 attempted & ~self.chain.discarded_mask()):
             delay = (now - leaf.born) / self.slot_length
             delays.append(delay)
+            self.inclusion_times[leaf.leaf_index] = now
             # Recorded with where it entered and who built the block, so a delay
             # can be attributed to a position in the graph.
             self.tx_records.append(
@@ -1896,6 +2046,10 @@ class NetworkSim:
         # under instant notification every node learns at once.
         block = self.chain.include(attempted, slot, proposer_id, now,
                                    [obj.id for obj in picked], delays)
+        self.block_observations.append(observation.record(
+            block, discarded_before, self.block_budget + 1,
+            self.divergence_measurable()))
+        self.plan_work.contributed(observation.selected, block.included)
         self.knowledge.mark_all(block.included)
         for delay in delays:
             self.delay_sum += delay

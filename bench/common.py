@@ -5,6 +5,7 @@ contains only contracts repeated across harnesses: topology derivation, simple
 summary operations, schedule alignment, table rules, and JSONL envelopes.
 """
 
+import argparse
 import json
 import math
 import random
@@ -12,6 +13,8 @@ import statistics
 
 from starksim.presets import names as preset_names, preset
 from starksim.network import Overlay
+from starksim.netsim import CLOCKED_TRIGGERS
+from starksim.identity import IDENTITY_COLUMNS, run_identity
 
 
 def random_regular_overlay(nodes, degree, latency, seed, jitter_frac=0.1):
@@ -68,6 +71,25 @@ def add_preset_argument(parser):
                              "still win over it")
 
 
+def _seed_start(value):
+    start = int(value)
+    if start < 0:
+        raise argparse.ArgumentTypeError("seed start must be nonnegative")
+    return start
+
+
+def add_seed_start_argument(parser):
+    """Select absolute seeds; the start is recorded in every JSON workload."""
+    parser.add_argument("--seed-start", type=_seed_start, default=0,
+                        help="first absolute seed; run --seeds consecutive "
+                             "seeds starting here")
+
+
+def seed_range(args):
+    """The same per-seed experiments, over a half-open absolute seed range."""
+    return range(args.seed_start, args.seed_start + args.seeds)
+
+
 def preset_settings(args):
     """The keyword arguments a chosen preset contributes, or none."""
     return preset(args.preset) if getattr(args, "preset", None) else {}
@@ -80,9 +102,25 @@ def print_table_header(header):
 
 
 def schedule_horizon(sim, horizon):
-    """Schedule whole tick and slot periods through ``horizon``."""
-    sim.schedule_ticks(int(horizon / sim.aggregation_interval))
-    sim.schedule_slots(int(horizon / sim.slot_length))
+    """Schedule period counts over a duration; unclocked nodes need no ticks.
+
+    Spread offsets can put the final tick past the duration. The caller's
+    bounded run decides the observation endpoint, not the scheduling helper.
+    """
+    if not math.isfinite(horizon) or horizon < 0:
+        raise ValueError("schedule horizon must be finite and nonnegative")
+    if not math.isfinite(sim.slot_length) or sim.slot_length <= 0:
+        raise ValueError("slot_length must be finite and positive")
+    ticks = 0
+    if sim.aggregation_trigger in CLOCKED_TRIGGERS:
+        if (not math.isfinite(sim.aggregation_interval)
+                or sim.aggregation_interval <= 0):
+            raise ValueError("aggregation_interval must be finite and positive")
+        ticks = int(horizon / sim.aggregation_interval)
+        sim.schedule_ticks(ticks)
+    slots = int(horizon / sim.slot_length)
+    sim.schedule_slots(slots)
+    return {"tick_count": ticks, "slot_count": slots}
 
 
 def workload_parameters(args, **specific):
@@ -99,12 +137,16 @@ def emit_json_record(benchmark, workload, seed, sim, metrics=None):
     run_metrics = sim.metrics()
     if metrics is not None:
         run_metrics.update(metrics)
+    identity = run_identity(sim, workload, benchmark)
+    for field in IDENTITY_COLUMNS:
+        run_metrics[field] = identity[field]
     record = {
         "benchmark": benchmark,
         "workload": workload,
         "seed": seed,
         "variant": sim.variant(),
         "metrics": run_metrics,
+        "identity": identity,
     }
     print(json.dumps(_json_value(record), sort_keys=True,
                      separators=(",", ":"), allow_nan=False))

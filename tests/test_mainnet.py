@@ -168,6 +168,116 @@ class TestJsonRecords(unittest.TestCase):
         argv = SMALL + ["--tps", "3", "--privacy-share", "0.4"]
         self.assertEqual(bench_stdout(argv), bench_stdout(argv))
 
+    def test_json_pairs_the_unchanged_terminal_mean_with_its_count(self):
+        captured = []
+        original = mainnet.one_run
+
+        def capture(*args):
+            outcome, sim, manifest = original(*args)
+            captured.append(sim)
+            return outcome, sim, manifest
+
+        argv = SMALL + ["--tps", "4", "--privacy-share", "0"]
+        with mock.patch.object(mainnet, "one_run", side_effect=capture):
+            record = bench_records(argv)[0]
+        sim = captured[0]
+        metrics = record["metrics"]
+        self.assertEqual(metrics["root_count"], mainnet.root_count(sim))
+        self.assertEqual(metrics["root_claim"], mainnet.mean_root_claim(sim))
+        self.assertIn("plan_roots_completed", metrics)
+        self.assertIn("plan_root_claim_weighted_mean", metrics)
+        self.assertNotIn("root_count", record["variant"])
+        self.assertNotIn("root_stats", record["workload"])
+        self.assertEqual(bench_stdout(argv),
+                         bench_stdout(argv + ["--root-stats"]))
+
+    def test_opt_in_table_prints_count_beside_claim_without_changing_values(self):
+        argv = [value for value in SMALL if value != "--json"]
+        argv += ["--tps", "4", "--privacy-share", "0"]
+        original = bench_stdout(argv)
+        extended = bench_stdout(argv + ["--root-stats"])
+        record = bench_records(argv + ["--json"])[0]
+        original_lines = original.splitlines()
+        extended_lines = extended.splitlines()
+        header_index = next(index for index, line in enumerate(extended_lines)
+                            if "claim" in line and "proofs" in line)
+        header = extended_lines[header_index].split()
+        self.assertEqual(header[-3:], ["claim", "roots", "proofs"])
+        row = next(line.split() for line in extended_lines[header_index + 1:]
+                   if "eip_faithful" in line)
+        self.assertEqual(float(row[-3]),
+                         float(f"{record['metrics']['root_claim']:.1f}"))
+        self.assertEqual(float(row[-2]), record["metrics"]["root_count"])
+        self.assertEqual(extended, bench_stdout(argv + ["--root-stats"]))
+        self.assertEqual(len(original_lines), len(extended_lines))
+        # Only the header, its rule and the data row acquire the extra column.
+        for index, (before, after) in enumerate(zip(original_lines,
+                                                   extended_lines)):
+            if index == header_index or set(after) == {"-"}:
+                continue
+            if "eip_faithful" in after:
+                values = after.split()
+                del values[-2]
+                self.assertEqual(values, before.split())
+            else:
+                self.assertEqual(before, after)
+
+    def test_explicit_ages_record_maturity_without_extending_the_run(self):
+        argv = SMALL + ["--tps", "2", "--privacy-share", "0"]
+        baseline = bench_records(argv)[0]
+        measured = bench_records(argv + ["--outcome-ages-ms", "500,2000"])[0]
+        self.assertEqual(measured["workload"]["outcome_ages_ms"], [500.0, 2000.0])
+        self.assertEqual(baseline["metrics"]["fixed_age_outcomes"], -1)
+        self.assertEqual(baseline["variant"], measured["variant"])
+        self.assertNotIn("outcome_ages_ms", measured["variant"])
+        summaries = measured["metrics"]["fixed_age_outcomes"]
+        self.assertEqual([row["age_ms"] for row in summaries], [500.0, 2000.0])
+        self.assertTrue(summaries[0]["comparable"])
+        self.assertFalse(summaries[1]["comparable"])
+        self.assertEqual(summaries[1]["late"]["mature_txs"], 1)
+        self.assertEqual(summaries[1]["late"]["censored_txs"], 1)
+        self.assertEqual(summaries[1]["all"]["observed_until_ms"], 3000.0)
+        for key in baseline["metrics"]:
+            if key != "fixed_age_outcomes":
+                self.assertEqual(baseline["metrics"][key],
+                                 measured["metrics"][key], key)
+        self.assertEqual(bench_stdout(argv + ["--outcome-ages-ms", "500,2000"]),
+                         bench_stdout(argv + ["--outcome-ages-ms", "500,2000"]))
+
+    def test_fixed_age_and_utilisation_windows_do_not_follow_drain_length(self):
+        argv = SMALL + ["--tps", "2", "--privacy-share", "0",
+                        "--outcome-ages-ms", "500"]
+        short = bench_records(argv)[0]["metrics"]
+        long = bench_records(argv + ["--drain-slots", "3"])[0]["metrics"]
+        self.assertEqual(short["load_utilisation"], long["load_utilisation"])
+        self.assertEqual(short["load_traffic"], long["load_traffic"])
+        traffic = short["load_traffic"]
+        self.assertEqual(traffic["start_ms"], 0.0)
+        self.assertEqual(traffic["end_ms"], 2000.0)
+        self.assertGreater(traffic["attempted_bytes_per_second"], 0)
+        self.assertAlmostEqual(
+            traffic["wire_bytes_per_second"],
+            short["load_utilisation"]["egress_utilisation"] * 25e6 / 8)
+        window = short["load_utilisation"]
+        self.assertEqual(window["start_ms"], 0.0)
+        self.assertEqual(window["end_ms"], 2000.0)
+        self.assertEqual(window["cpu_utilisation"], short["cpu_load_window"])
+        for metrics in (short, long):
+            for cohort in ("all", "early", "late"):
+                metrics["fixed_age_outcomes"][0][cohort].pop("observed_until_ms")
+        self.assertEqual(short["fixed_age_outcomes"], long["fixed_age_outcomes"])
+
+    def test_age_requests_require_valid_numbers_and_json_output(self):
+        argv = SMALL + ["--tps", "2", "--privacy-share", "0"]
+        for ages in ("-1", "nan", "inf", "abc", "1,"):
+            with contextlib.redirect_stderr(io.StringIO()):
+                with self.assertRaises(SystemExit):
+                    bench_records(argv + ["--outcome-ages-ms", ages])
+        with contextlib.redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit):
+                bench_stdout([value for value in argv if value != "--json"]
+                             + ["--outcome-ages-ms", "500"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -161,7 +161,8 @@ def estimate_cost(costs, dep_count, arena=None, view=None, object_ids=()):
 
 
 @register("selection", "eip_priority")
-def eip_priority(node, arena, tick, costs, budget, previous_aggregate=None):
+def eip_priority(node, arena, tick, costs, budget, previous_aggregate=None,
+                 observation=None):
     """The EIP's stated order (`eip-8288.md:258`).
 
     1. this node's own aggregate from the previous round; 2. removals -- not a
@@ -200,17 +201,22 @@ def eip_priority(node, arena, tick, costs, budget, previous_aggregate=None):
     coverage = 0
 
     def would_add(obj):
-        return marginal_count(arena.claim(obj), known_discarded, coverage)
+        claim = arena.claim(obj)
+        if observation is not None:
+            observation.eligible |= claim & ~known_discarded
+        return marginal_count(claim, known_discarded, coverage)
 
-    def take(obj):
+    def take(obj, tier):
         nonlocal coverage
         chosen.append(obj.id)
         claims.append(arena.claim(obj))
+        if observation is not None:
+            observation.take(tier, claims[-1] & ~known_discarded, coverage)
         coverage |= arena.claim(obj)
 
     # Tier 1: keep building on what this node proved last time.
     if previous_aggregate is not None and would_add(previous_aggregate):
-        take(previous_aggregate)
+        take(previous_aggregate, "previous_root")
 
     held_aggregates = []
     held_leaves = []
@@ -220,8 +226,16 @@ def eip_priority(node, arena, tick, costs, budget, previous_aggregate=None):
             continue
         if obj.is_leaf():
             held_leaves.append(obj)
+            if observation is not None:
+                # The leaf loop can stop before visiting the tail. Leaf
+                # identity supplies its claim without an extra arena read.
+                observation.leaf(obj.leaf_index)
         else:
             held_aggregates.append(obj)
+
+    if observation is not None:
+        observation.eligible |= (int.from_bytes(observation.leaves, "little")
+                                 & ~known_discarded)
 
     # Tier 3: peers' aggregates, most new transactions first. Recomputed each
     # round rather than sorted once, because taking one changes what the next
@@ -239,8 +253,10 @@ def eip_priority(node, arena, tick, costs, budget, previous_aggregate=None):
         merged = (coverage | arena.claim(best)).bit_count()
         if _over_budget(costs, chosen + [best.id], merged, arena, node.view,
                         budget):
+            if observation is not None:
+                observation.peer_budget_stop = True
             break
-        take(best)
+        take(best, "peer_aggregates")
         held_aggregates.remove(best)
 
     # Tier 4: loose transactions by fee, highest first, id breaking ties so the
@@ -252,8 +268,10 @@ def eip_priority(node, arena, tick, costs, budget, previous_aggregate=None):
         merged = (coverage | arena.claim(obj)).bit_count()
         if _over_budget(costs, chosen + [obj.id], merged, arena, node.view,
                         budget):
+            if observation is not None:
+                observation.leaf_budget_stop = True
             break
-        take(obj)
+        take(obj, "fee_leaves")
 
     claimed = coverage & ~known_discarded
     return Selection(tuple(chosen), tuple(claims), coverage, claimed, tick,

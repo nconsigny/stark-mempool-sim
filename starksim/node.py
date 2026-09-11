@@ -827,7 +827,7 @@ class Node:
     # -- selection ---------------------------------------------------------
 
     def select_by_coverage(self, arena, limit, known_discarded,
-                           body_mask=None):
+                           body_mask=None, observation=None):
         """Greedily pick up to `limit` held objects covering the most txs.
 
         Marginal coverage, not total: the second pick is worth only what it adds
@@ -849,6 +849,10 @@ class Node:
 
         This is the proposer's block-assembly rule, separate from aggregation
         selection strategies.
+
+        An optional observation receives raw claims during the first scan and
+        each winning claim. It neither supplies scores nor revisits the arena,
+        so observing selection cannot change coverage-cache state or ties.
         """
         chosen_mask = 0
         picked = []
@@ -856,12 +860,16 @@ class Node:
         while len(picked) < limit:
             best_object = None
             best_claim = 0
+            best_raw_claim = 0
             best_gain = 0
             for object_id in candidates:
                 obj = arena.objects.get(object_id)
                 if obj is None:
                     continue
                 claim = arena.claim(obj)
+                raw_claim = claim
+                if observation is not None and not picked:
+                    observation.candidate(raw_claim)
                 if body_mask is not None:
                     claim &= body_mask
                 gain = marginal_count(claim, known_discarded, chosen_mask)
@@ -869,8 +877,11 @@ class Node:
                     best_gain = gain
                     best_object = obj
                     best_claim = claim
+                    best_raw_claim = raw_claim
             if best_object is None:
                 break
+            if observation is not None:
+                observation.select(best_object.id, best_raw_claim, best_claim)
             picked.append(best_object)
             chosen_mask |= best_claim
             candidates.remove(best_object.id)

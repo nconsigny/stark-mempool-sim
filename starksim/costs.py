@@ -46,7 +46,7 @@ PROVE_COST_BASES = (PROVE_COST_DEPS, PROVE_COST_INPUTS, PROVE_COST_CIRCUIT)
 class CostTable:
     """Durations per computation kind, with optional per-job jitter."""
 
-    __slots__ = ("costs", "jitter_frac", "_rng", "prove_cost_basis")
+    __slots__ = ("costs", "jitter_frac", "seed", "_rng", "prove_cost_basis")
 
     def __init__(self, verify_recv=0.0, prove_recursive=0.0, build_block=0.0,
                  jitter_frac=0.0, seed=0):
@@ -61,6 +61,7 @@ class CostTable:
             if not callable(value) and value < 0:
                 raise ValueError(f"{kind} cost must be >= 0")
         self.jitter_frac = float(jitter_frac)
+        self.seed = seed
         # Jitter is drawn per job rather than derived from an identity: a job's
         # identity is its position in a queue, which is not stable across
         # parameter changes anyway, so there is nothing to keep comparable. One
@@ -88,6 +89,7 @@ class CostTable:
         clone.prove_cost_basis = prove_cost_basis
         clone.costs = dict(self.costs)
         clone.jitter_frac = self.jitter_frac
+        clone.seed = self.seed
         clone._rng = self._rng
         return clone
 
@@ -116,6 +118,20 @@ class CostTable:
         existing CPU work.
         """
         return self.base(kind, size) == 0.0
+
+
+class LinearCost:
+    """A numeric per-unit rate, with the same multiplication as a linear callable."""
+
+    __slots__ = ("per_unit",)
+
+    def __init__(self, per_unit):
+        if per_unit < 0:
+            raise ValueError("per-unit cost must be nonnegative")
+        self.per_unit = float(per_unit)
+
+    def __call__(self, size):
+        return self.per_unit * size
 
 
 class NativeVerifyCost:

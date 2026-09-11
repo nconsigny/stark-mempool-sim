@@ -276,6 +276,17 @@ producing and watching one.
 
 ## What the harnesses expose
 
+`overload`, `economy`, `levers`, `throughput`, `mainnet`, `placement`,
+`sweep`, `propagation` and `triage` accept `--seed-start`, defaulting to
+zero. With `--seeds N` they run the absolute seeds in
+`[seed_start, seed_start + N)` without changing any per-seed random stream.
+Negative starts are refused. Every JSON workload block records
+`seed_start`, omitted or not, so a record does not rely on the reader
+knowing the default; it is not part of the variant, and the record's
+`seed` remains absolute. For example, `--seed-start 100 --seeds 32`
+selects confirmation seeds independently of a screening run's count. The
+retired `v1_calibration` harness is unchanged.
+
 <!-- sweep-axes:start -->
 **`bench.sweep`** varies one axis and holds the rest:
 `--axis` accepts `relay_policy`, `chain_notify`, `proposer_mode`,
@@ -284,16 +295,121 @@ producing and watching one.
 `wrapper_mode`, `fold_threshold`, `on_tick_overrun`,
 `block_budget`, `entry_subset`, `aggregation_interval`,
 `slot_length`, `proving_budget`, `aggregation_trigger`,
-`fold_amortize`. `--set KEY=VALUE` holds
+`fold_amortize`, `egress_queue_bytes`, `cpu_queue_jobs`, `seen_limit`,
+`candidate_limit`, `coverage_cache_limit`, `request_timeout`, `capacity`,
+`link_capacity`, `pin_own_aggregate`, `proposer_id`, `size_triple`,
+`size_hash_ref`, `size_sig_witness`, `size_stark_witness`,
+`size_recursive_proof`, `size_tx_body`, `size_announce_overhead`,
+`transactions`, `kind`, `fee`, `lifetime`. `--set KEY=VALUE` holds
 any of the same names at
 a non-default value, `--prove-cost-circuit MS` selects circuit pricing, and the
 axis names are validated so a typo cannot become a row describing a
 configuration nobody ran.
 <!-- sweep-axes:end -->
 
+New queue/cache bounds are optional integers; capacities and request timeouts
+are optional floats. These accept `none` for the model's unbounded/disabled
+setting. Capacities are bytes/ms, not Mbit/s; a capacity axis overrides
+`--uplink-mbps`. Size axes are integer bytes, mapped to the corresponding
+`SizeModel` fields. `pin_own_aggregate` accepts `true` or `false` and
+`proposer_id` is an integer. Existing axes keep their conversions, including
+integer-only `entry_subset` and float-only `proving_budget`.
+
+The workload axes are `transactions` (integer count), `kind` (`q` or `p`),
+`fee` (float, or `none` for the existing index-modulo-five fee cycle), and
+`lifetime` (nonnegative ms, or `none` for no expiry). They control
+`schedule_birth`, not constructor settings. These cells use uniformly spaced
+births; they do not select mainnet's manifest arrival profiles. Workload
+axes belong in JSON workload records, not variants; CSV alone does not
+identify them. Model settings that are inert in a selected configuration
+are still refused by `NetworkSim`.
+
+For a clocked/unclocked comparison, pass both `--birth-horizon-ms B` and
+`--observation-horizon-ms H`, with finite `0 < B <= H`. Births are spaced
+over `[0, B)` and observation ends at `H`, even if work remains. These flags
+replace `--ticks` and `--slots`; passing either count explicitly with the
+horizon flags is refused. Whole slot periods over `H` determine the block
+count. Clocked triggers also schedule whole aggregation-period counts;
+spread offsets can leave the final round partly beyond observation. No
+ticks are scheduled for an unclocked trigger. `when_ready` requires these
+horizons and an explicit `proving_budget`, via the axis or `--set`; an
+explicit aggregation interval or overrun rule is refused as inert there.
+
+Without horizon flags, clocked sweeps retain their original defaults:
+`--slots` determines both the birth window and block count, `--ticks`
+determines aggregation rounds, and observation ends when the calendar drains.
+Request retries require explicit horizons because an unanswered request may
+never drain. `workload.schedule` in every sweep JSON record carries the mode,
+resolved birth horizon, requested observation horizon (`null` for legacy
+drain), their derivations, scheduled tick/slot counts and their sources,
+effective proving budget and its source, and resolved birth controls. Tick
+counts are rounds per node, not proofs or completed tick callbacks. The
+actual endpoint is also recorded; explicit-horizon and legacy-drain rows
+have different observation contracts even at the same birth rate.
+
 **The focused benches** — `propagation`, `economy`, `overload`, `placement`,
 `triage`, `v1_calibration`, `levers`, `throughput`, `mainnet` — each fix a scenario and expose the workload knobs that scenario turns.
 `--help` on any of them is authoritative.
+
+`bench.mainnet --root-stats` adds the terminal-root count beside the text
+table's `claim` mean; both cells are means over seeds. It defaults to off to
+preserve the published text format. Each `--json` record always includes
+`root_count` with `root_claim`, independently of this flag. This is an output
+option, not simulation or workload configuration: it does not enter the
+variant or trace header. The distinct completion-time root measurements are
+defined in [glossary.md](glossary.md#aggregation-measurements).
+
+`bench.mainnet --arrivals` accepts `uniform` (default), `poisson` and
+`bursty`. Profiles hold the transaction count, kinds, fees and entry
+assignments fixed at equal seed, count and entry pool; only birth times
+change. The burst period is `--slot-length`. Nonuniform text output labels
+the profile; uniform retains the existing table and values. JSON workload
+blocks always carry `manifest_version`, `arrivals`, `realised_mix`,
+`manifest_window_ms`, `arrival_period_ms`, `arrival_phase_ms`,
+`manifest_entry_nodes`, `generation_window_ms` and `generation_count`.
+These describe the workload, not the variant or trace configuration.
+
+`--emit-manifest` requires `--json` and adds a `manifest` object to each
+workload block, including every birth's time, kind, fee, lifetime and entry
+node. The flag itself is presentation metadata and is not recorded.
+`bench.workload.WorkloadManifest.from_record(...)` restores that object;
+`.prefix(until_ms)` selects a shorter birth window and `.schedule(sim)`
+replays literal records. `bench.mainnet.one_run(..., manifest=...)` accepts
+a supplied manifest, uses its birth-window endpoint and returns the outcome,
+simulation and consumed manifest. It requires the same entry pool as the
+simulation. Different entry subsets define different fixtures, not paired
+policy treatments. Profile definitions and prefix limits are in
+[glossary.md](glossary.md#workload-manifests-and-arrival-profiles).
+
+`bench.mainnet --json --outcome-ages-ms 12000,24000` requests fixed-age
+outcomes at comma-separated finite, nonnegative ages in ms. The default
+requests none (`fixed_age_outcomes: -1`). This flag requires `--json` and
+does not extend the run or its drain. Each record's workload identifies the
+requested ages as `outcome_ages_ms`; these are observation choices, not
+`NetworkSim` policy fields, and do not enter its variant or trace header.
+The early and late cohorts are the first and second halves of the birth
+window. JSON also carries `load_utilisation` over that full window,
+independently of the age requests. The default text and CSV schemas are
+unchanged. Definitions and the programmatic query API are in
+[glossary.md](glossary.md#fixed-age-outcomes-and-utilisation-windows).
+
+`bench.mainnet --diffusion` requires `--json` and defaults off. It adds
+`evidence_diffusion` and `body_diffusion`, each a list of the existing
+diffusion query results at fractions 0.9 and 1.0 at observation end. The
+flag does not enter the workload, variant, trace header or run identity,
+and does not extend the drain. JSON always includes the `wire_copies`
+summary, without per-transaction copy rows. The copy and reach populations
+are distinct; see [glossary.md](glossary.md#wire-copies).
+
+`bench.overload --recovery-stats` appends `egress empty`, `quiescent` and
+`useful` columns to its recovery table. It defaults to off; the legacy
+`drained` column and default text stay unchanged. Defined boolean states
+print as runs satisfying the state over seeds; an unavailable state prints
+`-1`. JSON always includes these states and the load/end work snapshots.
+This presentation option is not part of the workload, variant or trace
+header. The wire-only overload fixture cannot assess useful inclusion
+recovery; the reusable window assessment and its required reference are
+defined in [glossary.md](glossary.md#recovery-measurements).
 
 **`tools.live_run`** exposes `--preset`, `--nodes`, `--degree`, `--uplink-mbps`, `--latency`,
 `--tps`, `--lifetime`, `--egress-bytes`, `--candidate-limit`,

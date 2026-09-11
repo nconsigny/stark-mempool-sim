@@ -33,18 +33,22 @@ question this bench informs rather than answers.
 
 `--prove-ms` is milliseconds per selected dependency. This differs from
 economy's pairwise-fold anchor and sweep's flat cost per proving job.
+
+`--seed-start` defaults to zero; `--seeds` counts consecutive absolute seeds
+from that start without changing their random streams.
 """
 
 import argparse
 import random
 import sys
 
-from bench.common import (emit_json_record, mean_field, print_table_header,
+from bench.common import (add_seed_start_argument, seed_range,
+                          emit_json_record, mean_field, print_table_header,
                           random_regular_overlay, schedule_horizon,
                           workload_parameters)
 from starksim.aggregation import live_fee
 from starksim.arena import KIND_PQ
-from starksim.costs import CostTable
+from starksim.costs import CostTable, LinearCost
 from starksim.netsim import NetworkSim
 from starksim.network import bytes_per_ms
 
@@ -70,8 +74,7 @@ def one_run(args, selection, eviction, seed, return_sim=False):
                      selection_strategy=selection, eviction_policy=eviction,
                      candidate_limit=args.candidate_limit,
                      costs=CostTable(verify_recv=1.0,
-                                     prove_recursive=lambda deps:
-                                     prove_ms * deps),
+                                     prove_recursive=LinearCost(prove_ms)),
                      egress_queue_bytes=4_000_000)
     spacing = 1000.0 / args.tps
     births = int(args.window / spacing)
@@ -117,7 +120,7 @@ def one_run(args, selection, eviction, seed, return_sim=False):
 
 def emit_json_runs(args):
     for selection, eviction in SCENARIOS:
-        for seed in range(args.seeds):
+        for seed in seed_range(args):
             summary, sim = one_run(args, selection, eviction, seed,
                                    return_sim=True)
             workload = workload_parameters(
@@ -146,6 +149,7 @@ def main():
                         help="tail weight of the lognormal fee model; "
                              "median is 1 either way")
     parser.add_argument("--seeds", type=int, default=2)
+    add_seed_start_argument(parser)
     parser.add_argument("--json", action="store_true",
                         help="emit one JSON record per seed and scenario")
     args = parser.parse_args()
@@ -173,7 +177,7 @@ def main():
     print_table_header(header)
     for selection, eviction in SCENARIOS:
         runs = []
-        for seed in range(args.seeds):
+        for seed in seed_range(args):
             runs.append(one_run(args, selection, eviction, seed))
         fee_share = mean_field(runs, "fee_share")
         included = (f"{mean_field(runs, 'included'):.0f}/"

@@ -10,9 +10,9 @@ Ranked items are tagged with the objective they serve
 1. **(O1, O2)** Deepen the mainnet-shaped workload. `bench.mainnet` now runs
    12-second slots, a mixed transaction population, and leanVM-b-calibrated
    proving and verification, and [results.md](results.md) carries the first
-   frontier from it. What remains: bursty arrivals (uniform spacing is a
-   stated limitation, and the frontier-adjacent cells sit at 93–96% CPU),
-   block messages
+   frontier from it. What remains: measuring under bursty arrivals
+   (`bench.mainnet --arrivals bursty` exists, but every published cell is
+   uniform, and the frontier-adjacent ones sit at 93–96% CPU), block messages
    under `chain_notify="overlay"` so block verification is charged, a
    justified mix beyond the swept share axis, and the two external
    measurements the frontier hinges on — the leanSTARK witness weight

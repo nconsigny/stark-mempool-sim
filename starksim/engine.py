@@ -45,6 +45,8 @@ import heapq
 import itertools
 from collections import deque
 
+from starksim.statistics import Moments
+
 
 # The engine handles one event kind itself: a server finishing its current job.
 # Domain modules register their own kinds (deliveries, ticks, slot boundaries).
@@ -155,7 +157,8 @@ class Server:
                  "service_sum", "max_waiting", "cancelled",
                  "served_by_kind", "service_by_kind",
                  "queue_limit", "weigh", "queued_weight", "rank",
-                 "dropped", "dropped_weight")
+                 "dropped", "dropped_weight", "wait_by_kind",
+                 "refused_by_kind", "refused_ms_by_kind")
 
     def __init__(self, engine, name, queue_limit=None, weigh=None, rank=None):
         self.name = name
@@ -198,6 +201,9 @@ class Server:
         # something a test can assert rather than something a script observes.
         self.served_by_kind = {}
         self.service_by_kind = {}
+        self.wait_by_kind = {}
+        self.refused_by_kind = {}
+        self.refused_ms_by_kind = {}
 
     # -- state ------------------------------------------------------------
 
@@ -268,6 +274,11 @@ class Server:
                 and self.queued_weight + weight > self.queue_limit):
             self.dropped += 1
             self.dropped_weight += weight
+            if job.kind is not None:
+                self.refused_by_kind[job.kind] = (
+                    self.refused_by_kind.get(job.kind, 0) + 1)
+                self.refused_ms_by_kind[job.kind] = (
+                    self.refused_ms_by_kind.get(job.kind, 0.0) + job.duration)
             return False
         self.waiting.append(job)
         self.queued_weight += weight
@@ -280,6 +291,10 @@ class Server:
         job.started_at = now
         self.current_job = job
         self.busy_since = now
+        if job.kind is not None:
+            if job.kind not in self.wait_by_kind:
+                self.wait_by_kind[job.kind] = Moments()
+            self.wait_by_kind[job.kind].record(job.wait())
         if job.on_start is not None:
             job.on_start(job)
         # A zero-duration job lands at `now` with a fresh sequence number, so it

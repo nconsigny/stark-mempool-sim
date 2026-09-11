@@ -5,7 +5,7 @@ import unittest
 
 from starksim.arena import KIND_PQ, KIND_PRIVACY
 from starksim.costs import CostTable, NativeVerifyCost
-from starksim.netsim import NetworkSim, csv_row
+from starksim.netsim import CSV_COLUMNS, NetworkSim, csv_row
 from tests.support import make_sim, two_node_overlay
 
 
@@ -165,10 +165,12 @@ class TestIdentity(unittest.TestCase):
         self.assertEqual(priced.variant()["verify_sig_ms"], 0.1)
         self.assertEqual(priced.variant()["verify_stark_ms"], 15.5)
         self.assertEqual(priced.variant()["verify_message_ms"], 0.25)
-        # And the CSV row serializes them, so a published sweep attributes it.
-        # The trailing column is fold_amortize at its default.
-        row = csv_row(priced.metrics())
-        self.assertTrue(row.endswith("0.100000,15.500000,0.250000,1.000000"))
+        # CSV prices attribute a published sweep independently of later columns.
+        row = dict(zip(CSV_COLUMNS, csv_row(priced.metrics()).split(",")))
+        self.assertEqual(row["verify_sig_ms"], "0.100000")
+        self.assertEqual(row["verify_stark_ms"], "15.500000")
+        self.assertEqual(row["verify_message_ms"], "0.250000")
+        self.assertEqual(row["fold_amortize"], "1.000000")
 
     def test_degenerate_prices_reproduce_the_flat_run_exactly(self):
         # per_message alone equals a flat verify_recv with zero jitter, so

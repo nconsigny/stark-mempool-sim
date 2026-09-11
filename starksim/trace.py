@@ -20,6 +20,8 @@ can be followed.
 
 import json
 
+from starksim.evidence import DuplicateAccumulator
+
 
 # Above this many directed edges the topology is omitted from the header rather
 # than written: at N*d = 200_000 the edge list is already over a megabyte of
@@ -43,7 +45,8 @@ class Tracer:
     """Writes trace events, honouring a focus and a sampling rate."""
 
     __slots__ = ("stream", "focus", "sample", "written", "suppressed",
-                 "counter_interval", "topology", "follow", "_counter")
+                 "counter_interval", "topology", "follow", "_counter",
+                 "duplicate_accumulator")
 
     def __init__(self, stream=None, focus=None, sample=1,
                  counter_interval=None, topology=None, follow=None):
@@ -76,6 +79,7 @@ class Tracer:
         self.written = 0
         self.suppressed = 0
         self._counter = 0
+        self.duplicate_accumulator = DuplicateAccumulator()
 
     def enabled(self):
         return self.stream is not None
@@ -106,6 +110,8 @@ class Tracer:
         # file, so each complete record is flushed immediately.
         self.stream.flush()
         self.written += 1
+        if event == "dup" and self.duplicate_accumulator is not None:
+            self.duplicate_accumulator.record(fields["txs"], fields["b"])
         return True
 
     def header(self, variant):
@@ -137,3 +143,5 @@ class Tracer:
         # the first event, including while a simulation is idle at startup.
         self.stream.flush()
         self.written += 1
+        if self.duplicate_accumulator is not None:
+            self.duplicate_accumulator.has_header = True

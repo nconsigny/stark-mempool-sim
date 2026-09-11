@@ -17,6 +17,11 @@ Confidence is about how far a result travels, not how carefully it was run:
 (mechanism understood, one fixture), **medium** (few seeds or one operating
 point), **null result** (a difference was looked for and not found).
 
+Seeded reproduction commands identify the seed range as well as its count;
+the harnesses supporting `--seed-start` use zero when it is omitted.
+Benchmark JSON also records [run identity](glossary.md#run-identity): topology,
+generator and code versions, cost profiles and node assignments.
+
 Model semantics are in [model.md](model.md); open questions in
 [roadmap.md](roadmap.md). Nothing here is validated against a client
 implementation or a testnet, because none exists yet — that caveat applies to

@@ -18,10 +18,14 @@ holdings, so `admission_delays` and its two descendants **refuse** for an object
 that has departed every view, or for a window the run has not observed.
 Reconstruct reach from the `arr`, `adm` and `drop` trace records instead.
 
-**`offered_bytes` is not `wire_bytes`.** One is what entered a queue, the other
-is what crossed. Under saturation they differ by whatever is still queued or was
-tail-dropped, and reporting offered bytes as traffic can produce a total above
-the links' physical capacity.
+**`offered_bytes` is neither attempted demand nor wire traffic.** Offered
+counts bytes accepted by egress; `attempted_bytes` includes egress-refused
+sends, and `wire_bytes` counts what has crossed, including partial sends.
+Accepted work still waiting or transmitting makes offered exceed wire bytes.
+To reconstruct attempts, add `egress_refused_bytes`, not `dropped_bytes`:
+the latter also includes CPU-refused messages whose bytes already arrived.
+Even attempted demand depends on relay and retry behavior, so keep the
+exogenous transaction birth rate beside it; see [glossary.md](glossary.md).
 
 **`seen` is a forgetful window.** It may have dropped an identity the node still
 holds, so duplicate checks consult `held` and `verifying` directly rather than
@@ -36,6 +40,52 @@ that tracked how the measurement was set up rather than the network, and no test
 caught either, because each computed exactly what it claimed.
 `tests/test_measurement.py` pins this down.
 
+**`adm` is not transaction evidence.** It names a carrying object, so matching
+it only to raw birth object ids misses transactions admitted inside wrapper
+claims. Repeated object admissions can also count the same node twice. Keep
+placement's legacy raw-admission statistic for its published comparisons;
+use [first-evidence diffusion](glossary.md#transaction-evidence-and-duplicate-burden)
+for transaction reach across relay policies. Body availability is separate,
+and neither first timestamp establishes that both are held now. Duplicate
+wrappers also name multiple transactions: assigning their full bytes to each
+one multiplies traffic. Use the declared shared-byte attribution and retain
+message-level totals, including categories absent from followed traces.
+
+**Same rate, new fixture.** Uniform, fixed-count Poisson-conditioned and bursty
+arrivals can have the same average transaction rate and different congestion.
+Keep profile/version and realised mixture with the result. Hold birth
+attributes fixed when comparing profiles; for duration comparisons, take
+prefixes of a longer manifest instead of rerunning the shorter generator.
+The [manifest contract](glossary.md#workload-manifests-and-arrival-profiles)
+defines what those comparisons preserve. Previously published uniform results
+are not measurements of the other profiles.
+
+**Fewer copies by reaching fewer nodes is not an economy.** Compare
+[wire-copy counts](glossary.md#wire-copies) under the same birth manifest
+and observation horizon, beside evidence/body diffusion and inclusion.
+Refused or partly sent messages contribute no completed copy; low counts
+can therefore indicate a stalled uplink or incomplete spread. First reach
+counts distinct nodes and cannot reconstruct repeated transmissions to
+them. Wrapper claim mentions are not additional body copies or independent
+messages, and duplicate-byte shares are attribution, not copy counts.
+
+**Terminal DAG roots are not completed plan roots.** Later consumption can
+remove a terminal object before its successor completes; an unfinished plan
+can leave an unused internal output terminal. Keep `bench.mainnet`'s legacy
+`root_claim` paired with `root_count`, and use `plan_roots_completed` for
+completion-time means. A claim-weighted mean is not overlap-free: use a union
+for distinct transactions and ordered marginal contributions for block
+density. Definitions are in
+[glossary.md](glossary.md#aggregation-measurements).
+
+**A block changes the view being measured.** Its candidate union must be
+observed before settlement, from the proposer's held objects rather than the
+whole arena. A full object allowance alone does not show a binding budget:
+additional body-backed live claims must remain locally available. That is
+still a statement about the current selection, not an optimal builder. The
+`block_observations` records preserve this distinction without changing the
+selector's scoring or reading canonical settlement into its decisions.
+
 **Observation is a cost.** An instrument that dominates its subject is broken
 even when it reports the truth: the knowledge tracer was once quadratic while
 the simulation was linear. Instrument event counts rather than wall-clock time,
@@ -46,11 +96,59 @@ and bound the instrument. See
 passes, not a query over history. Earlier and later readings are refused
 deliberately rather than interpolated.
 
+**Egress busy time is not wrapper bytes.** Bodies, triples and control
+messages share the uplink. Multiplying busy time by capacity gives total
+wire bytes, not recursive-proof bytes; completed-message counters also omit
+the active message's transmitted portion. Use the
+[traffic window](glossary.md#boundary-sampled-traffic) for per-kind wire
+rates and completed wrapper encodings. A wrapper-kind rate still includes
+its bodies, hashes and triples. Compare the reference cadence proof rate
+with that distinction intact, alongside refusals and unfinished work.
+
+**End-of-drain inclusion gives late births less time.** Compare birth cohorts
+at the same age, exclude immature births even when they have already settled,
+and keep expiry separate from inclusion. A complete-cohort contrast must also
+wait for the cohort's birth interval to close. Freeze utilisation endpoints
+independently of the drain: a longer idle tail is not reduced service demand.
+The [fixed-age queries and boundary samples](glossary.md#fixed-age-outcomes-and-utilisation-windows)
+preserve these distinctions; legacy terminal inclusion and included-only
+delay do not acquire fixed-age meanings.
+
 **A structural zero is not a measurement.** `stale_deps_proved` reports `-1`
 under `chain_notify="instant"`, because the effect it measures cannot exist in
 that configuration. `-1` and `-1.0` are the sentinel for "this run cannot answer
 this", and any new metric with the same property must use it rather than
 reporting a zero that reads as evidence.
+
+**An empty waiting queue is not recovery.** Its last message may still be in
+service or propagating, and an idle transport may still owe a request that
+will never be answered. Useful service requires inclusion and pending work
+to return to a pre-burst reference and stay there through a confirmation
+window; expiry cannot stand in for inclusion. The
+[recovery measurements](glossary.md#recovery-measurements) keep these states
+separate. Their sampled work peaks do not bound excursions between samples.
+
+**A short CPU queue can be produced by refusal.** Compare waiting samples
+with refused job counts and estimated milliseconds, not only service time.
+Waiting distributions sample jobs that started; a job still waiting has a
+censored wait and contributes no sample, even if it will wait longest. Plan
+cost ratios condition on completion and exclude failed or unfinished plans;
+keep lifecycle counts beside them. A cancelled plan may still spend CPU on
+an internal job, and a completed root may never leave egress. The
+[CPU work and useful output counters](glossary.md#cpu-work-and-useful-output)
+separate these populations. Emitted-and-contributing roots establish an
+intersection, not that transmission caused inclusion or that ancestor work
+was unnecessary.
+
+**A charged/estimate ratio of one can coexist with a large queue.** The
+ratio compares completed plans' service costs, not their waiting time or
+decision-to-completion latency. Read it beside
+[plan deadlines and selection decisions](glossary.md#plan-deadlines-and-selection-decisions):
+unfinished plans have censored or overdue deadlines, terminal failures are
+not completions, and a budget-limited selection can leave a locally eligible
+union behind even when its eventual charge matches its estimate. Local
+wrapper emission also says nothing about how soon a peer's copy leaves
+egress or becomes verified evidence.
 
 **`variant()` reaches the trace header; `metrics()` does not.** Configuration
 belongs in the variant, measurements in the metrics. A *bound* placed among the

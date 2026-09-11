@@ -29,16 +29,20 @@ per dependency and sweep's flat milliseconds per proving job.
 Every byte figure is *offered*, split by payload kind, alongside what
 actually crossed (`wire`): the gap between them is queueing, and a lever
 that shrinks offered bytes below the uplink ceiling closes that gap.
+
+`--seed-start` defaults to zero; `--seeds` counts consecutive absolute seeds
+from that start without changing their random streams.
 """
 
 import argparse
 import sys
 
-from bench.common import (emit_json_record, mean_field, print_table_header,
+from bench.common import (add_seed_start_argument, seed_range,
+                          emit_json_record, mean_field, print_table_header,
                           random_regular_overlay, schedule_horizon,
                           workload_parameters)
 from starksim.arena import KIND_PRIVACY
-from starksim.costs import CostTable
+from starksim.costs import CostTable, LinearCost
 from starksim.netsim import NetworkSim
 from starksim.network import SizeModel, bytes_per_ms
 from starksim.strategies import names
@@ -72,8 +76,7 @@ def one_run(args, policy, economy, seed, return_sim=False):
     # caps fan-in at 8. Zero keeps the original free-proving model.
     per_input_cost = args.prove_cost_per_fold / 2.0
 
-    def prove_cost(input_count):
-        return per_input_cost * input_count
+    prove_cost = LinearCost(per_input_cost)
 
     sim = NetworkSim(overlay, seed=seed,
                      capacity=bytes_per_ms(args.uplink_mbps),
@@ -113,7 +116,7 @@ def one_run(args, policy, economy, seed, return_sim=False):
 
 def emit_json_runs(args):
     for policy, economy in SCENARIOS:
-        for seed in range(args.seeds):
+        for seed in seed_range(args):
             summary, sim = one_run(args, policy, economy, seed,
                                    return_sim=True)
             workload = workload_parameters(
@@ -136,6 +139,7 @@ def main():
     parser.add_argument("--egress-bytes", type=int, default=4_000_000,
                         help="send-buffer bound per node; 0 for unbounded")
     parser.add_argument("--seeds", type=int, default=2)
+    add_seed_start_argument(parser)
     parser.add_argument("--prove-cost-per-fold", type=float, default=0.0,
                         help="milliseconds per 2-to-1 fold; "
                              "an m-input fold costs m/2 of these")
@@ -166,7 +170,7 @@ def main():
     print_table_header(header)
     for policy, economy in SCENARIOS:
         runs = []
-        for seed in range(args.seeds):
+        for seed in seed_range(args):
             runs.append(one_run(args, policy, economy, seed))
         included = (f"{mean_field(runs, 'included'):.0f}/"
                     f"{mean_field(runs, 'arrived'):.0f}")

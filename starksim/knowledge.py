@@ -54,6 +54,8 @@ class KnowledgeTracer:
         followed leaf and turn observation quadratic in run length.
         """
         self.followed.add(leaf_index)
+        if self.tracer.duplicate_accumulator is not None:
+            self.tracer.duplicate_accumulator.follow(leaf_index)
 
     def mark(self, node_id, leaves=None, peer=None, obj=None, bodies=0):
         """Mark that this node's knowledge may have changed for `leaves`.

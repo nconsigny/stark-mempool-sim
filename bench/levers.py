@@ -28,13 +28,17 @@ against what they actually save together.
 Post-quantum signatures, because two of the levers only engage for them: a
 leanSTARK witness already costs a recursive proof, so privacy transactions
 never choose mode 0 and never defer below the crossover.
+
+`--seed-start` defaults to zero; `--seeds` counts consecutive absolute seeds
+from that start without changing their random streams.
 """
 
 import argparse
 import statistics
 import sys
 
-from bench.common import (emit_json_record, random_regular_overlay,
+from bench.common import (add_seed_start_argument, seed_range,
+                          emit_json_record, random_regular_overlay,
                           schedule_horizon, workload_parameters)
 from starksim.arena import KIND_PQ
 from starksim.costs import CostTable
@@ -95,6 +99,7 @@ def main():
     parser.add_argument("--prove-ms", type=float, default=200.0,
                         help="flat milliseconds per recursive proving job")
     parser.add_argument("--seeds", type=int, default=2)
+    add_seed_start_argument(parser)
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
 
@@ -108,7 +113,7 @@ def main():
     results = {}
     for label, overrides in cases:
         runs = []
-        for seed in range(args.seeds):
+        for seed in seed_range(args):
             outcome, sim = one_run(args, seed, overrides)
             runs.append(outcome)
             if args.json:

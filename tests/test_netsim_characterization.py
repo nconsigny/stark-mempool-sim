@@ -68,6 +68,7 @@ EXPECTED_CSV_COLUMNS = [
     "circuit_trace_rows_per_hash", "circuit_trace_cap",
     "verify_sig_ms", "verify_stark_ms", "verify_message_ms",
     "fold_amortize",
+    "topology_fingerprint", "workload_generator_version",
 ]
 
 EXPECTED_CSV_ROW = (
@@ -81,6 +82,8 @@ EXPECTED_CSV_ROW = (
     "usefulness,deps,-1,recursive,0,always,0,spread,True,0,"
     "-1,-1,-1,-1,-1,-1,-1,"
     "-1.000000,-1.000000,-1.000000,1.000000"
+    ",sha256:8dae7d5ec223ff0b43022152fc6842dd64fc93d5e04d44e432e9cd060dbbda1a"
+    ",-1"
 )
 
 VARIANT_KEYS = {
@@ -122,6 +125,32 @@ METRIC_ONLY_KEYS = {
     "egress_utilisation", "cpu_utilisation", "max_egress_depth",
     "max_cpu_depth", "unserved_wants", "proof_jobs_over_capacity",
     "mode_zero_wrappers", "folds_deferred",
+    "attempted_messages", "attempted_bytes", "attempted_messages_by_kind",
+    "attempted_bytes_by_kind", "attempted_messages_by_node",
+    "attempted_bytes_by_node", "attempted_messages_by_node_kind",
+    "attempted_bytes_by_node_kind",
+    "egress_refused_messages", "egress_refused_bytes",
+    "egress_refused_messages_by_kind", "egress_refused_bytes_by_kind",
+    "egress_refused_messages_by_node", "egress_refused_bytes_by_node",
+    "egress_refused_messages_by_node_kind", "egress_refused_bytes_by_node_kind",
+    "cpu_refused_messages", "cpu_refused_bytes", "cpu_refused_messages_by_kind",
+    "cpu_refused_bytes_by_kind", "cpu_refused_messages_by_node",
+    "cpu_refused_bytes_by_node", "cpu_refused_messages_by_node_kind",
+    "cpu_refused_bytes_by_node_kind",
+    "plan_roots_completed", "plan_root_claim_sum", "plan_root_claim_square_sum",
+    "plan_root_claim_mean", "plan_root_claim_weighted_mean",
+    "plan_root_claim_union_txs", "plan_root_live_claim_union_txs",
+    "plan_root_claim_histogram", "block_observations",
+    "transaction_outcomes",
+    "outcomes_observed_until_ms",
+    "recovery_observed_at_ms", "cpu_work", "egress_work", "link_work",
+    "pending_deliveries", "pending_delivery_bytes", "unresolved_requests",
+    "unresolved_requests_by_node", "egress_waiting_empty", "transport_idle",
+    "transport_quiescent", "useful_service_recovered",
+    "cpu_accounting", "plan_work", "cpu_refused_estimated_ms",
+    "transaction_evidence", "duplicate_traffic",
+    "topology_fingerprint", "workload_generator_version",
+    "plan_deadlines", "selection_decisions",
 }
 
 EXPECTED_TRACE = (

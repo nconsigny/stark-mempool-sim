@@ -26,13 +26,17 @@ is still reproducible from its command.
 
 Post-quantum signatures, as in `bench.levers`: two of the levers engage only
 for them.
+
+`--seed-start` defaults to zero; `--seeds` counts consecutive absolute seeds
+from that start without changing their random streams.
 """
 
 import argparse
 import statistics
 import sys
 
-from bench.common import (configuration, emit_json_record, print_table_header,
+from bench.common import (add_seed_start_argument, seed_range,
+                          configuration, emit_json_record, print_table_header,
                           random_regular_overlay, schedule_horizon,
                           workload_parameters)
 from starksim.arena import KIND_PQ
@@ -103,6 +107,7 @@ def main():
                         help="named configurations to compare, in order; "
                              "one of " + ", ".join(preset_names()))
     parser.add_argument("--seeds", type=int, default=2)
+    add_seed_start_argument(parser)
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
     # Each rate keeps the number it was asked for beside the count it became:
@@ -117,7 +122,7 @@ def main():
     for tps, transactions in rates:
         for name in presets:
             runs = []
-            for seed in range(args.seeds):
+            for seed in seed_range(args):
                 outcome, sim = one_run(args, name, transactions, seed,
                                        return_sim=True)
                 runs.append(outcome)

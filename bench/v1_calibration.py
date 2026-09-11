@@ -57,7 +57,7 @@ def v1_like(args, supersede_policy):
     overlay = Overlay.from_adjacency(adjacency, base_latency=args.latency,
                                      jitter_frac=0.0)
     costs = CostTable(verify_recv=0.0, build_block=0.0,
-                      prove_recursive=lambda size: args.fold_ms,
+                      prove_recursive=args.fold_ms,
                       jitter_frac=args.fold_jitter, seed=args.seed)
     # No bandwidth, no queues, no per-link stage: in v1 an object crosses
     # the link in `l` ms whatever it contains. v1 models no transaction

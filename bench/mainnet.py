@@ -50,9 +50,59 @@ block messages exist, so no block verification is charged.
 Deliberate omissions, so a row is not misread: no trace ceiling is
 modelled — the EIP's 2**24 is KoalaBear rows on a different stack and
 leanVM-b states no cycle limit, so a cap here would be a threshold made of
-mismatched units. Arrivals are uniformly spaced: rate is the realism
-dimension, burstiness is not modelled. Fees cycle 0-4 so `eip_priority`
-has an ordering to act on; the cycle is recorded with each run.
+mismatched units. Arrivals default to uniform spacing. Fees cycle 0-4 so
+`eip_priority` has an ordering to act on; the cycle is recorded with each run.
+
+`root_claim` retains its terminal-DAG meaning: aggregates never consumed as
+fold inputs, including any unused internal outputs of incomplete plans.
+`root_count` counts that same population in each JSON record; `--root-stats`
+prints its mean over seeds beside the existing `claim` column. The default
+text table stays compatible with published baselines. The empty population
+retains the legacy mean of zero, identified by its zero count.
+
+The `plan_root_*` JSON metrics instead count completed plan roots, including
+ones later consumed by another fold. Both means accompany
+`plan_roots_completed`: the object-weighted mean divides by that count,
+while the claim-occurrence-weighted mean divides by the claim-width sum.
+Neither weights a transaction uniquely across overlapping claims.
+`block_observations` records each builder decision before settlement changes
+its candidate set. Definitions and limits are in `docs/glossary.md`.
+
+With `--json --outcome-ages-ms 12000,24000`, `fixed_age_outcomes` reports
+inclusion, expiry and pending outcomes at each stated age since birth, not
+since load end. Early and late cohorts are the two halves of the birth
+window. Immature births are censored even if already settled; a comparison
+requires both complete cohorts. No age request extends the simulation.
+Without requested ages this metric is -1. `transaction_outcomes` retains
+birth-indexed timestamps independently of the requested ages.
+
+`load_utilisation` records per-node CPU and egress utilisation over the
+birth window, from cumulative counters sampled at its start and end.
+`load_traffic` records attempted, refused, accepted, completed and
+partial-inclusive wire bytes/s by node and payload kind over that same
+window, plus completed wrapper copies by encoding and a reference cadence
+rate. Its zero sample precedes scheduling the time-zero births.
+Drain length changes neither endpoint. Legacy terminal inclusion, delay
+and the text table retain their existing meanings.
+
+JSON `wire_copies` summarises completed raw-object body copies, wrapper
+body copies and wrapper claim mentions over all births through observation
+end, including the drain. Per-transaction rows stay behind the query API.
+`--diffusion` requires `--json` and adds `evidence_diffusion` and
+`body_diffusion` at fractions 0.9 and 1.0; it defaults off and does not enter
+workload identity. First reach is not a count of transmitted copies.
+
+`--seed-start` defaults to zero; `--seeds` counts consecutive absolute seeds
+from that start without changing their random streams.
+
+`--arrivals uniform|poisson|bursty` changes birth times only at matched count,
+seed and entry pool. Poisson is conditioned on the fixed count, not an
+unconditioned process. Bursty places births randomly in the active fifth of
+each slot-length period, with independent seeded phase. JSON identifies the
+manifest version, profile, phase and realised kind counts; `--emit-manifest`
+also includes every birth record and requires `--json`. Prefixes select
+records from a longer manifest without regenerating its mixture. See
+`docs/glossary.md` for the workload contract and its comparison limits.
 """
 
 import argparse
@@ -61,13 +111,21 @@ import random
 import statistics
 import sys
 
-from bench.common import (configuration, emit_json_record, print_table_header,
+from bench.common import (add_seed_start_argument, seed_range,
+                          configuration, emit_json_record, print_table_header,
                           random_regular_overlay, schedule_horizon,
                           workload_parameters)
+from bench.workload import (ARRIVAL_PROFILES, Birth, WorkloadManifest,
+                            arrival_times)
 from starksim.arena import KIND_AGGREGATE, KIND_PQ, KIND_PRIVACY
 from starksim.costs import CircuitCost, CostTable, NativeVerifyCost
+from starksim.evidence import diffusion
 from starksim.netsim import NetworkSim
 from starksim.network import SizeModel, bytes_per_ms
+from starksim.outcomes import (BusySample, TrafficSample, compare_cohorts,
+                               outcomes_at_age, traffic_window,
+                               utilisation_window)
+from starksim.wire_copies import wire_copies
 
 # leanVM-b's measured verification work, in VM cycles, as exact quotients of
 # the published measurements (provenance above): a rounded weight would also
@@ -134,8 +192,34 @@ def mean_root_claim(sim):
     return statistics.fmean(claims)
 
 
+def root_count(sim):
+    """The terminal-DAG population used by `mean_root_claim`, at this instant."""
+    count = 0
+    for obj in sim.arena.objects.values():
+        if obj.kind == KIND_AGGREGATE and obj.consumed == 0:
+            count += 1
+    return count
+
+
+def workload_manifest(args, transactions, privacy_share, seed, entry_nodes):
+    window = args.slots * args.slot_length
+    times, phase = arrival_times(transactions, window, args.slot_length,
+                                 args.arrivals, seed)
+    kinds = mixed_kinds(transactions, privacy_share, seed)
+    # Resolve the same legacy entry draws into literal records. The simulation
+    # then consumes those records without making policy-dependent choices.
+    entries = random.Random(f"{seed}:entry")
+    births = []
+    for index, kind in enumerate(kinds):
+        node = entry_nodes[entries.randrange(len(entry_nodes))]
+        births.append(Birth(times[index], kind, float(index % 5), None, node))
+    return WorkloadManifest(tuple(births), args.arrivals, window,
+                            args.slot_length, phase, tuple(entry_nodes),
+                            window, transactions)
+
+
 def one_run(args, name, transactions, privacy_share, leanstark_factor,
-            anchor_ms, sig_ms, stark_ms, seed):
+            anchor_ms, sig_ms, stark_ms, seed, manifest=None):
     overlay = random_regular_overlay(args.nodes, args.degree, args.latency,
                                      seed)
     settings = dict(seed=seed, capacity=bytes_per_ms(args.uplink_mbps),
@@ -153,22 +237,38 @@ def one_run(args, name, transactions, privacy_share, leanstark_factor,
         settings["proving_budget"] = args.proving_budget
     sim = NetworkSim(overlay, **settings)
 
-    window = args.slots * args.slot_length
-    spacing = window / max(1, transactions)
-    kinds = mixed_kinds(transactions, privacy_share, seed)
-    for index, kind in enumerate(kinds):
-        sim.schedule_birth(index * spacing, kind, fee=float(index % 5))
+    if manifest is None:
+        manifest = workload_manifest(args, transactions, privacy_share,
+                                     seed, sim.entry_nodes)
+    if manifest.entry_nodes != sim.entry_nodes:
+        raise ValueError("manifest and simulation require the same entry pool")
+    window = manifest.window_ms
+    # Sample zero before births at zero enter the calendar: a queued birth
+    # would make that boundary incomplete, and its sends belong to the load.
+    traffic_start = TrafficSample(sim, 0.0)
+    manifest.schedule(sim)
     horizon = window + args.drain_slots * args.slot_length
     schedule_horizon(sim, horizon)
+    load_start = BusySample(sim, 0.0)
     # Utilisation is read at the end of the birth window: read at the
     # horizon it would count the drain's idle time in its denominator and
     # fall as the drain grows (docs/pitfalls.md: a statistic can measure its
     # own procedure). Inclusion and delay are read after the drain.
     sim.run(until=window)
     cpu_load_window = sim.mean_cpu_utilisation()
+    load_end = BusySample(sim, window)
+    traffic_end = TrafficSample(sim, window)
     sim.run(until=horizon)
 
     metrics = sim.metrics()
+    fixed_age_outcomes = -1
+    if args.outcome_ages_ms:
+        fixed_age_outcomes = []
+        for age in args.outcome_ages_ms:
+            comparison = compare_cohorts(sim, age, (0.0, window / 2),
+                                         (window / 2, window))
+            comparison["all"] = outcomes_at_age(sim, age, 0.0, window)
+            fixed_age_outcomes.append(comparison)
     outcome = {
         "offered": metrics["offered_bytes"],
         "wire": metrics["wire_bytes"],
@@ -178,8 +278,18 @@ def one_run(args, name, transactions, privacy_share, leanstark_factor,
         "cpu_load_window": cpu_load_window,
         "proofs": metrics["proofs_completed"],
         "root_claim": mean_root_claim(sim),
+        "root_count": root_count(sim),
+        "fixed_age_outcomes": fixed_age_outcomes,
+        "load_utilisation": utilisation_window(load_start, load_end),
+        "load_traffic": traffic_window(traffic_start, traffic_end),
+        "wire_copies": wire_copies(sim),
     }
-    return outcome, sim
+    if args.diffusion:
+        outcome["evidence_diffusion"] = [diffusion(sim, fraction)
+                                         for fraction in (0.9, 1.0)]
+        outcome["body_diffusion"] = [diffusion(sim, fraction, kind="body")
+                                     for fraction in (0.9, 1.0)]
+    return outcome, sim, manifest
 
 
 def mean_of(runs, field):
@@ -236,8 +346,39 @@ def main():
                         help="named configurations to compare, in order; "
                              "`name+field=value` holds a string override")
     parser.add_argument("--seeds", type=int, default=2)
+    add_seed_start_argument(parser)
     parser.add_argument("--json", action="store_true")
+    parser.add_argument("--diffusion", action="store_true",
+                        help="include first evidence/body reach at fractions "
+                             "0.9 and 1.0; requires --json")
+    parser.add_argument("--arrivals", choices=ARRIVAL_PROFILES, default="uniform",
+                        help="fixed-count arrival profile; default uniform")
+    parser.add_argument("--emit-manifest", action="store_true",
+                        help="include birth records in JSON workload metadata")
+    parser.add_argument("--root-stats", action="store_true",
+                        help="print the terminal-root count beside claim; "
+                             "JSON always includes the count")
+    parser.add_argument("--outcome-ages-ms", default="",
+                        help="comma-separated nonnegative finite ages in ms "
+                             "for fixed-age outcomes; requires --json; "
+                             "does not extend the drain")
     args = parser.parse_args()
+    if args.diffusion and not args.json:
+        parser.error("--diffusion requires --json")
+    if args.emit_manifest and not args.json:
+        parser.error("--emit-manifest requires --json")
+    try:
+        if args.outcome_ages_ms:
+            args.outcome_ages_ms = floats(args.outcome_ages_ms)
+        else:
+            args.outcome_ages_ms = []
+    except ValueError:
+        parser.error("--outcome-ages-ms requires comma-separated numbers")
+    for age in args.outcome_ages_ms:
+        if not math.isfinite(age) or age < 0:
+            parser.error("--outcome-ages-ms requires finite nonnegative ages")
+    if args.outcome_ages_ms and not args.json:
+        parser.error("--outcome-ages-ms requires --json")
 
     rates = []
     for tps in floats(args.tps):
@@ -267,6 +408,7 @@ def main():
     results = {}
     for tps, transactions in rates:
         for share in shares:
+            manifests = {}
             privacy_born = int(round(transactions * share))
             for factor in factors:
                 for anchor in anchors:
@@ -274,30 +416,47 @@ def main():
                         for stark_ms in stark_prices:
                             for name in presets:
                                 runs = []
-                                for seed in range(args.seeds):
-                                    outcome, sim = one_run(
+                                for seed in seed_range(args):
+                                    entry_subset = configuration(name).get(
+                                        "entry_subset")
+                                    key = (seed, entry_subset)
+                                    outcome, sim, manifest = one_run(
                                         args, name, transactions, share,
                                         factor, anchor, sig_ms, stark_ms,
-                                        seed)
+                                        seed, manifests.get(key))
+                                    manifests[key] = manifest
                                     runs.append(outcome)
                                     if args.json:
+                                        workload = workload_parameters(
+                                            args, preset=name, tps=tps,
+                                            transactions=transactions,
+                                            privacy_share=share,
+                                            privacy_born=privacy_born,
+                                            leanstark_factor=factor,
+                                            anchor_ms=anchor,
+                                            verify_sig_ms=sig_ms,
+                                            verify_stark_ms=stark_ms,
+                                            fee_model="cycle5")
+                                        # Presentation cannot distinguish two
+                                        # otherwise identical workload records.
+                                        workload.pop("root_stats", None)
+                                        workload.pop("emit_manifest", None)
+                                        workload.pop("diffusion", None)
+                                        workload.update(manifest.metadata())
+                                        if args.emit_manifest:
+                                            workload["manifest"] = (
+                                                manifest.to_record())
                                         emit_json_record(
                                             "mainnet",
-                                            workload_parameters(
-                                                args, preset=name, tps=tps,
-                                                transactions=transactions,
-                                                privacy_share=share,
-                                                privacy_born=privacy_born,
-                                                leanstark_factor=factor,
-                                                anchor_ms=anchor,
-                                                verify_sig_ms=sig_ms,
-                                                verify_stark_ms=stark_ms,
-                                                fee_model="cycle5"),
+                                            workload,
                                             seed, sim, outcome)
                                 results[(tps, share, factor, anchor, sig_ms,
                                          stark_ms, name)] = runs
     if args.json:
         return 0
+
+    if args.arrivals != "uniform":
+        print(f"arrivals={args.arrivals} (fixed-count profile)")
 
     budget_note = (f"{args.proving_budget:g} ms" if args.proving_budget
                    is not None else "one aggregation interval (default)")
@@ -317,11 +476,14 @@ def main():
           f"instant notify")
     print()
     width = max(len(name) for name in presets)
+    root_header = ""
+    if args.root_stats:
+        root_header = f" {'roots':>7}"
     print_table_header(
         f"{'tx/s':>5} {'privacy':>7} {'lstark':>6} {'anchor':>6} "
         f"{'vsig':>5} {'vstk':>5} "
         f"{'preset':>{width}} {'offered MB':>11} {'included':>12} "
-        f"{'delay':>6} {'cpu%':>5} {'claim':>6} {'proofs':>7}")
+        f"{'delay':>6} {'cpu%':>5} {'claim':>6}{root_header} {'proofs':>7}")
     for tps, transactions in rates:
         for share in shares:
             for factor in factors:
@@ -331,6 +493,10 @@ def main():
                             for index, name in enumerate(presets):
                                 runs = results[(tps, share, factor, anchor,
                                                 sig_ms, stark_ms, name)]
+                                root_cell = ""
+                                if args.root_stats:
+                                    root_cell = (
+                                        f" {mean_of(runs, 'root_count'):>7.1f}")
                                 lead = (f"{tps:>5g} {share:>7.2f} "
                                         f"{factor:>6g} {anchor:>6g} "
                                         f"{sig_ms:>5g} {stark_ms:>5g}"
@@ -341,7 +507,7 @@ def main():
                               f"{mean_of(runs, 'arrived'):<5.0f} "
                               f"{mean_of(runs, 'delay'):>6.2f} "
                               f"{mean_of(runs, 'cpu_load_window') * 100:>5.1f} "
-                              f"{mean_of(runs, 'root_claim'):>6.1f} "
+                              f"{mean_of(runs, 'root_claim'):>6.1f}{root_cell} "
                               f"{mean_of(runs, 'proofs'):>7.0f}")
     print()
     print("included is counted after the drain; delay averages included")
