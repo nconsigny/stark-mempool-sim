@@ -6,7 +6,8 @@ import math
 
 from starksim.costs import (BUILD_BLOCK, PROVE_COST_CIRCUIT, PROVE_RECURSIVE,
                             VERIFY_RECV, CircuitCost)
-from starksim.outcomes import transaction_outcomes
+from starksim.outcomes import boundary_complete, transaction_outcomes
+from starksim.payload import WireMessage
 from starksim.recovery import recovery_state
 from starksim.work_metrics import cpu_accounting
 
@@ -262,6 +263,18 @@ def variant(sim):
         "seed": str(sim.seed),
     }
     identity.update(_circuit_identity(sim))
+    # Defaults retain the published trace header and CSV identity. New role
+    # treatments carry every chosen non-default plus their realised assignment.
+    role_settings = (("aggregator_share", 1.0),
+                     ("aggregator_placement", "random"),
+                     ("relay_forwarding", "best"),
+                     ("proposer_role", "as_assigned"))
+    for field, default in role_settings:
+        value = getattr(sim, field)
+        if value != default:
+            identity[field] = value
+    if any(getattr(sim, field) != default for field, default in role_settings):
+        identity["relay_node_ids"] = list(sim.relay_nodes)
     return identity
 
 
@@ -368,6 +381,12 @@ def metrics(sim):
     result["selection_decisions"] = -1
     if sim.selection_decisions is not None:
         result["selection_decisions"] = sim.selection_decisions.metrics()
+    result["leaf_folds"] = -1
+    if sim.leaf_folds is not None:
+        result["leaf_folds"] = sim.leaf_folds.metrics()
+    result["witness_folds"] = -1
+    if sim.witness_folds is not None:
+        result["witness_folds"] = sim.witness_folds.metrics()
     result["topology_fingerprint"] = sim.topology_fingerprint
     result["workload_generator_version"] = sim.workload_generator_version
     # Entry counts only: the timestamp tables are nodes x transactions and
@@ -376,6 +395,131 @@ def metrics(sim):
     if sim.transaction_evidence is not None:
         result["transaction_evidence"] = sim.transaction_evidence.summary()
     result["duplicate_traffic"] = sim.duplicate_traffic.metrics("duplicate")
+    result["roles"] = role_metrics(sim)
+    result["fold_width"] = sim.fold_widths.metrics()
+    result["blocks_by_proposer_role"] = blocks_by_proposer_role(sim)
+    result["relay_node_ids"] = list(sim.relay_nodes)
+    return result
+
+
+def _distribution(values):
+    if not values:
+        return {"mean": 0.0, "p95": 0.0, "max": 0.0}
+    ordered = sorted(values)
+    return {"mean": sum(values) / len(values),
+            "p95": ordered[max(0, math.ceil(0.95 * len(values)) - 1)],
+            "max": ordered[-1]}
+
+
+def role_metrics(sim):
+    """Per-role terminal costs and birth outcomes, without scheduling work.
+
+    Sent bytes include the active message's transmitted portion. The 24-second
+    fraction follows fixed-age censoring: only mature births enter its
+    denominator, even when an immature birth is already included. Counts expose
+    the maturity population; -1 means no mature, known outcomes to measure.
+    """
+    now = sim.engine.now
+    roles = {}
+    for role in ("aggregator", "relay"):
+        node_ids = []
+        for node_id in range(len(sim.nodes)):
+            if (node_id in sim.aggregator_nodes) == (role == "aggregator"):
+                node_ids.append(node_id)
+        count = len(node_ids)
+        cpu_busy = [sim.cpu[node].busy_time_at(now) for node in node_ids]
+        cpu = _distribution([busy / now if now > 0 else 0.0
+                             for busy in cpu_busy])
+        # Preserve the run-level definition and its accumulation order exactly.
+        if now > 0 and count:
+            cpu["mean"] = sum(cpu_busy) / (now * count)
+        egress = _distribution([sim.egress_utilisation(node)
+                                for node in node_ids])
+        wrapper_bytes = 0.0
+        all_bytes = 0.0
+        for node in node_ids:
+            wrapper_bytes += sim.sent_kind[node].get("wrapper", 0)
+            server = sim.egress[node]
+            active = server.current_job
+            if (sim.capacity is not None and active is not None
+                    and isinstance(active.tag, WireMessage)
+                    and active.tag.kind() == "wrapper"):
+                wrapper_bytes += (now - active.started_at) * sim.capacity
+            all_bytes += sim.wire_bytes(node)
+        proofs = sum(sim.plan_work.nodes[node]["proofs"] for node in node_ids)
+        wrappers = sum(sim.wrappers_by_node[node] for node in node_ids)
+        divisor = count * now / 1000.0
+        roles[role] = {
+            "nodes": count,
+            "cpu_utilisation": cpu,
+            "egress_utilisation": egress,
+            "wrapper_bytes_sent_per_node_second": (
+                wrapper_bytes / divisor if divisor else 0.0),
+            "all_bytes_sent_per_node_second": (
+                all_bytes / divisor if divisor else 0.0),
+            "proofs_completed": proofs,
+            "wrappers_emitted": wrappers,
+            "proofs_completed_per_node": proofs / count if count else 0.0,
+            "wrappers_emitted_per_node": wrappers / count if count else 0.0,
+            "born": 0, "included": 0, "delay_mean_slots": 0.0,
+            "mature_24s": 0, "censored_24s": 0,
+            "included_within_24s": 0, "unknown_24s": 0,
+            "included_within_24s_share": 0.0 if not count else -1.0,
+        }
+    complete = boundary_complete(sim)
+    # Byte membership keeps this scan linear in births. Shifting a wide
+    # settlement integer once per transaction would copy a shrinking prefix.
+    included_mask = sim.chain.included
+    discarded_mask = sim.chain.discarded_mask()
+    included_bytes = included_mask.to_bytes(
+        (included_mask.bit_length() + 7) // 8, "little")
+    discarded_bytes = discarded_mask.to_bytes(
+        (discarded_mask.bit_length() + 7) // 8, "little")
+    for tx, node_id in sim.entry_of.items():
+        role = "aggregator" if node_id in sim.aggregator_nodes else "relay"
+        row = roles[role]
+        row["born"] += 1
+        byte = tx // 8
+        bit = 1 << (tx % 8)
+        if byte < len(included_bytes) and included_bytes[byte] & bit:
+            row["included"] += 1
+        boundary = sim.arena.leaves[tx].born + 24000.0
+        if boundary > now or (boundary == now and not complete):
+            row["censored_24s"] += 1
+            continue
+        row["mature_24s"] += 1
+        included = sim.inclusion_times.get(tx)
+        expired = sim.expiry_times.get(tx)
+        if included is not None and included <= boundary:
+            row["included_within_24s"] += 1
+        elif (included is None and expired is None
+              and byte < len(discarded_bytes)
+              and discarded_bytes[byte] & bit):
+            row["unknown_24s"] += 1
+    delay_sums = dict.fromkeys(roles, 0.0)
+    delay_counts = dict.fromkeys(roles, 0)
+    for entry, _proposer, delay in sim.tx_records:
+        role = "aggregator" if entry in sim.aggregator_nodes else "relay"
+        delay_sums[role] += delay
+        delay_counts[role] += 1
+    for role, row in roles.items():
+        if delay_counts[role]:
+            row["delay_mean_slots"] = delay_sums[role] / delay_counts[role]
+        elif row["nodes"]:
+            row["delay_mean_slots"] = math.nan
+        if row["mature_24s"] and not row["unknown_24s"]:
+            row["included_within_24s_share"] = (
+                row["included_within_24s"] / row["mature_24s"])
+    return roles
+
+
+def blocks_by_proposer_role(sim):
+    result = {"aggregator": {"blocks_built": 0, "included_txs": 0},
+              "relay": {"blocks_built": 0, "included_txs": 0}}
+    for block in sim.chain.blocks:
+        role = "aggregator" if block.proposer in sim.aggregator_nodes else "relay"
+        result[role]["blocks_built"] += 1
+        result[role]["included_txs"] += block.count()
     return result
 
 

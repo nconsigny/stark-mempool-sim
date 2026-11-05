@@ -27,6 +27,16 @@ Model semantics are in [model.md](model.md); open questions in
 implementation or a testnet, because none exists yet — that caveat applies to
 every row.
 
+**Prices, as of 2026-11-05.** Where an entry prices proving from leanVM
+measurements (the `bench.mainnet` commands), it uses leanVM-b's cycle counts,
+`bench.mainnet`'s default calibration, scaled to the `--anchor-ms` its command
+states (417 ms is leanVM-b's measured 2-to-1 recursion). leanVM-b is retired.
+Its successor, leanVM at commit `990b935`, measures the 2-to-1 recursion at
+303 ms and a leanSPHINCS verification at about a sixth of leanVM-b's cycles;
+`--calibration leanvm-990b935` prices a run from it. Numbers that depend on
+proving prices move under that calibration. The default stays leanVM-b, so the
+commands here still reproduce the numbers as stated.
+
 ## Standing at a glance
 
 One row per objective ([model.md](model.md) states them in full). Deliberately
@@ -35,8 +45,8 @@ drift away from them.
 
 | | Question | Standing | Biggest gap |
 | --- | --- | --- | --- |
-| **O1** | What load fits an ordinary uplink? | Frontier located for one fixture, and the wrapper cadence — not the load — is what sets it. At 25 Mbit/s the EIP as written includes every PQ transaction to 128 tx/s by overspending the uplink; the levers without `capped8` include the same for half the bytes, and `capped8` caps inclusion. Under a mainnet-shaped mixture the binding resource moves off the wire entirely — see O2 | The frontier as a function of tick interval and degree; bursty arrivals |
-| **O2** | What proving rate does keeping pace require? | Answered for one fixture on calibrated costs: the single CPU binds at mainnet privacy shares — proving takes 82–87% of it, receive verification a material rest. A fast desktop clears ~5 privacy tx/s within two slots of load end at 12 s slots; one with 2.4× slower proving clears none. Plan shape still decides throughput (binary halves wide's inclusion) | Native verification of the real message mix and the leanSTARK witness weight — both external measurements that move the frontier |
+| **O1** | What load fits an ordinary uplink? | Frontier located for one fixture, and the wrapper cadence — not the load — is what sets it. The proof traffic is degree × proof size / interval wherever that fits under the uplink and the uplink where it does not, and no wrapper economy lowers it; every relay sends each body about degree times, not once. At 25 Mbit/s the EIP as written includes every PQ transaction to 128 tx/s by overspending the uplink; the levers without `capped8` include the same for half the bytes, and `capped8` caps inclusion. Under a mainnet-shaped mixture both resources bind at once: the uplink runs at 84–98% with a quarter to half of attempted bytes refused at 15–30 tx/s, beside the CPU — see O2 | Bursty arrivals; a gossipsub-shaped relay |
+| **O2** | What proving rate does keeping pace require? | Answered for one fixture on calibrated costs: the single CPU binds at mainnet privacy shares — proving takes 82–87% of it, receive verification a material rest. A fast desktop clears ~5 privacy tx/s within two slots of load end at 12 s slots; one with 2.4× slower proving clears none. Plan shape still decides throughput (binary halves wide's inclusion). Halving the interval to 500 ms costs a quarter to half of inclusion at 15 tx/s on 1,000 nodes, and the loss is the cadence, not the proving budget that shrinks with it: twice the wrappers to verify, and proof traffic displacing bodies on a saturated uplink | Native verification of the real message mix and the leanSTARK witness weight — both external measurements that move the frontier |
 | **O3** | Does folding deliver the density the design assumes? | **Not measured.** What stands here is an illustration whose two numbers are both set by the fixture | Claimed transactions per selected object, as a function of load and budget |
 | **O4** | Where is capacity, and what happens past it? | Two phenomena found and understood: a clearance-time threshold, and retry-induced collapse below capacity | Portability, which is blocked on the offered-load metric rather than on effort |
 | **O5** | Which of the EIP's open choices matter? | Machinery complete and most choices priced, the supersede policies included. Amortizing the crossover threshold (k of 8 or 16) repairs its aggregation-off collapse; the byte savings measured alongside belong to the bandwidth levers it rides with | A gossipsub-shaped relay; the supersede race repeated where bandwidth binds |
@@ -220,6 +230,93 @@ the inferred mechanism, **probe**, **low**, and the fixture's flat cost is what
 makes a capped plan expensive — under a per-input cost the picture may
 differ, which [O2](#o2--compute-what-proving-rate-does-keeping-pace-require)
 is the place to settle.
+
+**The standing proof traffic is one proof per peer per tick exactly where
+that fits under the uplink, and the uplink where it does not; the wrapper
+economies cannot lower it; and every relay policy sends each transaction
+body about degree times, not once.** Three measurements on the 1,000-node
+mainnet fixture at 15 tx/s, 20% privacy, the fast anchor, eight seeds per
+cell, read with the boundary-sampled traffic and wire-copy instruments.
+First, the note's bound, degree × proof size / interval, against the
+wrapper bytes that actually crossed each node's 25 Mbit/s (3.125 MB/s)
+uplink in the load window:
+
+| interval | degree | reference, MB/s | measured wrapper, MB/s | total wire, MB/s | included |
+| --- | --- | --- | --- | --- | --- |
+| 1,000 ms | 4 | 1.05 | 1.06 | 2.74 | 100% |
+| 1,000 ms | 6 | 1.57 | 1.59 | 2.97 | 100% |
+| 1,000 ms | 8 | 2.10 | 2.06 | 3.00 | 100% |
+| 500 ms | 4 | 2.10 | 2.08 | 3.03 | 70% |
+| 500 ms | 6 | 3.15 | 2.81 | 3.07 | 76% |
+| 500 ms | 8 | 4.19 | 2.90 | 3.08 | 61–67% |
+
+At 1,000 ms the measured proof traffic equals the reference at every
+degree, within 2%, and the rest of the link carries bodies and witnesses.
+At 500 ms the reference exceeds the link from degree 6 up, total wire pins
+at the link, and the wrappers take what the link allows. The four wrapper
+economies (`full`, `skip_unchanged`, `proof_by_ref`, `lean`) are
+indistinguishable in every cell, within 0.2% on wrapper bytes and 3 points
+on inclusion: an economy withholds a copy only when the peer already holds
+that exact proof, and every tick completes a new root, so under the EIP's
+duty cycle nothing is ever withheld. The proof size is the lever the
+economies are not: a transport-only sweep (60 transactions over 60 s,
+`wrapper_only`, free proving) puts total wire bytes linear in the proof
+constant, 72.5 GB to 211 GB per run across 100–300 kB at 500 ms and half
+that at 1,000 ms, so at the note's 100 kB low end the 500 ms cadence at
+degree 6 would need 1.2 MB/s and fit; at the EIP's 256 KiB it needs 3.15
+and does not.
+
+Second, copies. The same births under three relay policies, counted at
+egress completion as raw object bodies plus bodies carried inside wrappers,
+against the spanning-tree reference of one body per node:
+
+| interval | privacy share | relay | body copies per node | time to reach 90% of nodes | reached all | late cohort at 24 s |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1,000 ms | 0 | flood | 6.4 | 2.8 s | 96% | 100% |
+| 1,000 ms | 0 | announce_fetch | 6.1 | 6.1 s | 94% | 100% |
+| 1,000 ms | 0 | wrapper_only | 5.6 | 9.6 s | 90% | 100% |
+| 1,000 ms | 0.2 | flood | 7.9 | 8.3 s | 91% | 98% |
+| 1,000 ms | 0.2 | announce_fetch | 5.9 | 8.2 s | 95% | 73% |
+| 1,000 ms | 0.2 | wrapper_only | 5.7 | 14.2 s | 91% | 81% |
+| 500 ms | 0 | flood | 9.5 | 13.1 s | 67% | 68% |
+| 500 ms | 0 | announce_fetch | 7.2 | 19.5 s | 52% | 25% |
+| 500 ms | 0.2 | announce_fetch | 3.9 | 21.2 s | 25% | 1% |
+
+Every policy sends each body about degree times: under flood as raw
+objects, under the other two inside the wrappers each node emits to every
+peer each tick, which carry the bodies their peer lacks. Announce-and-fetch
+brings raw copies below the reference and the wrappers bring them back.
+What the policies trade is reach time: flood reaches nine tenths of the
+network in under three seconds PQ-only, wrapper-only in nearly ten, at the
+price of duplicate traffic of 0.42 MB/s per node PQ-only and 1.19 MB/s at
+20% privacy under flood, over a third of the link. At 500 ms every policy
+degrades together, reach stretching to 13–21 s because the link is full of
+proofs; the collapsed announce-fetch cell at 20% privacy sends fewer bodies
+because fewer get through, not because it economised.
+
+```sh
+for d in 4 6 8; do for t in 500 1000; do for e in full skip_unchanged proof_by_ref lean; do
+python3 -m bench.mainnet --nodes 1000 --degree $d --tps 15 --privacy-share 0.2 \
+    --anchor-ms 417 --leanstark-factor 1 \
+    --presets eip_faithful+aggregation_interval=$t+wrapper_economy=$e \
+    --seed-start 0 --seeds 8 --json; done; done; done
+python3 -m bench.mainnet --nodes 1000 --degree 6 --tps 15 --privacy-share 0,0.2 \
+    --anchor-ms 417 --leanstark-factor 1 --diffusion --outcome-ages-ms 12000,24000 \
+    --presets eip_faithful+aggregation_interval=1000+relay_policy=flood,eip_faithful+aggregation_interval=1000+relay_policy=announce_fetch,eip_faithful+aggregation_interval=1000+relay_policy=wrapper_only \
+    --seed-start 0 --seeds 8 --json      # and aggregation_interval=500
+python3 -m bench.sweep --axis size_recursive_proof --values 100000,200000,262144,300000 \
+    --nodes 1000 --degree 6 --uplink-mbps 100 --prove-cost 0 --transactions 60 \
+    --set relay_policy=wrapper_only --set aggregation_interval=500 --set slot_length=120000 \
+    --birth-horizon-ms 60000 --observation-horizon-ms 60000 --seed-start 0 --seeds 8 --json
+```
+
+**bench**, **medium** — 352 runs; the economy null result is a difference
+looked for at three degrees and two cadences and not found, so it travels
+as far as the duty cycle it depends on. The relay comparison is one load and
+one fixture, and none of the three policies is a gossipsub implementation,
+so it says how the model's relays differ and not what mainnet gossip does.
+The size sweep is transport arithmetic on a free prover and says nothing
+about whether a 100 kB proof is achievable at the assumed costs.
 
 ## O2 — Compute: what proving rate does keeping pace require?
 
@@ -460,6 +557,84 @@ The default instant chain notification carries no block messages, so
 block verification is uncharged. And the two circuits leanVM-b did
 measure disagree by 25% on milliseconds per cycle, a floor on the time
 scale's error that the anchor axis is designed to absorb.
+
+**At the EIP's 1,000 ms aggregation interval the fast-prover cells hold at
+15 tx/s on 1,000 nodes exactly as they did on 40. At the 500 ms interval
+that EIP-8288's public note gives as its example, the same cells lose a
+quarter to nearly half of their inclusion, and giving that faster cadence
+back its 1,000 ms proving budget makes it worse, not better: the loss is
+the cadence itself.** Same fixture as the entry above at 1,000 nodes,
+degree 6, both intervals, both fold anchors, eight seeds per cell. Two
+instruments read beside inclusion: the share of proving plans that
+completed within their own interval, and inclusion at a fixed age of 24 s
+for the late cohort, the transactions born in the second half of the
+window, so the drain cannot flatter a run that fell behind. Fast anchor
+(417 ms fold), `eip_faithful` classification and mean inclusion:
+
+| tx/s | privacy share | 1,000 ms interval | 500 ms interval | late cohort at 24 s, 500 ms | plans in tick, 500 ms |
+| --- | --- | --- | --- | --- | --- |
+| 5 | 0 – 0.5 | held, 300/300 | held, 294–300/300 | 100% down to 69–86% | 100% down to 36% |
+| 15 | 0 | held, 900/900 | marginal, 886/900 | 29–94% | 41% |
+| 15 | 0.2 | held, 900/900 | marginal, 687/900 | 1–35% | 13% |
+| 15 | 0.35 | held, 900/900 | marginal, 566/900 | 1–7% | 10% |
+| 15 | 0.5 | held, 900/900 | marginal, 520/900 | 3–8% | 10% |
+| 30 | 0 | held, 1800/1800 | marginal, 1474/1800 | 1–47% | 20% |
+| 30 | 0.2 | marginal, 1653/1800 | marginal, 759/1800 | 0–2% | 8% |
+| 30 | 0.35 – 0.5 | marginal, 1246–1408/1800 | collapsed, 516–554/1800 | 0–3% | 8% |
+
+At 1,000 ms every fast-anchor plan completes within its interval at 5 and
+15 tx/s, and the late cohort stays at 82–99%. The slow anchor (1,000 ms
+fold, proving 2.4× slower) collapses at any privacy share at both
+intervals, as before; PQ-only it holds at 5 tx/s and is marginal at 15
+and 30 at the 1,000 ms interval (782–900/900, 1207–1492/1800) and
+collapses at 500 ms (71–125/900). The matched-budget control, a 500 ms
+interval with the 1,000 ms proving budget, collapses at 15 tx/s
+(179–226/900 at 0.2 share, 122–168/900 at 0.35): under the EIP's queueing
+overrun rule each tick submits up to a second of proving every half
+second, 37% of plans never finish and the mean proving wait is 11.8 s, so
+the halved budget that comes with the faster tick was what kept the queue
+bounded, and the remaining loss is the doubled cadence: twice the wrappers
+to verify (CPU 95% against 90% at 15 tx/s, 0.2 share) and half the claim
+per completed root (mean 42 against 85 transactions). Delayed chain
+notification with charged block messages (`chain_notify=overlay`) changes
+no classification and moves means by under 3%. The uplink binds too, and
+the cadence decides what it carries. At 1,000 ms the wrapper traffic sits
+on the one-proof-per-peer-per-tick reference, 1.55–1.68 against 1.57 MB/s
+per node, half the 25 Mbit/s uplink; bodies and witnesses fill the rest to
+84–98% utilisation at any privacy share, with 3–49% of attempted bytes
+refused at the egress queue (none PQ-only). At 500 ms the reference alone,
+3.15 MB/s, exceeds the uplink: 2.74–3.00 of the 3.07 MB/s that crosses is
+wrappers, 4–16% of attempted bytes are refused, and bodies and witnesses
+get a fifth of the wire they had — 0.26 against 1.38 MB/s at 15 tx/s and
+0.2 share. So the faster cadence loses on both resources at once: twice
+the wrappers to verify on the CPU, and proof traffic displacing the bodies
+that `body_required` inclusion needs on the wire. With the slow prover the
+wrappers fall to 40–46% of the reference and egress to 45–53%: there the
+CPU alone binds.
+
+```sh
+python3 -m bench.mainnet --nodes 1000 --degree 6 \
+    --presets eip_faithful+aggregation_interval=500,eip_faithful+aggregation_interval=1000 \
+    --tps 5,15,30 --privacy-share 0,0.2,0.35,0.5 --anchor-ms 417,1000 \
+    --leanstark-factor 1 --outcome-ages-ms 12000,24000 --seed-start 0 --seeds 8 --json
+python3 -m bench.mainnet --nodes 1000 --degree 6 \
+    --presets eip_faithful+aggregation_interval=500 --proving-budget 1000 \
+    --tps 15 --privacy-share 0.2,0.35 --anchor-ms 417,1000 \
+    --leanstark-factor 1 --outcome-ages-ms 12000,24000 --seed-start 0 --seeds 8 --json
+python3 -m bench.mainnet --nodes 1000 --degree 6 \
+    --presets eip_faithful+aggregation_interval=500+chain_notify=overlay,eip_faithful+aggregation_interval=1000+chain_notify=overlay \
+    --tps 15 --privacy-share 0.2,0.35 --anchor-ms 417,1000 \
+    --leanstark-factor 1 --outcome-ages-ms 12000,24000 --seed-start 0 --seeds 8 --json
+```
+
+**bench**, **medium** — 480 runs over about six hours on four workers;
+classification is by the per-seed rule above and unanimous wherever a cell
+reads held or collapsed. Every caveat of the previous entry applies:
+uniform arrivals, a two-quiet-slot horizon, extrapolated verification
+prices, one topology family, and 1,000 nodes against a network an order of
+magnitude larger. The comparison is between two intervals on one prover
+calibration; a prover twice as fast would move the 500 ms column and the
+anchor axis is how to read that.
 
 ## O3 — Aggregation leverage: what the block budget binds on
 

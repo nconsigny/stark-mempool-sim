@@ -10,6 +10,7 @@ from unittest import mock
 
 from bench import mainnet
 from starksim.arena import KIND_PQ, KIND_PRIVACY
+from starksim.netsim import NetworkSim
 
 
 class TestMixedKinds(unittest.TestCase):
@@ -88,6 +89,41 @@ class TestValidation(unittest.TestCase):
 
 
 class TestJsonRecords(unittest.TestCase):
+    def test_role_overrides_reach_variant_metrics_trace_and_text_label(self):
+        name = ("eip_faithful+aggregator_share=0.5"
+                "+aggregator_placement=central+relay_forwarding=all"
+                "+proposer_role=relay")
+        argv = SMALL[:-1] + [name, "--tps", "2", "--privacy-share", "0.5"]
+        captured = []
+        original = mainnet.one_run
+
+        def capture(*args):
+            outcome, sim, manifest = original(*args)
+            captured.append(sim)
+            return outcome, sim, manifest
+
+        with mock.patch.object(mainnet, "one_run", side_effect=capture):
+            output = bench_stdout(argv)
+        self.assertEqual(output, bench_stdout(argv))
+        record = json.loads(output)
+        sim = captured[0]
+        self.assertEqual(record["variant"]["aggregator_share"], 0.5)
+        self.assertEqual(record["variant"]["aggregator_placement"], "central")
+        self.assertEqual(record["variant"]["relay_forwarding"], "all")
+        self.assertEqual(record["variant"]["proposer_role"], "relay")
+        self.assertEqual(record["variant"]["relay_node_ids"], [0])
+        self.assertEqual(record["metrics"]["roles"]["relay"]["nodes"], 1)
+        self.assertEqual(record["metrics"]["roles"]["relay"]["proofs_completed"], 0)
+        trace = io.StringIO()
+        traced = NetworkSim(sim.overlay, aggregator_share=0.5,
+                            aggregator_placement="central",
+                            relay_forwarding="all", proposer_role="relay",
+                            trace=trace)
+        self.assertEqual(json.loads(trace.getvalue().splitlines()[0])
+                         ["relay_node_ids"], list(traced.relay_nodes))
+        self.assertIn(name, bench_stdout([value for value in argv
+                                         if value != "--json"]))
+
     def test_each_record_carries_its_own_axis_values(self):
         # A sweep is one argument string but many runs; each record must say
         # which point it measured, not the sweep strings it came from.
@@ -148,6 +184,63 @@ class TestJsonRecords(unittest.TestCase):
         self.assertAlmostEqual(
             variant["circuit_ms_per_hash"],
             2 * base["variant"]["circuit_ms_per_hash"])
+
+    def test_the_default_calibration_is_still_leanvm_b(self):
+        # Every published command names no calibration; a changed default
+        # would silently reprice all of them.
+        record = bench_records(SMALL + ["--tps", "2",
+                                        "--privacy-share", "0.5"])[0]
+        workload, variant = record["workload"], record["variant"]
+        self.assertEqual(workload["calibration"], "leanvm-b")
+        self.assertEqual(workload["anchor_ms"], 417.0)
+        self.assertEqual(workload["verify_stark_ms"], 15.6)
+        self.assertEqual(variant["circuit_sphincs_hashes"],
+                         2_677_883 / 245)
+        self.assertEqual(variant["circuit_recursive_hashes"], 746_499 / 2)
+        self.assertEqual(variant["verify_stark_ms"], 15.6)
+        self.assertEqual(variant["size_recursive_proof"], 262144)
+
+    def test_leanvm_990b935_prices_every_figure_from_its_own_fold(self):
+        # A calibration that moved the cycles but kept leanVM-b's anchor,
+        # verification or proof size would be two provers in one run.
+        record = bench_records(SMALL + ["--tps", "2", "--privacy-share", "0.5",
+                                        "--leanstark-factor", "2",
+                                        "--calibration",
+                                        "leanvm-990b935"])[0]
+        workload, variant = record["workload"], record["variant"]
+        self.assertEqual(workload["calibration"], "leanvm-990b935")
+        self.assertEqual(workload["anchor_ms"], 303.0)
+        self.assertEqual(workload["verify_stark_ms"], 9.195)
+        self.assertEqual(variant["circuit_sphincs_hashes"], 1_774_523 / 975)
+        self.assertEqual(variant["circuit_recursive_hashes"], 542_311 / 2)
+        self.assertEqual(variant["circuit_leanstark_hashes"], 542_311)
+        self.assertAlmostEqual(variant["circuit_ms_per_hash"],
+                               303.0 / 542_311)
+        self.assertEqual(variant["verify_stark_ms"], 9.195)
+        self.assertEqual(variant["size_recursive_proof"], 223_334)
+        # The witness of another program has no leanVM measurement; it
+        # keeps the EIP's size.
+        self.assertEqual(variant["size_stark_witness"], 262144)
+
+    def test_explicit_prices_override_the_calibration(self):
+        record = bench_records(SMALL + ["--tps", "2",
+                                        "--calibration", "leanvm-990b935",
+                                        "--anchor-ms", "606",
+                                        "--verify-stark-ms", "20"])[0]
+        self.assertEqual(record["workload"]["anchor_ms"], 606.0)
+        self.assertAlmostEqual(record["variant"]["circuit_ms_per_hash"],
+                               606.0 / 542_311)
+        self.assertEqual(record["variant"]["verify_stark_ms"], 20.0)
+
+    def test_the_table_names_the_calibration_it_priced(self):
+        text = SMALL[0:1] + SMALL[2:] + ["--tps", "2"]
+        self.assertIn("circuit weights (leanVM-b cycles): signature~10930 "
+                      "nested~373250;", bench_stdout(text))
+        new = bench_stdout(text + ["--calibration", "leanvm-990b935"])
+        self.assertIn("circuit weights (leanVM 990b935 cycles): "
+                      "signature~1820 nested~271156;", new)
+        self.assertIn("STARK-class 9.195 ms (leanVM 990b935 measures 9.195 "
+                      "for its 2-to-1 proof)", new)
 
     def test_cpu_utilisation_does_not_measure_the_drain(self):
         # Utilisation is read at the end of the birth window: read at the

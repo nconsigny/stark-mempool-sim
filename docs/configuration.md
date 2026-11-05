@@ -45,6 +45,16 @@ sim.run()
 print(sim.metrics())
 ```
 
+The metrics include observational summaries such as `transaction_evidence`,
+`plan_deadlines`, `selection_decisions` and
+[`leaf_folds` and `witness_folds`](glossary.md#leaf-fold-measurements). The
+former counts direct leaf objects, while the latter also counts raw witnesses
+carried by mode 0 aggregate inputs. Both include local proof coverage at job
+start, completed service and priced leaf work lost before service. Counts are
+available under every proving basis; all service fields require `circuit`.
+The observers can be disabled independently by setting their `sim` attribute
+to `None` before the run. These measurements add no trace events or CSV columns.
+
 ## The EIP as written
 
 The defaults below represent this simulator's reading of EIP-8288.
@@ -137,6 +147,24 @@ it.
 | Field | Default | Choices | What it decides |
 | --- | --- | --- | --- |
 | `relay_policy` | `flood` | `flood`, `announce_fetch`, `wrapper_only` | How raw objects reach nodes: pushed in full, announced then requested, or never — claims and bodies moving only inside periodic wrappers. |
+
+## Participation roles
+
+| Field | Default | Choices | What it decides |
+| --- | --- | --- | --- |
+| `aggregator_share` | `1.0` | | Fraction of nodes that aggregate, in (0, 1]. Exactly `max(1, round(aggregator_share * nodes))` aggregate (Python's ties-to-even rounding); the rest are relays. Accepts numeric strings from preset overrides. Actual relays require `relay_policy="flood"` or `"announce_fetch"` so their births can leave as raw transactions. |
+| `aggregator_placement` | `random` | `random`, `central` | `random` ranks stable identities derived from `(seed, "aggregator", node_id)` without consuming another stream. `central` ranks highest BFS closeness, ties by lowest node id. On a random regular overlay closeness varies little, so this is a weak treatment. Disconnected graphs scale closeness by reachable fraction. |
+| `relay_forwarding` | `best` | `best`, `all`, `none` | At a decision, `best` chooses the held recursive proof with most locally live claimed transactions, ties by lowest proof id; under `when_ready` it emits only when that choice changes. `all` forwards pending proofs in proof-id order to peers without a previously accepted copy or a belief that they hold it, regardless of wrapper economy. Refused copies wait for the next decision; refusal alone does not wake a tickless relay. Both need retained proof bytes; witness-backed claims are ineligible. `none` forwards no proof: relays still relay raw objects, verify and admit wrappers, and build blocks when they propose. With one aggregator that is the proposer (`aggregator_share` small enough that one node aggregates, and `proposer_role=aggregator`), it models builder-only aggregation. |
+| `proposer_role` | `as_assigned` | `as_assigned`, `aggregator`, `relay` | Force the fixed proposer's role while preserving the aggregator count. Requires `proposer_mode="fixed"` unless `as_assigned`. Forcing an aggregator displaces the lowest-ranked selected candidate; forcing a relay promotes the next unselected candidate. Forcing a relay when all nodes aggregate is refused: lower the share enough to leave a relay slot. Relays still build blocks. |
+
+For example, `bench.mainnet --presets
+"eip_faithful+aggregator_share=0.5+relay_forwarding=all" --json` uses the
+existing preset override path; these fields are not owned by that bench.
+Its text preset label and JSON variant identify the treatment. Non-default
+role settings and the sorted `relay_node_ids` appear in the variant; defaults
+preserve existing trace headers. JSON metrics always include role assignment
+and costs. CSV retains its existing columns, so use JSON to attribute role
+comparisons.
 
 ## Aggregation cadence
 
@@ -290,6 +318,7 @@ retired `v1_calibration` harness is unchanged.
 <!-- sweep-axes:start -->
 **`bench.sweep`** varies one axis and holds the rest:
 `--axis` accepts `relay_policy`, `chain_notify`, `proposer_mode`,
+`aggregator_share`, `aggregator_placement`, `relay_forwarding`, `proposer_role`,
 `selection_strategy`, `fold_plan`, `supersede_policy`, `eviction_policy`,
 `wrapper_economy`, `inclusion_policy`, `cpu_discipline`, `prove_cost_basis`,
 `wrapper_mode`, `fold_threshold`, `on_tick_overrun`,

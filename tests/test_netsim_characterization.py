@@ -30,7 +30,8 @@ CONSTRUCTOR_PARAMETERS = (
     "proving_budget", "entry_subset", "trace",
     "trace_focus", "trace_sample", "trace_counter_interval", "trace_follow",
     "trace_follow_rate", "trace_follow_seed", "egress_queue_bytes",
-    "cpu_queue_jobs", "request_timeout",
+    "cpu_queue_jobs", "request_timeout", "aggregator_share",
+    "aggregator_placement", "relay_forwarding", "proposer_role",
 )
 
 EXPECTED_CSV_COLUMNS = [
@@ -150,7 +151,8 @@ METRIC_ONLY_KEYS = {
     "cpu_accounting", "plan_work", "cpu_refused_estimated_ms",
     "transaction_evidence", "duplicate_traffic",
     "topology_fingerprint", "workload_generator_version",
-    "plan_deadlines", "selection_decisions",
+    "plan_deadlines", "selection_decisions", "leaf_folds", "witness_folds",
+    "roles", "fold_width", "blocks_by_proposer_role", "relay_node_ids",
 }
 
 EXPECTED_TRACE = (

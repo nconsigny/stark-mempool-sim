@@ -174,6 +174,22 @@ class TestSweepHorizon(unittest.TestCase):
 
 
 class TestSweepAxes(unittest.TestCase):
+    def test_participation_axes_reach_the_variant_and_repeat_exactly(self):
+        for name, value in (("aggregator_share", "0.5"),
+                             ("aggregator_placement", "central"),
+                             ("relay_forwarding", "all"),
+                             ("proposer_role", "relay")):
+            with self.subTest(axis=name):
+                arguments = ["--axis", name, "--values", value, "--json"]
+                if name != "aggregator_share":
+                    arguments += ["--set", "aggregator_share=0.5"]
+                text = output(*arguments, *WINDOWS)
+                self.assertEqual(text, output(*arguments, *WINDOWS))
+                row = json.loads(text)
+                expected = 0.5 if name == "aggregator_share" else value
+                self.assertEqual(row["variant"][name], expected)
+                self.assertEqual(len(row["variant"]["relay_node_ids"]), 4)
+
     def test_new_scalar_axes_reach_the_variant_with_their_types(self):
         for name, value in (
                 ("egress_queue_bytes", "1000"), ("cpu_queue_jobs", "1"),

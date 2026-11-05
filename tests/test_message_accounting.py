@@ -298,5 +298,25 @@ class TestOverloadDemand(unittest.TestCase):
         self.assertEqual(result["attempted_ratio"], -1.0)
 
 
+class TestPayloadSizes(unittest.TestCase):
+    def test_every_proof_payload_charges_its_own_models_proof(self):
+        # The variant reports the configured model's proof size; a payload
+        # priced from any other model would charge the wire a size no record
+        # shows (review 23: a wrapper on a fresh default model passed every
+        # test).
+        sim = NetworkSim(two_node_overlay(), seed=1,
+                         size_model=SizeModel(recursive_proof=777))
+        signature = sim.arena.new_leaf(KIND_PQ, 0.0)
+        claimed = sim.arena.claim(signature)
+        aggregate = sim.arena.new_aggregate([signature], 0.0, 0,
+                                            claimed=claimed)
+        sizes = payloads(sim)
+        self.assertEqual(sizes["recursive_wrapper"].size.proof, 777)
+        self.assertEqual(sizes["block"].size.proof, 777)
+        self.assertEqual(sim.size_model.object_payload(
+            aggregate, dep_count=1).size.proof, 777)
+        self.assertEqual(sim.variant()["size_recursive_proof"], 777)
+
+
 if __name__ == "__main__":
     unittest.main()

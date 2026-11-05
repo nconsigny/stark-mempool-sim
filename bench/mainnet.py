@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 A mainnet-shaped workload: 12-second slots, a mixed transaction population,
-and proving priced by measured leanVM-b cycle counts.
+and proving priced by measured leanVM cycle counts (`--calibration`).
 
 No other bench mixes transaction kinds on a priced wire: `bench.propagation`
 measures each kind separately, and `bench.v1_calibration` mixes two streams
@@ -23,6 +23,25 @@ the two measured circuits disagree by 25% on milliseconds per cycle, and
 absolute durations here carry at least that error. `--anchor-ms` is where
 scale uncertainty lives — a larger anchor stands for a slower machine, and
 417 ms is a fast desktop.
+
+`--calibration leanvm-990b935` prices the same quantities from
+leanEthereum/leanVM at commit 990b935 (README benchmarks, 2026-10-28, the
+same M4 Max), the successor that retired leanVM-b and moved to binary
+fields and Keccak: one leanSPHINCS signature costs 1 774 523 / 975 cycles
+(~1 820), one nested recursive proof 542 311 / 2 (~271 156), and one 2-to-1
+fold proves in 303 ms. Everything that depends on the proof's rate comes
+from that one 2-to-1 recursion at log-inv-rate 2, because a deployment
+picks one rate: the 303 ms, its 9.195 ms native verification (the
+`--verify-stark-ms` default under this calibration) and its 218.1 KiB
+proof (the recursive proof's size on the wire). The SPHINCS figure is the
+cycle count of a program with no child proofs, which the rate does not
+change; a recursion's cycles do depend on its children's rate. Its single
+scale predicts the measured SPHINCS aggregation (run at log-inv-rate 1) at
+991 ms where 1 113 ms was measured, 11% short, a comparison across rates
+rather than an error bound. The recursion was measured over children
+of 900 signatures each; how a child's price varies with its own size is
+not priced. `leanvm-b` remains the default, so every published command
+reproduces unchanged.
 
 The leanSTARK witness weight is NOT measured anywhere; `--leanstark-factor`
 expresses it as a multiple of the nested-proof weight. The default band of
@@ -50,8 +69,12 @@ block messages exist, so no block verification is charged.
 Deliberate omissions, so a row is not misread: no trace ceiling is
 modelled — the EIP's 2**24 is KoalaBear rows on a different stack and
 leanVM-b states no cycle limit, so a cap here would be a threshold made of
-mismatched units. Arrivals default to uniform spacing. Fees cycle 0-4 so
-`eip_priority` has an ordering to act on; the cycle is recorded with each run.
+mismatched units. leanVM 990b935 states two limits per fold, at most 16
+child proofs and fewer than 65 536 claim slots, and neither is modelled:
+a child proof costs 151.5 ms at that calibration's anchor, so a fold
+within a budget below 2 575.5 ms holds at most 16. Arrivals default to
+uniform spacing. Fees cycle 0-4 so `eip_priority` has an ordering to act
+on; the cycle is recorded with each run.
 
 `root_claim` retains its terminal-DAG meaning: aggregates never consumed as
 fold inputs, including any unused internal outputs of incomplete plans.
@@ -107,6 +130,7 @@ records from a longer manifest without regenerating its mixture. See
 
 import argparse
 import math
+from dataclasses import dataclass
 import random
 import statistics
 import sys
@@ -133,6 +157,43 @@ from starksim.wire_copies import wire_copies
 LEANVM_B_SPHINCS_CYCLES = 2_677_883 / 245
 LEANVM_B_RECURSIVE_CYCLES = 746_499 / 2
 LEANVM_B_PAIRWISE_MS = 417.0
+
+# leanVM 990b935's, on the same terms; every rate-dependent figure is the
+# 2-to-1 recursion's at log-inv-rate 2 (provenance above).
+LEANVM_990B935_SPHINCS_CYCLES = 1_774_523 / 975
+LEANVM_990B935_RECURSIVE_CYCLES = 542_311 / 2
+LEANVM_990B935_PAIRWISE_MS = 303.0
+
+
+@dataclass(frozen=True, slots=True)
+class Calibration:
+    """One measured prover: cycle weights, the fold that anchors them, and
+    the rate-dependent figures measured with that fold."""
+
+    label: str
+    sphincs_cycles: float
+    recursive_cycles: float
+    pairwise_ms: float
+    verify_stark_ms: float
+    verify_note: str
+    # Bytes of one recursive proof on the wire. leanVM-b's keeps SizeModel's
+    # EIP-derived default, which its published runs used.
+    recursive_proof_bytes: int
+
+
+CALIBRATIONS = {
+    "leanvm-b": Calibration(
+        "leanVM-b", LEANVM_B_SPHINCS_CYCLES, LEANVM_B_RECURSIVE_CYCLES,
+        LEANVM_B_PAIRWISE_MS, 15.6,
+        "leanVM-b measures 14.1-17.1 for one proof size",
+        SizeModel().recursive_proof),
+    "leanvm-990b935": Calibration(
+        "leanVM 990b935", LEANVM_990B935_SPHINCS_CYCLES,
+        LEANVM_990B935_RECURSIVE_CYCLES, LEANVM_990B935_PAIRWISE_MS, 9.195,
+        "leanVM 990b935 measures 9.195 for its 2-to-1 proof",
+        223_334),  # 218.1 KiB
+}
+DEFAULT_CALIBRATION = "leanvm-b"
 
 # Fields this bench derives from its own flags or its calibration. A preset
 # (or a `+field=value` override) reaching one of these would relabel the run
@@ -162,7 +223,8 @@ def mixed_kinds(transactions, privacy_share, seed):
     return kinds
 
 
-def calibrated_prover(anchor_ms, leanstark_factor):
+def calibrated_prover(anchor_ms, leanstark_factor,
+                      calibration=CALIBRATIONS[DEFAULT_CALIBRATION]):
     # Weights are cycles, not hashes; `anchored_on_pairwise_fold` divides the
     # anchor by a 2-to-1 fold's total, so the unit cancels. The infinite trace
     # cap records "no ceiling known" (docstring: the EIP's ceiling belongs to
@@ -170,9 +232,9 @@ def calibrated_prover(anchor_ms, leanstark_factor):
     # a VM cycle -- with no cap it prices nothing.
     return CircuitCost.anchored_on_pairwise_fold(
         anchor_ms,
-        sphincs_hashes=LEANVM_B_SPHINCS_CYCLES,
-        leanstark_hashes=LEANVM_B_RECURSIVE_CYCLES * leanstark_factor,
-        recursive_hashes=LEANVM_B_RECURSIVE_CYCLES,
+        sphincs_hashes=calibration.sphincs_cycles,
+        leanstark_hashes=calibration.recursive_cycles * leanstark_factor,
+        recursive_hashes=calibration.recursive_cycles,
         trace_rows_per_hash=1.0, trace_cap=math.inf)
 
 
@@ -222,11 +284,14 @@ def one_run(args, name, transactions, privacy_share, leanstark_factor,
             anchor_ms, sig_ms, stark_ms, seed, manifest=None):
     overlay = random_regular_overlay(args.nodes, args.degree, args.latency,
                                      seed)
+    calibration = CALIBRATIONS[args.calibration]
     settings = dict(seed=seed, capacity=bytes_per_ms(args.uplink_mbps),
-                    size_model=SizeModel(),
+                    size_model=SizeModel(
+                        recursive_proof=calibration.recursive_proof_bytes),
                     costs=CostTable(
                         prove_recursive=calibrated_prover(anchor_ms,
-                                                          leanstark_factor),
+                                                          leanstark_factor,
+                                                          calibration),
                         seed=seed),
                     verify_cost=NativeVerifyCost(sig_ms, stark_ms),
                     egress_queue_bytes=args.egress_bytes or None,
@@ -322,19 +387,27 @@ def main():
                         help="in-circuit weight of one leanSTARK witness as a "
                              "multiple of the nested-proof weight; an "
                              "unmeasured assumption, default band 1-2")
-    parser.add_argument("--anchor-ms", default=str(LEANVM_B_PAIRWISE_MS),
+    parser.add_argument("--calibration", choices=sorted(CALIBRATIONS),
+                        default=DEFAULT_CALIBRATION,
+                        help="measured prover whose cycle counts, fold time, "
+                             "native verification and proof size price the "
+                             "run; default leanvm-b")
+    parser.add_argument("--anchor-ms", default=None,
                         help="measured ms for one 2-to-1 fold; the hardware "
-                             "axis -- 417 is leanVM-b's Mac M4 Max, larger "
+                             "axis -- default the calibration's Mac M4 Max "
+                             "(417 leanVM-b, 303 leanVM 990b935), larger "
                              "stands for a slower machine")
     parser.add_argument("--verify-sig-ms", default="0.1",
                         help="native ms to verify one bare signature; "
                              "unmeasured, and a mode 0 wrapper multiplies it "
                              "by every signature it carries; one sweep value "
                              "each")
-    parser.add_argument("--verify-stark-ms", default="15.6",
-                        help="native ms to verify one STARK-class object; "
-                             "extrapolated from leanVM-b's one measured "
-                             "proof, 14.1-17.1 ms; one sweep value each")
+    parser.add_argument("--verify-stark-ms", default=None,
+                        help="native ms to verify one STARK-class object, "
+                             "extrapolated from the calibration's one "
+                             "measured proof: default 15.6 for leanVM-b "
+                             "(14.1-17.1 measured), 9.195 for leanVM "
+                             "990b935; one sweep value each")
     parser.add_argument("--proving-budget", type=float, default=None,
                         help="ms of proving per plan; default leaves the "
                              "model's one-aggregation-interval budget, which "
@@ -391,6 +464,11 @@ def main():
     for share in shares:
         if not 0.0 <= share <= 1.0:
             parser.error(f"--privacy-share {share:g}: a share lies in [0, 1]")
+    calibration = CALIBRATIONS[args.calibration]
+    if args.anchor_ms is None:
+        args.anchor_ms = f"{calibration.pairwise_ms:g}"
+    if args.verify_stark_ms is None:
+        args.verify_stark_ms = f"{calibration.verify_stark_ms:g}"
     factors = floats(args.leanstark_factor)
     anchors = floats(args.anchor_ms)
     sig_prices = floats(args.verify_sig_ms)
@@ -466,14 +544,15 @@ def main():
           f"uplink={args.uplink_mbps:.0f} Mbit/s latency={args.latency:.0f} ms "
           f"slot={args.slot_length / 1000:g} s, born over {args.slots} slots, "
           f"{args.drain_slots} drain, seeds={args.seeds}")
-    print(f"circuit weights (leanVM-b cycles): signature~10930 nested~373250; "
+    print(f"circuit weights ({calibration.label} cycles): "
+          f"signature~{calibration.sphincs_cycles:.0f} "
+          f"nested~{calibration.recursive_cycles:.0f}; "
           f"leanSTARK witness = factor x nested, unmeasured")
     print(f"egress bound {egress_note} per node, proving budget {budget_note}, "
           f"fees cycle 0-4")
     print(f"native verify swept: sig {args.verify_sig_ms} ms, "
-          f"STARK-class {args.verify_stark_ms} ms (leanVM-b measures "
-          f"14.1-17.1 for one proof size); no block messages under "
-          f"instant notify")
+          f"STARK-class {args.verify_stark_ms} ms ({calibration.verify_note}); "
+          f"no block messages under instant notify")
     print()
     width = max(len(name) for name in presets)
     root_header = ""

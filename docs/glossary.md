@@ -11,6 +11,25 @@
   is frozen when proving starts after removing what the prover then knows is
   discarded.
 
+**Aggregator**
+: A node assigned to create mempool recursive proofs through selection and
+  folding. All nodes have this role by default; partial participation assigns
+  the remainder to the relay node role.
+
+**Relay (node role)**
+: A node that spreads raw transactions and verifies and admits proofs, but
+  creates no mempool proof. At decisions it forwards held proofs under its
+  forwarding rule. It still builds blocks when assigned as proposer. This
+  role is distinct from `relay_policy`, which governs raw-object propagation.
+
+**Forwarding rule**
+: The relay node's proof choice: `best` re-wraps the recursive proof with most
+  locally live claims, while `all` forwards pending recursive proofs to peers
+  without an accepted copy or a belief that they hold it. Refused copies are
+  retried at a later decision, without refusal itself triggering a tickless
+  decision. `none` forwards no proof; with one aggregator that proposes, it is
+  builder-only aggregation. No rule creates a proof.
+
 **Coverage**
 : The immutable set of leaf transactions structurally folded into an object.
   It is global provenance, not proof of what a node knows or what an aggregate
@@ -24,6 +43,36 @@
 **Leaf**
 : One user transaction and one bit in every coverage mask. Kind `q` is a bare
   post-quantum signature and kind `p` is a privacy transaction with a STARK.
+
+**Leaf fold**
+: One direct leaf input to a completed proving job, including an internal
+  job of a tree plan or a job whose plan was abandoned. Folding an aggregate
+  does not count its contained leaves again. A job still in service has no
+  completed leaf folds yet.
+
+**First fold**
+: The first completed job anywhere in the network to fold a particular leaf.
+  Completions at the same timestamp follow the calendar's insertion order.
+
+**Repeat fold**
+: Every later completed job folding that leaf directly, including another
+  job on the same node. Receptions and receive verification do not count.
+  This is global duplication, not necessarily reusable work: a repeating
+  node may have started before the first completion or never received that
+  node's proof.
+
+**Witness fold**
+: One raw witness verified by a completed proving job: a direct leaf or one
+  dependency carried by a witness-backed mode 0 aggregate input. Recursive
+  proof inputs contribute no witness folds. `witness_folds` has its own
+  first-fold and repeat-fold history, including both forms of raw input;
+  `leaf_folds` retains its direct-object meaning.
+
+**Leaf multiplicity**
+: The number of distinct nodes that completed a direct fold of a leaf,
+  conditioned on that leaf having been folded at least once. Repeated folds
+  on one node increase fold events without increasing multiplicity. See the
+  [leaf-fold measurements](#leaf-fold-measurements) for service attribution.
 
 **Reach**
 : The fraction or set of nodes that have ever admitted an object. Reach is
@@ -185,6 +234,78 @@
   more positions. Candidate fields and this flag are `-1` when a nonpositive
   object limit bypasses the candidate scan. All records retain pre-settlement
   observations as counts, independent of later holdings or metric reads.
+
+## Leaf-fold measurements
+
+`metrics()["leaf_folds"]` observes direct leaf objects;
+`metrics()["witness_folds"]` also observes the raw witnesses carried by mode 0
+aggregate inputs. Both report `total` and `by_kind` (`pq`, `privacy`).
+Each has `leaves_folded`, `fold_events`, and
+`repeat_events = fold_events - leaves_folded`. `multiplicity` contains the
+mean, exact nearest-rank p50 and p95, max, and a fixed `histogram` of
+`minimum`, `maximum`, `count` records: 1, 2, 3–4, 5–8, 9–16, 17–32, 33–64,
+65–128, 129–256, 257–512, 513+ (the last maximum is `null`). Empty populations
+have zero counts and `-1` for mean, percentiles and max. The arrays
+`fold_events_by_node`, `repeat_events_by_node` and
+`repeat_service_ms_by_node` have one entry per node in node order.
+Unfamiliar leaf kinds increment `unsupported_leaf_events` and receive no
+service attribution; they are outside the supported kinds' counts and
+multiplicity statistics, and never interrupt execution.
+
+Under `prove_cost_basis="circuit"`, each signature witness receives
+`charged_duration * sphincs_hashes / total_hashes` of its job's service;
+each privacy witness receives
+`charged_duration * leanstark_hashes / total_hashes`. The denominator is
+`CircuitCost.hashes(*composition)` using the job's submission composition,
+including overhead and nested-proof work, and the charged duration includes
+jitter. Witness-backed aggregate inputs affect both prices but contribute
+events and service only to `witness_folds`. Their witness identities and
+per-leaf prices are frozen at submission, so a later proof upgrade cannot
+reprice the observation; an input removed before service starts contributes
+no fold events. Overlapping mode 0 claims contribute once per input occurrence,
+as charged, rather than being deduplicated into a union.
+`service_ms` sums all leaf shares; `repeat_service_ms` sums only repeat shares.
+Both total and per-kind `repeat_service_share` divide repeat service by **all
+completed proving service** in the run, including internal and leaf-free jobs,
+and report `-1` if that denominator is zero. In-flight service is excluded.
+Each observer exports this denominator as `completed_service_ms`, including
+empty-input completions and active jobs of cancelled or refused plans.
+Total and per-kind `unattributed_service_ms` report supported leaf work priced
+at submission whose input disappeared before service started. The direct
+observer accounts for missing direct inputs; the witness observer also
+accounts for witnesses in missing mode 0 inputs. Overhead and recursive-proof
+service are not missing leaf work and do not enter that field. These counters
+are published only when the job completes, not while it is in flight.
+
+`repeat_service_share` measures global duplication, not service the folding
+node could necessarily have reused. The complementary
+`covered_at_start_events` and `covered_at_start_service_ms`, in totals and by
+kind, count completed raw folds whose leaf was already covered by some
+recursive proof in the folding node's held view when that job started.
+The proof need not be selected by the job. Mode 0 evidence, structural
+coverage outside a proof's claim, and proofs held only by other nodes do not
+qualify. The start snapshot survives later arrivals and removals. The
+`covered_at_start_events_by_node` and `covered_at_start_service_ms_by_node`
+arrays follow node order. This is the population where the node could have
+reused something; estimating savings from a first-hop rule requires simulating
+that rule, including its timing and dissemination consequences.
+
+Under `deps` or `inputs`, counts and multiplicities remain available, but
+every service field, including the denominator and per-node service entries,
+is `-1`. Setting `sim.leaf_folds = None` or `sim.witness_folds = None` before a
+run independently disables that observer and makes its entire metric `-1`.
+Each retains one node bitset per folded leaf and fixed per-kind/node counters.
+Outstanding jobs retain submission input identities and mode 0 claim masks;
+active jobs also retain one union of the node's held recursive claims. The
+union scans that node's held objects once per raw-input job start, without
+scanning once per leaf or across all nodes. At 1,000 nodes and 10,000
+transactions, the active coverage snapshots need at most 1.25 MB of bit
+payload plus Python overhead. Waiting cancellation, queue refusal and
+completion release the corresponding job observation. Observations read
+frozen claims (or already-cached coverage for claim-less synthetic aggregates),
+never traverse recursive provenance or mutate the coverage cache, and change
+no node beliefs. A claim-less synthetic aggregate without cached coverage
+supplies no interpretable proof claim to these observers.
 
 ## Transaction evidence and duplicate burden
 

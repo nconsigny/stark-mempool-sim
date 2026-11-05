@@ -49,6 +49,9 @@ CHOICE_SETS = {
     "on_tick_overrun": ("fifo", "abandon"),
     "aggregation_trigger": ("aligned", "spread", "when_ready"),
     "proposer_mode": ("fixed", "rotating", "random", "dedicated"),
+    "aggregator_placement": ("random", "central"),
+    "relay_forwarding": ("best", "all", "none"),
+    "proposer_role": ("as_assigned", "aggregator", "relay"),
 }
 
 

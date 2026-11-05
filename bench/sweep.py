@@ -83,6 +83,10 @@ def boolean(value):
 # result for a configuration that was never run.
 AXES = {
     "relay_policy": str,
+    "aggregator_share": float,
+    "aggregator_placement": str,
+    "relay_forwarding": str,
+    "proposer_role": str,
     "chain_notify": str,
     "proposer_mode": str,
     "selection_strategy": str,

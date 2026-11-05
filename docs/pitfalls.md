@@ -33,6 +33,77 @@ trusting `seen` alone.
 
 ## Measurement and instrumentation
 
+**Wrapper emissions are not proofs created.** `wrappers_emitted` and wrapper
+bytes include relays' emissions of proofs created elsewhere. Use per-role
+figures to assess how aggregation costs concentrate; run totals combine
+proving with forwarding. Relays still pay verification and may build blocks.
+Under `all`, one relay can forward distinct proofs from many aggregators,
+where each aggregator emits its own selected result. A higher wrapper count
+per relay can therefore be the specified forwarding rule rather than repeated
+forwarding of one proof. Counts per relay and per aggregator describe different
+work and are not directly comparable as aggregation activity.
+Placement also needs a meaningful fixture: `central` means little on a random
+regular overlay, where closeness varies little.
+
+**Birth-role inclusion combines participation with transport and position.**
+Grouping inclusion by the birth node's role combines local aggregation
+capability, placement, raw propagation, egress refusal and the observation
+horizon. Under `flood`, an original raw send refused at egress is not retried;
+`announce_fetch` has different recovery behavior, with optional request
+timeouts. Review 25's example at 40 nodes, degree 6, seed 0, 15 tx/s and 20%
+privacy, using `leanvm-990b935`, half aggregators, spread ticks, 60 seconds of
+births and 24 seconds of drain, gave:
+
+| Raw propagation | Egress bound | Aggregator-born included | Relay-born included |
+| --- | ---: | ---: | ---: |
+| `flood` | 4 MB | 461/461 | 428/439 |
+| `announce_fetch` | 4 MB | 461/461 | 439/439 |
+| `announce_fetch`, 1 s request timeout | 4 MB | 461/461 | 439/439 |
+| `flood` | Unbounded | 354/461 | 311/439 |
+
+**Bench**, **medium confidence**, one fixture and one seed, reproduced with
+the command below. The timeout treatment generated 12,731 retries without
+improving inclusion in this seed. Removing the queue bound accumulated more
+backlog and worsened finite-horizon inclusion. This table does not isolate an
+intrinsic disadvantage of relay births or establish a general transport
+ranking. Costs are simulator assumptions and calibration, not client or
+testnet measurements. A typed preset supplies the numeric timeout because
+the generic `+field=value` override passes strings and `request_timeout` does
+not coerce them.
+
+```sh
+python3 - <<'PY'
+import sys
+from bench.mainnet import main
+from starksim.presets import EIP_FAITHFUL, PRESETS
+
+for policy, bound, timeout in (
+        ("flood", 4_000_000, None),
+        ("announce_fetch", 4_000_000, None),
+        ("announce_fetch", 4_000_000, 1000.0),
+        ("flood", 0, None)):
+    PRESETS["transport_probe"] = dict(
+        EIP_FAITHFUL, aggregator_share=0.5, relay_policy=policy,
+        request_timeout=timeout)
+    sys.argv = ["mainnet", "--nodes", "40", "--degree", "6",
+                "--calibration", "leanvm-990b935", "--tps", "15",
+                "--privacy-share", "0.2", "--slots", "5",
+                "--drain-slots", "2", "--seed-start", "0", "--seeds", "1",
+                "--egress-bytes", str(bound), "--presets", "transport_probe",
+                "--json"]
+    main()
+PY
+```
+
+**Clocked `best` forwarding still pays the full cadence cost.** With
+`wrapper_economy="full"`, a relay re-sends the full selected proof to every
+peer each tick. At degree 6, a 1,000 ms interval and the `leanvm-990b935`
+calibration's 223,334-byte proof, the proof term alone is arithmetically
+`6 × 223334 / 1 s = 1.340004 MB/s` per active relay, before dependency triples,
+bodies and hashes. Equal-sized disjoint live claims tie by lowest proof id;
+one can remain unselected indefinitely while the winner remains live.
+Cadence, wrapper economy and coverage choice need separate comparisons.
+
 **A statistic can measure its own procedure.** Before quoting a number, ask what
 could change it that is *not* the thing it claims to measure — then vary that and
 assert it does not move. Both measurement harnesses here once reported values
@@ -77,6 +148,22 @@ completion-time means. A claim-weighted mean is not overlap-free: use a union
 for distinct transactions and ordered marginal contributions for block
 density. Definitions are in
 [glossary.md](glossary.md#aggregation-measurements).
+
+**Leaf multiplicity counts folds, not receptions or verifications.**
+`leaf_folds` observes only direct leaf inputs to completed proving jobs.
+A leaf inside a nested proof is never counted a second time when that proof
+is folded, and repeated folds on one node do not add distinct nodes.
+Low multiplicity therefore does not imply little receive verification or
+little recursive-proof verification; read those costs separately from the
+[leaf-fold measurements](glossary.md#leaf-fold-measurements). Witnesses a
+mode 0 wrapper carries are verified in-circuit when the wrapper is folded,
+but the wrapper is not a leaf, so they enter `witness_folds` rather than the
+direct-object `leaf_folds` counts and service. Repeat service is global
+duplication, including concurrent folds and nodes that never learned the
+first folder's proof. `covered_at_start` events and service instead identify
+raw work already covered by a recursive proof held locally at job start;
+mode 0 evidence does not qualify. Neither population measures savings from
+a first-hop rule without simulating the rule.
 
 **A block changes the view being measured.** Its candidate union must be
 observed before settlement, from the proposer's held objects rather than the

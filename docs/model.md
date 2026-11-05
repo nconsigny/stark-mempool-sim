@@ -51,10 +51,10 @@ rather than a question about the protocol — variant identity on each number, a
 stated evidence class and confidence, and checks independent of the reporting
 code. [CONTRIBUTING.md](../CONTRIBUTING.md) states it as a practice.
 
-The honest boundary: every participant here is honest, identical, online and
-altruistic. Nobody spams, withholds proving effort, or sends invalid evidence.
-Whether the design survives participation being a choice is a further
-objective, not a parameter sweep of these six.
+The honest boundary: every participant here is honest, online and altruistic.
+Nodes may have different aggregation roles, but nobody spams, withholds the
+work assigned to its role, or sends invalid evidence. Strategic participation
+and incentives remain outside the model.
 
 ## Time and the event calendar
 
@@ -176,9 +176,9 @@ Sender-side proof beliefs form only when the receiver already retains the proof
 or its verification job has been accepted. These timings prevent a dropped or
 refused proof from suppressing the copy needed to repair the loss.
 
-Wrappers travel one hop and are never relayed. Each receiving node verifies and
-retains the proof, may combine it with other evidence at its next tick, and then
-emits its own wrappers.
+Wrappers travel one hop. Each receiving node verifies and retains the proof,
+then emits its own wrappers: an aggregator may combine it with other evidence,
+and a relay may re-wrap the original proof at its next decision.
 
 The `wrapper_economy` modes change redundant proof transmission:
 
@@ -220,6 +220,101 @@ cannot resolve a proof reference, forms no peer belief that a proof is held, and
 is charged as its dependencies rather than as one nested proof when it is later
 folded. Recording mode 0 as a verified proof instead is a mistake that flatters
 it twice over — see [results.md](results.md).
+
+## Participation roles
+
+`aggregator_share` assigns exactly `max(1, round(share * nodes))` aggregators;
+the remaining nodes are relays. Aggregators use the normal selection and
+proving cycle. Relays originate and spread raw transactions under `relay_policy`,
+receive and verify wrappers at the usual cost, and prune their held objects.
+They never submit recursive proving work, including proofs of lone leaves.
+Relay births require raw propagation, so actual relays with `wrapper_only`
+are refused. Proposing is independent: a relay proposer selects and builds a
+block and pays block-build cost just as an aggregator proposer does.
+
+Relays decide at their normal aligned or spread tick. Under `when_ready`, a
+relay re-decides after admitting a recursive proof (in a wrapper or a full
+aggregate), losing a proof through eviction, supersession or pruning, or
+learning a change in settlement. Retention completes before the decision, so
+a birth or raw leaf admission wakes a relay only if it removes a proof.
+Settlement triggers include instant chain knowledge, a local relay proposer's
+own block, received block notices and expiry. The relay checks its
+proof-retention/knowledge stamp before scanning proofs. It needs one sendable
+recursive proof (`best`) or pending peer copies (`all`), and forwards immediately
+after admission or retention even while its CPU has verification work queued.
+Verification must complete before admission; forwarding itself submits no CPU
+job and has no CPU-idle callback. Consuming the final stamp, including pruning
+inside the decision, prevents repeated decisions without another change.
+
+A full aggregate object admitted by a relay follows this proof rule and
+cadence. It is not advertised again through the raw-object relay policy.
+Raw leaves continue to propagate under `relay_policy`.
+
+`relay_forwarding="best"` emits a new wrapper around the held recursive proof
+with the most locally live claimed transactions, ties by lowest proof id.
+Usefulness reads claims and the relay's own discard knowledge. Witness-backed
+claims and upgrades still awaiting proof verification cannot be forwarded.
+The wrapper creator is the relay; the enclosed proof retains its original
+identity and frozen claim. With no eligible proof, the relay is silent.
+`best` uses the same wrapper economy as an aggregator's lone-aggregate re-wrap.
+Under `when_ready`, it emits only when its chosen proof differs from the one it
+last emitted. Admitting a smaller proof or learning settlement that leaves the
+same proof best causes no emission. Under aligned or spread ticks, it keeps
+re-emitting its best proof each interval.
+
+`relay_forwarding="all"` considers pending recursive proofs in proof-id order.
+Each still-held, locally live proof gets a wrapper for peers not believed to
+hold it and without a previously accepted send, including excluding its
+sender. Forwarding is recorded per (proof, peer) only when egress accepts that
+copy. A refused peer remains pending until a later decision accepts its copy,
+the peer is believed to hold the proof, or the proof leaves the relay's view.
+Under `when_ready`, refusal alone does not wake the relay: a retry waits for
+another admission, retention or settlement trigger, so a full queue cannot
+cause a retry loop. This exclusion applies even with `wrapper_economy="full"`;
+reference substitution and unchanged-proof suppression have no further effect for those
+eligible peers. Accepted copies are not sent again, including after later
+re-admission of the same proof. Eviction, supersession or pruning before the
+decision can remove a pending proof, which cannot be
+sent without possession. Both rules use existing per-peer body substitution
+and `wrapper_mode`; `cheapest` may transmit witnesses for a proof the relay
+holds when it can supply them.
+
+`relay_forwarding="none"` forwards no proof at all. Relays still relay raw objects, verify and
+admit wrappers, and build blocks when they propose, and they never wake to decide. With a single
+aggregator that is the fixed proposer, this is builder-only aggregation: one node proves everything
+it includes, and no aggregate travels.
+
+`aggregator_placement="random"` ranks identity-derived values independent of
+all other random streams; full participation does no role draw. `central`
+ranks highest closeness from BFS distances, ties by node id. On random regular
+overlays closeness varies little, so central placement is a weak treatment.
+Disconnected overlays scale each node's closeness by its reachable fraction.
+`proposer_role` normally leaves the assignment alone. With a fixed proposer,
+`aggregator` or `relay` swaps its assignment while preserving the count: remove
+the lowest-ranked selected candidate or promote the next unselected candidate,
+respectively. Other proposer modes require `as_assigned`. The legacy
+`proposer_mode="dedicated"` still skips its builder's mempool decisions
+independently of the participation assignment.
+
+JSON `roles` reports per-role node counts, mean/p95/max utilisation, sent
+wrapper and total bytes per node per second, proof and emission totals and
+per-node means, and outcomes grouped by birth node's role. Utilisation uses
+the whole elapsed run as in the run totals; sent bytes include partially
+transmitted messages. Wrapper bytes include bodies, hashes and triples.
+Delay averages only included transactions, in slots. The 24-second inclusion
+share is a fixed-age query over mature births; `mature_24s`, `censored_24s` and
+`unknown_24s` identify its denominator and limitations. It is always queried
+from existing timestamps without extending the run; unavailable shares are
+`-1`. Empty roles report zeros, including delay and age share.
+
+`fold_width` counts direct inputs to completed root jobs at aggregators,
+including a lone-leaf root, and gives exact nearest-rank p95 and mean width,
+plus mean aggregate children and leaves. It excludes re-wraps, intermediate
+jobs and incomplete roots. Under tree plans this is root-job fan-in, not total
+selection width; witness-backed aggregate inputs remain structurally children.
+No completed roots gives `-1` means and p95. `blocks_by_proposer_role` counts
+built blocks and their newly included transactions, and `relay_node_ids` is
+the sorted assignment. These observers schedule no events.
 
 ## Aggregation duty cycle
 

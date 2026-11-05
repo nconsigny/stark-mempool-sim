@@ -17,7 +17,7 @@ import random
 from starksim import aggregation as _aggregation  # register built-in strategies
 from starksim.accounting import MessageCounts, WRAPPER_ENCODINGS
 from starksim.aggregation import input_composition
-from starksim.aggregation_metrics import BlockSelection, PlanRoots
+from starksim.aggregation_metrics import BlockSelection, FoldWidths, PlanRoots
 from starksim.arena import KIND_PQ, KIND_PRIVACY, Arena, useful_count
 from starksim.chain import (ChainState, InstantNotifier, OverlayNotifier,
                             ProposerSchedule)
@@ -32,9 +32,12 @@ from starksim.engine import Engine, Job
 from starksim.evidence import FirstEvidence
 from starksim.knowledge import KnowledgeTracer
 from starksim.identity import topology_fingerprint
+from starksim.leaf_folds import FoldJob, LeafFolds
 from starksim.network import SizeModel
 from starksim.node import Node
 from starksim.payload import WireMessage, WrapperCore
+from starksim.participation import (AGGREGATOR_PLACEMENTS, PROPOSER_ROLES,
+                                    RELAY_FORWARDING_RULES, assign_aggregators)
 from starksim.reporting import (CSV_COLUMNS, _pearson, csv_header, csv_row,
                                 admission_delays as _admission_delays,
                                 coverage_fraction_within as
@@ -243,7 +246,7 @@ class _PlanRun:
 
     __slots__ = ("plan", "node_id", "tick", "produced", "resolved", "claims",
                  "work_started", "work_outcome", "work_charged_ms",
-                 "decision_ms")
+                 "decision_ms", "leaf_service_ms")
 
     def __init__(self, plan, node_id, tick, decision_ms):
         self.plan = plan
@@ -253,6 +256,9 @@ class _PlanRun:
         self.resolved = {}
         # Each job's frozen claim, decided at its start.
         self.claims = {}
+        # Attribution uses submission evidence and price, even if evidence
+        # changes while queued. Only outstanding jobs retain entries.
+        self.leaf_service_ms = {}
         self.work_started = False
         self.work_outcome = None
         self.work_charged_ms = 0.0
@@ -291,6 +297,11 @@ class NetworkSim:
         "on_tick_overrun", "proving_budget", "entry_subset",
         "_dedicated_builder", "_material", "_woke_at",
         "pin_own_aggregate",
+        "aggregator_share", "aggregator_placement", "relay_forwarding",
+        "proposer_role", "aggregator_nodes", "relay_nodes",
+        "_relay_pending", "_relay_forwarded", "wrappers_by_node",
+        "_relay_proof_generation", "_relay_last_best",
+        "fold_widths",
         # Accounting.
         "messages_offered", "messages_delivered", "duplicates",
         "offered_bytes", "sent_bytes", "offered_bytes_by_kind",
@@ -310,7 +321,7 @@ class NetworkSim:
         "proof_jobs_over_capacity",
         "attempted", "egress_refused", "cpu_refused",
         "plan_roots", "plan_work", "block_observations", "inclusion_times",
-        "plan_deadlines", "selection_decisions",
+        "plan_deadlines", "selection_decisions", "leaf_folds", "witness_folds",
         "expiry_times",
         "pending_deliveries",
         "transaction_evidence", "duplicate_traffic", "wire_copies",
@@ -343,7 +354,27 @@ class NetworkSim:
                  trace_follow=None, trace_follow_rate=0.0,
                  trace_follow_seed=None,
                  egress_queue_bytes=None, cpu_queue_jobs=None,
-                 request_timeout=None):
+                 request_timeout=None, aggregator_share=1.0,
+                 aggregator_placement="random", relay_forwarding="best",
+                 proposer_role="as_assigned"):
+        try:
+            aggregator_share = float(aggregator_share)
+        except (TypeError, ValueError):
+            raise ValueError("aggregator_share must be a number in (0, 1]: "
+                             "choose a positive share no greater than one") from None
+        if not 0.0 < aggregator_share <= 1.0:
+            raise ValueError("aggregator_share must be in (0, 1]: choose a "
+                             "positive share no greater than one")
+        if aggregator_placement not in AGGREGATOR_PLACEMENTS:
+            raise ValueError("aggregator_placement must be 'random' or 'central'")
+        if relay_forwarding not in RELAY_FORWARDING_RULES:
+            raise ValueError("relay_forwarding must be 'best', 'all' or 'none'")
+        if proposer_role not in PROPOSER_ROLES:
+            raise ValueError("proposer_role must be 'as_assigned', 'aggregator' "
+                             "or 'relay'")
+        if proposer_role != "as_assigned" and proposer_mode != "fixed":
+            raise ValueError("proposer_role requires proposer_mode='fixed': "
+                             "change proposer_mode or use 'as_assigned'")
         if relay_policy not in RELAY_POLICIES:
             raise ValueError(f"unknown relay policy {relay_policy!r}")
         if wrapper_economy not in WRAPPER_ECONOMIES:
@@ -445,6 +476,26 @@ class NetworkSim:
         self.rotation = [0] * overlay.node_count
         self.proposers = ProposerSchedule(overlay.node_count, proposer_mode,
                                           proposer_id, seed)
+        self.aggregator_share = aggregator_share
+        self.aggregator_placement = aggregator_placement
+        self.relay_forwarding = relay_forwarding
+        self.proposer_role = proposer_role
+        self.aggregator_nodes = assign_aggregators(
+            overlay, seed, aggregator_share, aggregator_placement,
+            proposer_role, proposer_id)
+        self.relay_nodes = tuple(node for node in range(overlay.node_count)
+                                 if node not in self.aggregator_nodes)
+        if self.relay_nodes and relay_policy == RELAY_WRAPPER_ONLY:
+            raise ValueError("relays require raw transaction propagation: "
+                             "change relay_policy from 'wrapper_only' to "
+                             "'flood' or 'announce_fetch', or raise "
+                             "aggregator_share to assign every node")
+        self._relay_pending = {node: set() for node in self.relay_nodes}
+        self._relay_forwarded = {node: {} for node in self.relay_nodes}
+        self._relay_proof_generation = dict.fromkeys(self.relay_nodes, 0)
+        self._relay_last_best = dict.fromkeys(self.relay_nodes)
+        self.wrappers_by_node = [0] * overlay.node_count
+        self.fold_widths = FoldWidths()
         # Byte accounting keeps *offered* separate from *sent*, because they
         # differ by whatever is still queued. Counting only at submit time
         # reports bytes that never crossed a wire -- badly enough, at a finite
@@ -568,6 +619,10 @@ class NetworkSim:
         self.proofs_completed = 0
         self.plan_roots = PlanRoots()
         self.plan_work = PlanWork(overlay.node_count)
+        self.leaf_folds = LeafFolds(
+            overlay.node_count, self.prove_cost_basis == PROVE_COST_CIRCUIT)
+        self.witness_folds = LeafFolds(
+            overlay.node_count, self.prove_cost_basis == PROVE_COST_CIRCUIT)
         interval = None
         if self.aggregation_trigger in CLOCKED_TRIGGERS:
             interval = self.aggregation_interval
@@ -708,8 +763,9 @@ class NetworkSim:
         # verification, block assembly and abandoned plans as ways to miss it,
         # twice over.
         for node_id, server in enumerate(self.cpu):
-            server.on_idle = (
-                lambda _server, node_id=node_id: self._wake_if_ready(node_id))
+            if node_id in self.aggregator_nodes:
+                server.on_idle = (
+                    lambda _server, node_id=node_id: self._wake_if_ready(node_id))
         self._refuse_inert_settings()
         self.tracer.header(self.variant())
 
@@ -1209,6 +1265,9 @@ class NetworkSim:
         # A full object transfer brings every body it covers.
         bodies = self.arena.coverage(obj)
         node.finish_receive(obj, self.engine.now, bodies)
+        if node.id not in self.aggregator_nodes and not obj.is_leaf():
+            node.note_proof_at_peer(message.sender, obj.id)
+            self._note_relay_proof(node, obj)
         if self.transaction_evidence is not None:
             claimed = obj.claimed
             if obj.is_leaf():
@@ -1221,10 +1280,17 @@ class NetworkSim:
         self._material[node.id] += 1
         self.tracer.emit("adm", node.id, t=round(self.engine.now, 3),
                          o=obj.id, born=round(obj.born, 3))
-        self._wake_if_ready(node.id)
+        if node.id in self.aggregator_nodes:
+            self._wake_if_ready(node.id)
         self._trace_drops(node.id, node.enforce_candidate_limit(
                               self.arena, self._protected_candidate(node.id)),
                           "evicted")
+        if node.id not in self.aggregator_nodes:
+            self._wake_if_ready(node.id)
+            # Recursive objects obey the relay's proof decision and cadence.
+            # Only raw leaves continue through the raw propagation policy.
+            if not obj.is_leaf():
+                return
         # Under wrapper_only nothing ever puts a raw object on the wire, so a
         # delivery to relay cannot happen; the guard is here so a future policy
         # that mixes modes does not quietly start flooding.
@@ -1362,12 +1428,13 @@ class NetworkSim:
         self._tick(node_id, tick)
 
     def _tick(self, node_id, tick):
-        """One node's aggregation round: prune, select, plan, prove.
+        """One node's decision: prune, then forward or select, plan and prove.
 
         The EIP has a node emit one wrapper per interval covering everything it
         still considers valid. Selection and planning are pure and happen here;
         the proving is queued, so a tick's output appears later and may appear
         after the next tick has already begun.
+        A relay instead re-wraps eligible held proofs without using its CPU.
         """
         # No knowledge mark is needed here. The only synchronous view mutation
         # is `prune_discarded`, which drops objects whose entire claim is
@@ -1380,6 +1447,9 @@ class NetworkSim:
         node = self.nodes[node_id]
         self.ticks_run += 1
         self._trace_drops(node.id, node.prune_discarded(self.arena), "pruned")
+        if node_id not in self.aggregator_nodes:
+            self._forward_relay(node, tick)
+            return None
         if self.on_tick_overrun == "abandon":
             # Unstarted proving from an earlier tick is decided against a view
             # that no longer exists, so drop it and re-decide rather than spend
@@ -1391,6 +1461,7 @@ class NetworkSim:
             self.proof_jobs_cancelled += len(dropped)
             self.plans_abandoned += len({job.tag[0] for job in dropped})
             for job in dropped:
+                self._release_fold_observation(job)
                 self.plan_work.finish(job.tag[0], "cancelled")
                 self._finish_plan_observation(job.tag[0], "cancelled")
         selector = get_strategy("selection", self.selection_strategy)
@@ -1477,6 +1548,7 @@ class NetworkSim:
                     self._finish_plan_observation(run, "refused_over_capacity")
                     return None
         for job in plan.jobs:
+            service_per_leaf = (0.0, 0.0)
             # Priced by what this job proves, not by what the plan as a whole
             # will assert. Charging every fold for the whole selection would
             # erase the cost difference between plan shapes.
@@ -1491,10 +1563,14 @@ class NetworkSim:
             if self.prove_cost_basis == PROVE_COST_CIRCUIT:
                 # Capacity was settled for the whole plan above; what remains is
                 # the price.
-                duration = circuit.duration(*self._job_composition(node, job))
+                composition = self._job_composition(node, job)
+                duration = circuit.duration(*composition)
                 if self.costs.jitter_frac:
                     duration += self.costs._rng.uniform(
                         0.0, self.costs.jitter_frac * duration)
+                if self.leaf_folds is not None or self.witness_folds is not None:
+                    service_per_leaf = LeafFolds.service_per_leaf(
+                        circuit, composition, duration)
             else:
                 if self.prove_cost_basis == PROVE_COST_INPUTS:
                     cost_size = len(job.inputs) + len(job.depends_on)
@@ -1509,6 +1585,9 @@ class NetworkSim:
                                  & ~node.known_discarded()).bit_count()
                 duration = self.costs.duration(PROVE_RECURSIVE,
                                                max(1, cost_size))
+            if self.leaf_folds is not None or self.witness_folds is not None:
+                run.leaf_service_ms[job.index] = FoldJob(
+                    self.arena, node.view, job.inputs, service_per_leaf)
             if not self.cpu[node_id].submit(
                     Job(duration, on_done=self._proof_done,
                         on_start=self._proof_started, tag=(run, job),
@@ -1521,12 +1600,19 @@ class NetworkSim:
                 withdrawn = self.cpu[node_id].cancel_waiting(
                     lambda queued: (queued.kind == PROVE_RECURSIVE
                                     and queued.tag[0] is run))
+                run.leaf_service_ms.pop(job.index, None)
+                for queued in withdrawn:
+                    self._release_fold_observation(queued)
                 self.proof_jobs_cancelled += len(withdrawn)
                 self.plans_abandoned += 1
                 self.plan_work.finish(run, "refused_queue")
                 self._finish_plan_observation(run, "refused_queue")
                 return None
         return run
+
+    def _release_fold_observation(self, job):
+        run, plan_job = job.tag
+        run.leaf_service_ms.pop(plan_job.index, None)
 
     def _finish_plan_observation(self, run, outcome, emitted=False):
         if self.plan_deadlines is not None:
@@ -1653,6 +1739,9 @@ class NetworkSim:
         self.plan_work.start(run)
         inputs = self._resolve(run, plan_job)
         run.resolved[plan_job.index] = inputs
+        observation = run.leaf_service_ms.get(plan_job.index)
+        if observation is not None:
+            observation.start(self.arena, self.nodes[run.node_id].view, inputs)
         run.claims[plan_job.index] = self._freeze_claim(
             self.nodes[run.node_id], plan_job)
         self.arena.note_consumption(inputs)
@@ -1665,6 +1754,25 @@ class NetworkSim:
         run, plan_job = job.tag
         run.work_charged_ms += job.duration
         inputs = run.resolved.get(plan_job.index) or self._resolve(run, plan_job)
+        observation = run.leaf_service_ms.pop(plan_job.index, None)
+        leaf_service_ms = (0.0, 0.0)
+        covered = 0
+        direct_unattributed = (0.0, 0.0)
+        witness_unattributed = (0.0, 0.0)
+        witnesses = ()
+        if observation is not None:
+            leaf_service_ms = observation.service_per_leaf
+            covered = observation.covered
+            direct_unattributed = observation.direct_unattributed_ms
+            witness_unattributed = observation.witness_unattributed_ms
+            witnesses = observation.witnesses(self.arena)
+        if self.leaf_folds is not None:
+            self.leaf_folds.record(run.node_id, inputs, job.duration,
+                                   leaf_service_ms, covered, direct_unattributed)
+        if self.witness_folds is not None:
+            self.witness_folds.record(run.node_id, witnesses, job.duration,
+                                      leaf_service_ms, covered,
+                                      witness_unattributed)
         if not inputs:
             if plan_job.index == run.plan.root:
                 self.plan_work.finish(run, "cancelled")
@@ -1681,6 +1789,7 @@ class NetworkSim:
         if plan_job.index != run.plan.root:
             return
         self.plan_roots.record(aggregate.claimed)
+        self.fold_widths.record(inputs)
         self.plan_work.finish(run, "completed")
         self.plan_work.root(aggregate.id, node.id)
         # The root is what the network sees. Everything below it was internal.
@@ -1723,7 +1832,7 @@ class NetworkSim:
         return None if previous is None else previous.id
 
     def _wake_if_ready(self, node_id):
-        """Fold now if this node can, under `when_ready`.
+        """Decide now if this node can, under `when_ready`.
 
         v1's rule: an aggregator with a free CPU and something to fold does not
         wait for a clock. Called wherever either precondition can newly become
@@ -1731,19 +1840,27 @@ class NetworkSim:
         change in what a node knows is settled, from expiry or a block notice.
         Cheap at all of them, since it is a few comparisons before it is
         anything else: a trigger has to stay cheaper than what it watches.
+
+        Relays use their own admission, retention and settlement triggers;
+        forwarding does not occupy the CPU and never waits for CPU idleness.
         """
         if self.aggregation_trigger != TRIGGER_WHEN_READY:
             return
         if node_id == self._dedicated_builder:
             return
+        if node_id not in self.aggregator_nodes:
+            self._wake_relay_if_ready(node_id)
+            return
         if self.cpu[node_id].is_busy() or self.cpu[node_id].waiting:
             return
-        if len(self.nodes[node_id].view.held) < FOLDABLE_TO_WAKE:
+        node = self.nodes[node_id]
+        material = self._material[node_id]
+        if len(node.view.held) < FOLDABLE_TO_WAKE:
             return
         # What this node holds *and* what it knows is settled: a discard makes
         # a previously refused plan feasible without a single object arriving,
         # so counting material alone left a node stranded after an expiry.
-        stamp = (self._material[node_id],
+        stamp = (material,
                  self.nodes[node_id].notifier.generation(node_id))
         if stamp == self._woke_at[node_id]:
             # Nothing has changed since the last decision, so it would be the
@@ -1753,7 +1870,91 @@ class NetworkSim:
         self._next_generation[node_id] += 1
         self._tick(node_id, self._next_generation[node_id])
 
-    def _emit_wrapper(self, node, aggregate, tick):
+    def _wake_relay_if_ready(self, node_id):
+        """Forward on changed evidence, retention or settlement, without CPU work.
+
+        Admissions call this only after verification and retention finish.
+        Consuming the stamp before deciding prevents an idle loop; pruning's
+        final stamp is consumed afterwards because that view was also decided.
+        """
+        if self.relay_forwarding == "none":
+            return
+        node = self.nodes[node_id]
+        stamp = (self._relay_proof_generation[node_id],
+                 node.notifier.generation(node_id))
+        if stamp == self._woke_at[node_id]:
+            return
+        if self.relay_forwarding == "all":
+            if not self._relay_pending[node_id]:
+                return
+        elif not self._relay_proofs(node):
+            return
+        self._woke_at[node_id] = stamp
+        self._next_generation[node_id] += 1
+        self._tick(node_id, self._next_generation[node_id])
+        self._woke_at[node_id] = (self._relay_proof_generation[node_id],
+                                  node.notifier.generation(node_id))
+
+    def _relay_proofs(self, node):
+        """Held recursive proofs with a locally live claim, in identity order."""
+        proofs = []
+        discarded = node.known_discarded()
+        for object_id in sorted(node.view.held):
+            obj = self.arena.objects.get(object_id)
+            if (obj is not None and not obj.is_leaf()
+                    and object_id not in node.view.witness_backed
+                    and object_id not in node.view.upgrading
+                    and useful_count(self.arena.claim(obj), discarded)):
+                proofs.append(obj)
+        return proofs
+
+    def _note_relay_proof(self, node, aggregate):
+        if node.id in self.aggregator_nodes:
+            return
+        self._relay_proof_generation[node.id] += 1
+        if self.relay_forwarding == "all":
+            accepted = self._relay_forwarded[node.id].get(aggregate.id, set())
+            if any(peer not in accepted and not node.peer_has_proof(
+                    peer, aggregate.id) for peer in node.peers):
+                self._relay_pending[node.id].add(aggregate.id)
+
+    def _forward_relay(self, node, tick):
+        if self.relay_forwarding == "none":
+            # Builder-only aggregation, with one aggregator that proposes:
+            # relays carry transactions and never pass a proof on.
+            return
+        proofs = self._relay_proofs(node)
+        if self.relay_forwarding == "best":
+            if proofs:
+                discarded = node.known_discarded()
+                best = min(proofs, key=lambda obj: (
+                    -useful_count(self.arena.claim(obj), discarded), obj.id))
+                if (self.aggregation_trigger == TRIGGER_WHEN_READY
+                        and best.id == self._relay_last_best[node.id]):
+                    return
+                core = self._emit_wrapper(node, best, tick)
+                if core is not None:
+                    self._relay_last_best[node.id] = best.id
+            return
+        pending = self._relay_pending[node.id]
+        pending.intersection_update(proof.id for proof in proofs)
+        for proof in proofs:
+            if proof.id in pending:
+                accepted = self._relay_forwarded[node.id].setdefault(
+                    proof.id, set())
+                targets = [peer for peer in node.peers
+                           if peer not in accepted
+                           and not node.peer_has_proof(peer, proof.id)]
+                if targets:
+                    self._emit_wrapper(node, proof, tick,
+                                       missing_proof_only=True,
+                                       targets=targets, accepted_peers=accepted)
+                if all(peer in accepted or node.peer_has_proof(peer, proof.id)
+                       for peer in node.peers):
+                    pending.discard(proof.id)
+
+    def _emit_wrapper(self, node, aggregate, tick, missing_proof_only=False,
+                      targets=None, accepted_peers=None):
         """One wrapper core, and a differently sized copy for each peer.
 
         The aggregate carries the claim frozen when its proving job started.
@@ -1777,14 +1978,20 @@ class NetworkSim:
                            tx_mask=claimed, dep_count=claimed.bit_count())
         self._next_wrapper_id += 1
         self.wrappers_emitted += 1
+        self.wrappers_by_node[node.id] += 1
         self.tracer.emit("wrp", node.id, t=round(self.engine.now, 3),
                          w=core.wrapper_id, o=aggregate.id,
                          deps=core.dep_count, tick=tick)
-        for peer in self._rotated(node.id, node.peers):
+        if targets is None:
+            targets = node.peers
+        for peer in self._rotated(node.id, targets):
             # Bodies this peer is believed to lack, and that this node can
             # actually supply. Everything else travels as a hash.
             body_mask = node.bodies_to_send(peer, claimed) & node.view.bodies
             peer_has_proof = node.peer_has_proof(peer, aggregate.id)
+            if missing_proof_only and peer_has_proof:
+                self.wrapper_sends_suppressed += 1
+                continue
             if (peer_has_proof and not body_mask
                     and self.wrapper_economy in (ECONOMY_SKIP_UNCHANGED,
                                                  ECONOMY_LEAN)):
@@ -1798,10 +2005,13 @@ class NetworkSim:
             proof_by_ref = (peer_has_proof
                             and self.wrapper_economy in (ECONOMY_PROOF_BY_REF,
                                                          ECONOMY_LEAN))
-            self._send(node.id, peer,
-                       self.size_model.wrapper(core, body_mask,
-                                               proof_by_ref=proof_by_ref,
-                                               witness_bytes=witness_bytes))
+            accepted = self._send(
+                node.id, peer,
+                self.size_model.wrapper(core, body_mask,
+                                        proof_by_ref=proof_by_ref,
+                                        witness_bytes=witness_bytes))
+            if accepted and accepted_peers is not None:
+                accepted_peers.add(peer)
         return core
 
     def _deliver_wrapper(self, message):
@@ -1811,9 +2021,8 @@ class NetworkSim:
         admitted until that work completes, so verification remains on the
         store-and-forward propagation path.
 
-        Wrappers are not relayed. Each node emits its own every interval, so one
-        travels a single hop and spreading happens by re-aggregation, which is
-        what makes the EIP's per-tick bandwidth constant per peer.
+        Each wrapper travels a single hop. At a later decision an aggregator
+        may fold its proof, or a relay may emit a new wrapper around it.
         """
         payload = message.payload
         core = payload.core
@@ -1863,6 +2072,8 @@ class NetworkSim:
                 self._trace_drops(node.id, node.supersede_from_peer(
                     message.sender, aggregate, self.arena,
                     self._supersede_strategy), "superseded")
+                if node.id not in self.aggregator_nodes:
+                    self._wake_if_ready(node.id)
             return
         if core.mode == 0:
             # Mode 0 delivers the dependencies' own witnesses, and the
@@ -1934,6 +2145,8 @@ class NetworkSim:
         if aggregate is None:
             return
         node.finish_receive(aggregate, self.engine.now, bodies)
+        if not witness_backed:
+            self._note_relay_proof(node, aggregate)
         if self.transaction_evidence is not None:
             self.transaction_evidence.admit(node.id, core.tx_mask, self.engine.now)
         self._material[node.id] += 1
@@ -2083,6 +2296,8 @@ class NetworkSim:
     def _trace_drops(self, node_id, object_ids, why):
         """Record objects leaving a node's view.
 
+        Proof removals also invalidate the relay's forwarding stamp, whether
+        or not tracing is enabled. Callers wake after the mutation completes.
         Batched per call rather than one record per object: pruning and eviction
         drop many objects at a single instant, and repeating the node, time and
         reason for each would be redundancy rather than information.
@@ -2091,6 +2306,15 @@ class NetworkSim:
         # measurement API depends on it, and that must not change with
         # instrumentation.
         self._departed.update(object_ids)
+        if node_id not in self.aggregator_nodes:
+            view = self.nodes[node_id].view
+            for object_id in object_ids:
+                self._relay_pending[node_id].discard(object_id)
+                obj = self.arena.objects.get(object_id)
+                if (obj is not None and not obj.is_leaf()
+                        and object_id not in view.witness_backed
+                        and object_id not in view.upgrading):
+                    self._relay_proof_generation[node_id] += 1
         # A departure changes the class of every leaf the object covered, and
         # those leaves have nothing to do with whatever event triggered it --
         # admitting one object can evict several unrelated ones. Every departed
@@ -2161,11 +2385,17 @@ class NetworkSim:
         propagation free exactly where it competes.
         """
         if not self.notifier.diverges:
+            # Instant knowledge still needs a decision trigger. Restrict this
+            # notification wake to relays; aggregators keep their duty cycle.
+            for node_id in self.relay_nodes:
+                self._wake_if_ready(node_id)
             return
         block_id = len(self.chain.blocks) - 1
         proposer = self.nodes[proposer_id]
         proposer.hears_about_block(block_id)
         self.notifier.notify(proposer_id, self.chain.discarded_mask())
+        if proposer_id not in self.aggregator_nodes:
+            self._wake_if_ready(proposer_id)
         # The notice carries the whole settled set, not just this block's
         # inclusions. Expiry produces no block, so an inclusion-only notice
         # could never propagate expired dependencies.

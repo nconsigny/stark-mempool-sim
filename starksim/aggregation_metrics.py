@@ -3,6 +3,49 @@
 No observer reads arena provenance, changes node beliefs or schedules work.
 """
 
+import math
+
+
+class FoldWidths:
+    """Exact root-input widths with storage per distinct width, not per proof."""
+
+    __slots__ = ("widths", "count", "children", "leaves")
+
+    def __init__(self):
+        self.widths = {}
+        self.count = 0
+        self.children = 0
+        self.leaves = 0
+
+    def record(self, inputs):
+        width = len(inputs)
+        self.count += 1
+        self.widths[width] = self.widths.get(width, 0) + 1
+        for obj in inputs:
+            if obj.is_leaf():
+                self.leaves += 1
+            else:
+                self.children += 1
+
+    def metrics(self):
+        mean = -1.0
+        p95 = -1
+        children = -1.0
+        leaves = -1.0
+        if self.count:
+            mean = (self.children + self.leaves) / self.count
+            children = self.children / self.count
+            leaves = self.leaves / self.count
+            needed = math.ceil(0.95 * self.count)
+            cumulative = 0
+            for width in sorted(self.widths):
+                cumulative += self.widths[width]
+                if cumulative >= needed:
+                    p95 = width
+                    break
+        return {"roots_completed": self.count, "mean": mean, "p95": p95,
+                "children_mean": children, "leaves_mean": leaves}
+
 
 # Zero has its own bucket, followed by powers of two and an overflow bucket.
 # The distribution has fixed storage even when a run produces wider claims.
