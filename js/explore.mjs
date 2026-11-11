@@ -306,8 +306,11 @@ export function initExplore(app) {
     };
     const gasWork = gasRowFor(entry, group, WORKING_SET), gasToday = gasRowFor(entry, group, TODAY_SET);
     let gasSub = "";
-    if (gasWork && gasWork.signatures > 1) gasSub = `bundle of ${fmtInt(gasWork.signatures)}, ${fmtInt(gasWork.gas_per_signature)} per signature`;
+    if (gasWork && gasWork.signatures > 1) {
+      gasSub = `${entry.class === "pcs" ? "bundle of " + fmtInt(gasWork.signatures) : fmtInt(gasWork.signatures) + " dependencies"}, ${fmtInt(gasWork.gas_per_signature)} per signature`;
+    }
     else if (gasWork && gasToday && gasToday.total !== gasWork.total) gasSub = `working set; today's set ${fmtInt(gasToday.total)}`;
+    else if (gasWork && entry.class !== "noagg") gasSub = `${fmtInt(gasWork.gas_per_signature)} per signature, every set`;
     else if (gasWork) gasSub = "the same for every set";
     const binding = work ? work.binding : null;
     const todayBinding = today ? today.binding : null;
@@ -367,7 +370,7 @@ export function initExplore(app) {
   const BINDS = { floor: "calldata floor", standard: "standard path" };
   const GAS_LEAD = {
     noagg: "One transaction, with the signature in it. A transaction pays the larger of two prices: the standard path (its data bytes at the standard price, plus execution) or the calldata floor (its data bytes at the floor price, and nothing for execution). Where the floor binds, the verifier's execution is not charged on top; the verification column then shows what runs, marked \u201cinside the floor\u201d. \u201cBinds\u201d says which of the two prices the transaction pays.",
-    agg8288: "In this scenario the signature bytes are not on chain. The transaction names each signature as a dependency, a 96-byte triple of message hash, key and scheme, and the signatures are proved off chain. What is paid instead is a charge per dependency (33,000 gas in EIP-8288: 3,000 for verification and 30,000 of recursive STARK gas; 3,000 in the leanPCS draft) and the triple's calldata. The gas is the same for every parameter set.",
+    agg8288: "In this scenario the signature bytes are not on chain. The transaction names each signature as a dependency, a 96-byte triple of message hash, key and scheme, and the signatures are proved off chain. What is paid instead is a charge per dependency (33,000 gas in EIP-8288: 3,000 for verification and 30,000 of recursive STARK gas; 3,000 in the leanPCS draft) and the triple's calldata. The charge is per dependency and does not amortise: with 16 dependencies, the most one transaction may declare, it is still paid 16 times. The gas is the same for every parameter set.",
     pcs: "In this scenario the signature bytes are not on chain. The transaction carries a proof (1,005 bytes of calldata and a 193-byte frame) and 64 bytes of claim, key and message, per signature it proves. The parameter set changes the gas only through the number of signatures that fit one proof.",
   };
 

@@ -54,6 +54,51 @@ export function makeFigures(data) {
   const cell = (id, options) => cells(id, options)[0] || null;
   const tps = (row) => (row ? (row.k > 1 ? row.tps_sig : row.tps_tx) : null);
 
+  // The like-for-like aggregation figures (notes/phase3/aggregation-check.md).
+  const agg = data.gas.aggregation;
+  const gasRowK = (configuration, k, candidate = WORKING_SET) =>
+    data.gas.rows.find((row) => row.configuration === configuration && row.candidate === candidate && row.k === k);
+  // How many of the 40 nodes prove one raw signature in scenarios D and E:
+  // the range over the tables' headline cells.
+  function provedBy() {
+    const dup = rows.filter((row) => (row.scenario === "D" || row.scenario === "E") && row.nodes === data.scenarios.table_nodes &&
+      row.uplinks === "heterogeneous" && row.headline === 1 && !SIDE_RUN.test(row.variant) &&
+      typeof row.dup_proofs_per_tx === "number").map((row) => row.dup_proofs_per_tx);
+    return dup.length ? [Math.round(Math.min(...dup)), Math.round(Math.max(...dup))] : null;
+  }
+  // The prover-bound cells of the working set, in signatures per second.
+  function proverBound() {
+    const p = "8288:3000+30000/dep", deps = agg.deps;
+    return [cell("D", { pricing: p, gas: 200000000 }), cell("E", { pricing: p, gas: 300000000 }),
+            cell("D", { pricing: p, gas: 200000000, signatures: deps }),
+            cell("E", { pricing: "leanPCS-draft:3000/dep", gas: CARD_GAS, signatures: deps })]
+      .filter((row) => row && /prover/.test(row.binding)).map((row) => row.tps_sig).sort((a, b) => a - b);
+  }
+  // The rows of the same-unit table: gas per signature, the gas bound in
+  // signatures per second at 60 M, and the simulated cell where there is one.
+  function likeRows() {
+    const p8288 = "8288:3000+30000/dep", pPcs = "leanPCS-draft:3000/dep", deps = agg.deps;
+    const f3 = gasRow("F3");
+    const dep = (key, name, configuration, k, simulated) => {
+      const gas = gasRowK(configuration, k);
+      return { key, name, gas, signatures: k, perSig: gas.gas_per_signature, bound: gasBound(CARD_GAS, gas.total, k), sim: simulated };
+    };
+    return [
+      dep("8288-1", "EIP-8288, 1 dependency per transaction", "D", 1, cell("D", { pricing: p8288, gas: CARD_GAS })),
+      dep(`8288-${deps}`, `EIP-8288, ${deps} dependencies`, "D", deps, cell("D", { pricing: p8288, gas: CARD_GAS, signatures: deps })),
+      dep("3000-1", "3,000 gas, 1 dependency", "D-dep3000", 1, cell("E", { pricing: pPcs, gas: CARD_GAS })),
+      dep(`3000-${deps}`, `3,000 gas, ${deps} dependencies`, "D-dep3000", deps, cell("E", { pricing: pPcs, gas: CARD_GAS, signatures: deps })),
+      { key: "F3", name: `F3, user-side bundle of ${f3.signatures}`, gas: f3, signatures: f3.signatures, perSig: f3.gas_per_signature,
+        bound: gasBound(CARD_GAS, f3.total, f3.signatures), sim: cell("F3", { gas: CARD_GAS, signatures: f3.signatures }) },
+    ];
+  }
+  // The bundler machines the F3 cell at 200 M needs outside the simulation.
+  function bundlers() {
+    const top = rows.find((row) => row.scenario === "F3" && row.candidate === WORKING_SET && row.gas_limit === 200000000 &&
+      row.headline === 1 && row.client_proofs === "draft" && row.nodes === data.scenarios.table_nodes && row.uplinks === "heterogeneous");
+    return top ? { cell: top, machines: top.tps_sig / agg.bundler.sig_per_s_per_machine } : null;
+  }
+
   // The key figures of a card row: the working set in the scenario's own
   // configuration, at 60 M gas.
   function cardFigures(id) {
@@ -65,10 +110,10 @@ export function makeFigures(data) {
     const at60 = all.filter((row) => row.gas_limit === CARD_GAS);
     const simulated = at60.find((row) => row.mode === entry.mode) || at60[0] || all[0] || null;
     return { id, entry, gas, bound, simulated, simulatedTps: tps(simulated),
-             share: bound / ecdsaBaseline(CARD_GAS), unit: gas.signatures > 1 ? "signatures/s" : "tx/s" };
+             share: bound / ecdsaBaseline(CARD_GAS), unit: entry.class === "noagg" ? "tx/s" : "sig/s" };
   }
 
-  return { ids, idById, configs, rows, gasRow, cells, cell, tps, cardFigures };
+  return { ids, idById, configs, rows, gasRow, cells, cell, tps, cardFigures, agg, gasRowK, provedBy, proverBound, likeRows, bundlers };
 }
 
 // ----------------------------------------------------------- the wording
@@ -89,21 +134,23 @@ const PICK = {
   B: ["8141 light", "Nodes verify it natively."],
   C1: ["8288 light, raw", "A dependency, no proof yet."],
   C2: ["8288, builder proves", "One proof per block."],
-  D: ["Aggregation, gas binds", "Recursive proving in the mempool."],
-  E: ["Aggregation, mempool binds", "Recursive proving; provers limit it."],
+  D: ["Aggregation, gas binds", "Nodes prove in batches, recursively."],
+  E: ["Aggregation, mempool binds", "Recursive batches; provers limit it."],
   F1: ["User-side proof", "Your computer proves it."],
   F2: ["User-side proof, first node", "The first node proves it."],
-  F3: ["User-side proof, bundled", "A bundler proves many."],
+  F3: ["User-side proof, bundled", "A bundler proves a bundle."],
 };
 export const pickLine = (id) => (PICK[id] ? PICK[id][1] : "");
 
 const ROUTES = {
   E0a: "ERC-4337 smart account", E0b: "Safe module", E0c: "EIP-7702 account",
-  F1: "Your computer proves it", F2: "The first node proves it", F3: "A bundler proves many at once",
+  F1: "Your computer proves it", F2: "The first node proves it", F3: "A bundler proves a bundle",
 };
 export const routeLabel = (id) => ROUTES[id] || null;
 
 const K = (value) => (value / 1000).toFixed(1) + " K";
+// The prover-bound ceiling of scenarios D and E (notes/phase3/aggregation-check.md, claim A4).
+const UNRESOLVED = "Unresolved, not physical. Two causes are open: raw signatures are relayed to every node, so each is proved many times; and when only proofs travel, as the draft describes, the result depends on the leaf batch size for a reason not yet found.";
 const admitGas = (text) => { const m = /\(([\d.]+)K\)/.exec(text || ""); return m ? m[1] + " K" : "n/a"; };
 
 // Each group is one row of the campaign's scenario list. `detail` returns
@@ -241,20 +288,29 @@ export const GROUPS = [
   },
   {
     key: "D", ids: ["D"],
-    simple: "Recursive proving in the mempool: every second, each node proves the signatures it holds and merges its neighbours' proofs. The block carries one proof. The gas charged per signature caps throughput.",
+    simple: "Recursive proving in the mempool: every second, each node proves the signatures it holds in one batch and merges its neighbours' proofs. The block carries one proof. The gas charged per signature caps throughput.",
     detail(f) {
       const g = f.gasRow("D"), g3 = f.gasRow("D-dep3000");
       const sim = f.cell("D", { pricing: "8288:3000+30000/dep", gas: CARD_GAS });
       const sim3 = f.cell("E", { pricing: "leanPCS-draft:3000/dep", gas: CARD_GAS });
       const today3 = f.cell("E", { pricing: "leanPCS-draft:3000/dep", gas: CARD_GAS, candidate: TODAY_SET });
+      const agg = f.agg, run = agg.run, deps = agg.deps, by = f.provedBy();
+      const g16 = f.gasRowK("D", deps), sim16 = f.cell("D", { pricing: "8288:3000+30000/dep", gas: CARD_GAS, signatures: deps });
+      const prover16 = f.cell("E", { pricing: "leanPCS-draft:3000/dep", gas: CARD_GAS, signatures: deps });
       return [
-        ["Who verifies", "Mempool nodes, by recursive proving. Every second each node proves all the signatures it holds in one proof (its own batch) and merges the proofs its neighbours send. The builder's last merge is the block's single STARK, which covers every signature. In the simulation every one of the 40 nodes aggregates, and each signature ends up proved by 23 to 30 of them."],
+        ["Who verifies", "Mempool nodes, by recursive proving. Every second each node proves the new signatures it holds in one proof (a batch) and merges the proofs its neighbours send. The builder's last merge is the block's single STARK, which covers every signature. In the simulation every one of the 40 nodes aggregates" +
+          (by ? `, and each signature ends up proved by ${by[0]} to ${by[1]} of them.` : ".")],
+        ["One proof, many signatures", `One proof covers hundreds to thousands of signatures. In a ${run.nodes}-node run of this scenario a proof claimed ${fmtInt(run.claims_per_proof_mean)} signatures on average (the largest ${fmtInt(run.claims_per_proof_largest_bucket[0])} to ${fmtInt(run.claims_per_proof_largest_bucket[1])}), and one proof covered a block of ${fmtInt(run.max_txs_per_block)} transactions (simulated).`],
         ["Where the signature goes", "To the first aggregating nodes only, in a mempool wrapper. Never on chain. The transaction carries a 96-byte dependency instead: message hash, key and scheme."],
         ["What you pay, EIP-8288 as written", `${fmtInt(g3.parts.verification)} gas for the signature plus ${fmtInt(g.parts.verification - g3.parts.verification)} of recursive STARK gas, per dependency. Add the frame transaction itself (${fmtInt(g.parts.fixed)}) and the dependency's bytes (${fmtInt(g.parts.calldata)}): ${fmtInt(g.total)} gas. ` +
-          `That allows ${fmtTps(gasBound(CARD_GAS, g.total))} tx/s at 60 M` + (sim ? ` (${fmtTps(sim.tps_tx)} simulated)` : "") + ", about a third of the plain-transfer bound. This is a price in a draft, not a physical limit."],
-        ["What you pay, leanPCS draft", `${fmtInt(g3.parts.verification)} gas per dependency: ${fmtInt(g3.total)} gas, ${fmtTps(gasBound(CARD_GAS, g3.total))} tx/s at 60 M` + (sim3 ? ` (${fmtTps(sim3.tps_tx)} simulated).` : ".")],
+          `That allows ${fmtTps(gasBound(CARD_GAS, g.total))} sig/s (signatures per second, one per transaction) at 60 M` + (sim ? ` (${fmtTps(sim.tps_sig)} simulated)` : "") + ", about a third of the plain-transfer bound. This is a price in a draft, not a physical limit."],
+        ["The charge does not amortise", `It is charged per signature, although one proof covers the whole block. A transaction with ${deps} dependencies (the most allowed) still pays ${fmtInt(g16.gas_per_signature)} gas per signature: ${fmtTps(gasBound(CARD_GAS, g16.total, deps))} sig/s at 60 M` +
+          (sim16 ? ` (${fmtTps(sim16.tps_sig)} simulated)` : "") + `. No batch size passes ${fmtTps(agg.cases.limit_8288.sig_per_s)}.`],
+        ["What you pay, leanPCS draft", `${fmtInt(g3.parts.verification)} gas per dependency: ${fmtInt(g3.total)} gas, ${fmtTps(gasBound(CARD_GAS, g3.total))} sig/s at 60 M` + (sim3 ? ` (${fmtTps(sim3.tps_sig)} simulated).` : ".")],
+        ["If the price changed", `Gas bounds at 60 M with ${deps} dependencies per transaction (modelled): ${fmtTps(agg.cases.once_per_tx.sig_per_s)} sig/s if the ${fmtInt(agg.per_dependency.charge - agg.per_dependency.charge_light)} of recursive STARK gas were charged once per transaction, ${fmtTps(agg.cases.per_dep_light.sig_per_s)} at ${fmtInt(agg.per_dependency.charge_light)} per dependency.` +
+          (prover16 && /prover/.test(prover16.binding) ? ` The provers then bind first, near ${fmtTps(prover16.tps_sig)} (simulated).` : "")],
         ["Signature size and permutations", "For the working set they do not change these figures: gas runs out first." +
-          (today3 && /prover/.test(today3.binding) ? ` Today's set is on the edge at the leanPCS price: ${fmtTps(today3.tps_tx)} tx/s, with provers as the limit in some runs.` : "")],
+          (today3 && /prover/.test(today3.binding) ? ` Today's set is on the edge at the leanPCS price: ${fmtTps(today3.tps_sig)} sig/s, with provers as the limit in some runs.` : "")],
         ["Parameter set", "Fixed by the protocol, under EIP-8288 and under leanPCS alike."],
       ];
     },
@@ -273,19 +329,18 @@ export const GROUPS = [
     detail(f) {
       const p = "8288:3000+30000/dep";
       const today = f.cell("D", { pricing: p, gas: 200000000, candidate: TODAY_SET });
-      const work = [f.cell("D", { pricing: p, gas: 200000000 }), f.cell("E", { pricing: p, gas: 300000000 })].filter(Boolean)
-        .map((row) => row.tps_tx).sort((a, b) => a - b);
-      const dup = f.rows.filter((row) => (row.scenario === "D" || row.scenario === "E") && row.k === 1 && row.nodes === 40 &&
-        row.uplinks === "heterogeneous" && row.headline === 1 && typeof row.dup_proofs_per_tx === "number").map((row) => row.dup_proofs_per_tx);
+      const work = f.proverBound();
+      const by = f.provedBy();
       return [
         ["When", "From about 200 M gas at EIP-8288's price of 33,000 gas per signature. Between 60 M and 200 M at the leanPCS draft's 3,000."],
-        ["Provers", (today && work.length ? `With every node aggregating, the simulated network carries about ${fmtTps(today.tps_tx)} signatures per second with today's set and ${fmtTps(work[0])} to ${fmtTps(work[work.length - 1])} with the working set. ` : "") +
+        ["Provers", (today && work.length ? `With every node aggregating, the simulated network carries about ${fmtTps(today.tps_sig)} signatures per second with today's set and ${fmtTps(work[0])} to ${fmtTps(work[work.length - 1])} with the working set. ` : "") +
           "One 8-core node alone could prove more: 217 and about 350 per second in the campaign's prover model. " +
-          (dup.length ? `In the network each signature is proved by ${Math.round(Math.min(...dup))} to ${Math.round(Math.max(...dup))} of the 40 nodes, and nodes spend much of their time merging their neighbours' proofs. ` : "") +
+          (by ? `In the network each signature is proved by ${by[0]} to ${by[1]} of the 40 nodes, and nodes spend much of their time merging their neighbours' proofs. ` : "") +
           "Fewer, dedicated aggregators carry more on good uplinks."],
+        ["Is the ceiling physical", UNRESOLVED],
         ["Bandwidth", "A node sends a proof of about 300 KB to each peer every second. On a 20 Mbit/s uplink that is the whole uplink. Whether it works depends on the queue policy, which EIP-8288 does not specify: in the simulation, keeping only the newest proof carries the gas bound, and queueing every proof carries almost nothing."],
         ["Signature size and permutations", "Here permutations cost throughput almost one for one. Bytes barely matter."],
-        ["What you pay", "The same as in the scenario above: a charge per signature dependency."],
+        ["What you pay", "The same as in the scenario above: a charge per signature dependency, which does not amortise however many signatures one proof covers."],
         ["How sure", "These capacities come from a 40-node simulation with modelled prover prices. They are the least certain figures in this tool."],
         ["Parameter set", "Fixed by the protocol."],
       ];
@@ -308,15 +363,19 @@ export const GROUPS = [
       const c3 = f.cardFigures("F3").simulated;
       const repo = f.rows.find((row) => row.scenario === "F3" && row.candidate === WORKING_SET && row.gas_limit === CARD_GAS &&
         row.headline === 1 && row.client_proofs === "draft" && row.nodes === 40 && row.uplinks === "heterogeneous");
+      const agg = f.agg, off = f.bundlers(), light = f.gasRow("D-dep3000");
       return [
         ["Not the leanPCS draft's way", "The leanPCS draft keeps plain signatures as EIP-8288 dependencies: see the two scenarios above."],
-        ["Three routes", `Your computer proves its own signature (F1): about 300 KB to the first node and about 10 GB of memory, so no phone. Or you send the raw signature and the first node proves it (F2). Or a bundler proves many signatures at once (F3): ${g3.signatures} of the working set per bundle in the gas model` +
+        ["Three routes", `Your computer proves its own signature (F1): about 300 KB to the first node and about 10 GB of memory, so no phone. Or you send the raw signature and the first node proves it (F2). Or a bundler proves many signatures in one user-side proof, a bundle (F3): ${g3.signatures} of the working set per bundle in the gas model` +
           (repo && repo.k !== g3.signatures ? `, ${repo.k} in the main simulated runs.` : ".")],
         ["Who verifies", "A contract checks the proof on chain. Nodes check and merge proofs in the mempool."],
         ["Where the signature goes", "Not on chain. The chain sees a proof of about 1,000 bytes and 64 bytes of claim (key and message) per signature."],
         ["What you pay", `${fmtInt(g1.total)} gas per transaction when it brings its own proof. A bundle costs ${fmtInt(g3.total)} gas, or ${fmtInt(g3.gas_per_signature)} per signature.`],
         ["What limits throughput", (c1 ? `With one proof per transaction the mempool has a proof to merge for every transaction: about ${fmtTps(c1.tps_tx)} tx/s in simulation, where gas would allow ${fmtTps(gasBound(CARD_GAS, g1.total))}. ` : "") +
           (c3 ? `Bundles carry about ${fmtInt(c3.tps_sig)} signatures per second at 60 M; there gas is the limit.` : "")],
+        ["What the bundle figures leave out", "The bundler's proving happens outside the simulated network: no simulated node is charged for it. " +
+          (off ? `The ${fmtInt(off.cell.tps_sig)} sig/s simulated at 200 M would need about ${off.machines.toFixed(1)} bundler machines of ${agg.bundler.cores} cores (EPYC 9355P, ${fmtInt(agg.bundler.sig_per_s_per_machine)} sig/s each; modelled). ` : "") +
+          `Bundled signatures also pay no per-user transaction gas. If each paid a frame transaction's overhead (${fmtInt(agg.tx_overhead)} gas), the bound at 60 M would be about ${fmtInt(agg.cases.f3_with_tx_overhead.sig_per_s)} sig/s (modelled), level with aggregation at ${fmtInt(agg.per_dependency.charge_light)} gas per dependency (${fmtTps(gasBound(CARD_GAS, light.total))}).`],
         ["Parameter set", "Any. The wallet picks its circuit."],
         ["Caveat", "The first node's proving step (F2) was not simulated. F2 shows F1's figures."],
       ];
@@ -372,7 +431,7 @@ export function initScenarioHelp(app) {
     el("th", { scope: "col" }, "When"),
     el("th", { scope: "col" }, "Signature on chain"),
     el("th", { scope: "col", class: "n" }, "Throughput", el("span", { class: "sub" }, "at 60 M gas")),
-    el("th", { scope: "col", class: "n" }, "Gas", el("span", { class: "sub" }, "per transaction")))));
+    el("th", { scope: "col", class: "n" }, "Gas", el("span", { class: "sub" }, "per signature")))));
   const compareBody = el("tbody");
   for (const group of GROUPS) {
     for (const id of group.ids) {
@@ -386,7 +445,7 @@ export function initScenarioHelp(app) {
         throughput.append(el("span", { class: "sc-num" }, fmtTps(fig.simulatedTps)), " " + fig.unit,
           chip("simulated", `${sim.status}. Source: ${sim.source}`),
           el("span", { class: "sub" }, `gas bound ${fmtTps(fig.bound)}` +
-            (fig.gas.signatures > 1 ? "; signatures, not transactions" : ` · ${Math.round(fig.share * 100)}% of ECDSA`)));
+            (fig.gas.signatures > 1 ? `; ${fmtInt(fig.gas.signatures)} per bundle transaction` : ` · ${Math.round(fig.share * 100)}% of ECDSA`)));
       } else {
         throughput.append(el("span", { class: "sc-num" }, fmtTps(fig.bound)), " " + fig.unit,
           chip("modelled", "The gas bound: 60 M / gas per transaction / 12 s"),
@@ -453,7 +512,7 @@ export function initScenarioHelp(app) {
   for (const row of aggRows) {
     const bound = gasBound(CARD_GAS, row.total);
     body.append(el("tr", { "data-row": row.key, "data-total": String(row.total), "data-bound": String(bound),
-                           "data-simulated": row.sim ? String(row.sim.tps_tx) : "" },
+                           "data-simulated": row.sim ? String(row.sim.tps_tx) : "", "data-unit": "sig/s" },
       el("th", { scope: "row" }, row.name, el("span", { class: "sub" }, row.sub)),
       el("td", { class: "n" }, fmtInt(row.fixed)),
       el("td", { class: "n" }, fmtInt(row.bytes)),
@@ -462,6 +521,23 @@ export function initScenarioHelp(app) {
       el("td", { class: "n", "data-field": "bound" }, fmtTps(bound)),
       el("td", { class: "n", "data-field": "simulated" }, row.sim ? fmtTps(row.sim.tps_tx) : el("span", { class: "dim" }, "n/a"))));
   }
+  // The same unit: gas per signature and signatures per second at 60 M.
+  const agg = f.agg, like = f.likeRows(), off = f.bundlers(), by = f.provedBy();
+  const likeBody = clear($("#agg-like tbody"));
+  for (const row of like) {
+    const sim = row.sim ? row.sim.tps_sig : null;
+    const bindsElse = row.sim && !/^gas$/.test(row.sim.binding);
+    likeBody.append(el("tr", { "data-row": row.key, "data-total": String(row.gas.total), "data-signatures": String(row.signatures),
+                               "data-per-sig": String(row.perSig), "data-bound": String(row.bound), "data-simulated": sim === null ? "" : String(sim),
+                               "data-binding": row.sim ? row.sim.binding : "" },
+      el("th", { scope: "row" }, row.name),
+      el("td", { class: "n", "data-field": "per-sig" }, fmtInt(row.perSig)),
+      el("td", { class: "n", "data-field": "bound" }, fmtTps(row.bound)),
+      el("td", { class: "n", "data-field": "simulated" }, sim === null ? el("span", { class: "dim" }, "n/a")
+        : [fmtTps(sim), chip("simulated", `${row.sim.status}. Source: ${row.sim.source}`),
+           bindsElse ? el("span", { class: "sub" }, `${row.sim.binding} binds`) : null])));
+  }
+  const likeF3 = like[like.length - 1], run = agg.run;
   const noCharge = gasBound(CARD_GAS, dep.parts.fixed + dep.parts.calldata);
   const ratio = (a, b) => (a && b ? a.tps_tx / b.tps_tx : null);
   const ratios = [ratio(simD, simA), ratio(simD3, simA)].filter(Boolean);
@@ -469,27 +545,36 @@ export function initScenarioHelp(app) {
   const todayD3 = f.cell("E", { pricing: pPcs, gas: CARD_GAS, candidate: TODAY_SET });
   const ratiosToday = [ratio(todayD, simAToday), ratio(todayD3, simAToday)].filter(Boolean);
   const proverToday = f.cell("D", { pricing: p8288, gas: 200000000, candidate: TODAY_SET });
-  const proverWork = [f.cell("D", { pricing: p8288, gas: 200000000 }), f.cell("E", { pricing: p8288, gas: 300000000 })]
-    .filter((row) => row && /prover/.test(row.binding)).map((row) => row.tps_tx).sort((a, b) => a - b);
+  const proverWork = f.proverBound();
   const one = (value) => value.toFixed(1);
   const points = clear($("#agg-points"));
   points.append(
-    el("li", { id: "agg-gas-point" }, el("strong", {}, `What sets ${Math.round(gasBound(CARD_GAS, dep.total))} and ${Math.round(simD3 ? simD3.tps_tx : gasBound(CARD_GAS, dep3.total))} tx/s: a price. `),
+    el("li", { id: "agg-gas-point" }, el("strong", {}, `What sets ${Math.round(gasBound(CARD_GAS, dep.total))} and ${Math.round(simD3 ? simD3.tps_tx : gasBound(CARD_GAS, dep3.total))} sig/s: a price. `),
       `(${fmtTps(gasBound(CARD_GAS, dep.total))} is the gas bound under EIP-8288; ${simD3 ? fmtTps(simD3.tps_tx) + " is the simulated figure" : fmtTps(gasBound(CARD_GAS, dep3.total)) + " is the gas bound"} under the leanPCS draft.) `,
       `With aggregation no signature byte is on chain, but each signature is a dependency of the transaction, and each draft charges gas for it: ${fmtInt(charge)} in EIP-8288 (${fmtInt(charge3)} for the signature and ${fmtInt(charge - charge3)} of recursive STARK gas), ${fmtInt(charge3)} in the leanPCS draft. ` +
       "A STARK is the kind of proof that replaces the signatures. These are prices in drafts, not physical limits."),
+    el("li", { id: "agg-recursive-point" }, el("strong", {}, "Full EIP-8288 aggregates recursively too. "),
+      `Every node proves a batch each second and merges its neighbours' proofs, so one proof covers hundreds to thousands of signatures: ${fmtInt(run.claims_per_proof_mean)} per proof on average and ${fmtInt(run.max_txs_per_block)} transactions per block under one proof in a ${run.nodes}-node run. `,
+      "A batch is many signatures in one node's proof; a bundle is many signatures in one user-side proof (F3).", " ", chip("simulated", `${run.status}. Source: ${run.source}`)),
+    el("li", { id: "agg-amortise-point" }, el("strong", {}, "Why the bundle looks far ahead: the charge does not amortise. "),
+      `EIP-8288 charges ${fmtInt(agg.per_dependency.charge)} gas plus ${fmtInt(agg.per_dependency.calldata)} of calldata for every signature, whatever the batch: at most ${fmtTps(agg.cases.limit_8288.sig_per_s)} sig/s at 60 M. ` +
+      `F3 pays once per bundle: ${fmtInt(likeF3.perSig)} gas per signature, ${(like[0].perSig / likeF3.perSig).toFixed(1)} times less. That ratio is the draft's price, not the simulation.`),
+    el("li", { id: "agg-fair-point" }, el("strong", {}, "The bundle is not like for like. "),
+      "Its bundler proves outside the simulated network" + (off ? ` (about ${off.machines.toFixed(1)} machines for the ${fmtInt(off.cell.tps_sig)} sig/s at 200 M, modelled)` : "") +
+      `, and its signatures pay no per-user transaction gas. With a frame transaction's overhead each, F3 would carry about ${fmtInt(agg.cases.f3_with_tx_overhead.sig_per_s)} sig/s at 60 M. `,
+      `With ${agg.deps} dependencies per transaction, charging the ${fmtInt(agg.per_dependency.charge - agg.per_dependency.charge_light)} once per transaction would allow ${fmtTps(agg.cases.once_per_tx.sig_per_s)} sig/s, and ${fmtInt(agg.per_dependency.charge_light)} per dependency ${fmtTps(agg.cases.per_dep_light.sig_per_s)} (gas bounds).`, " ", chip("modelled", agg.status)),
     el("li", { id: "agg-ratio-point" }, el("strong", {}, "Against no aggregation. "),
-      (ratios.length === 2 ? `At 60 M gas aggregation carries ${one(ratios[0])} to ${one(ratios[1])} times more transactions than the same working set without aggregation` : "Aggregation carries several times more") +
+      (ratios.length === 2 ? `At 60 M gas aggregation carries ${one(ratios[0])} to ${one(ratios[1])} times more signatures than the same working set without aggregation` : "Aggregation carries several times more") +
       (ratiosToday.length === 2 ? ` (${one(ratiosToday[0])} to ${one(ratiosToday[1])} times for today's larger set, ${fmtTps(simAToday.tps_tx)} tx/s without aggregation). ` : ". ") +
       `Size no longer matters: ${fmtInt(plain.total)} gas per transaction becomes ${fmtInt(dep.total)} or ${fmtInt(dep3.total)}.`),
     el("li", { id: "agg-below-point" }, el("strong", {}, `Why it stays below ${Math.round(base)}. `),
       `A frame transaction with one dependency costs ${fmtInt(dep.parts.fixed)} gas before any charge, and the dependency's 96 bytes cost ${fmtInt(dep.parts.calldata)}. That is already more than a whole ECDSA transfer (${fmtInt(ECDSA_TRANSFER_GAS)}). ` +
-      `Even with a charge of zero the bound would be ${fmtTps(noCharge)} tx/s.`),
+      `Even with a charge of zero the bound would be ${fmtTps(noCharge)} sig/s with one signature per transaction.`),
     el("li", { id: "agg-prover-point" }, el("strong", {}, "What sets the prover-bound figures: every node proving and merging. "),
       "When the gas limit is raised, or the charge lowered, gas stops being the limit and the provers take over. " +
       (proverToday && proverWork.length ? `The simulated network then carries about ${fmtTps(proverToday.tps_tx)} signatures per second with today's set and ${fmtTps(proverWork[0])} to ${fmtTps(proverWork[proverWork.length - 1])} with the working set. ` : "") +
-      "In that design every node proves the signatures it receives and merges its neighbours' proofs every second, so most signatures are proved many times over. " +
-      "The ceiling is a property of this simulated mempool design, not of the prover's raw speed: one 8-core node alone proves more in the campaign's model.", " ", chip("simulated")),
+      "In that design every node proves the signatures it receives and merges its neighbours' proofs every second, so most signatures are proved many times over" + (by ? ` (by ${by[0]} to ${by[1]} of the 40 nodes). ` : ". ") +
+      "The ceiling is a property of this simulated mempool design, not of the prover's raw speed: one 8-core node alone proves more in the campaign's model. " + UNRESOLVED, " ", chip("simulated")),
     el("li", { id: "agg-uncertainty" }, el("strong", {}, "How sure. "),
       "The gas-bound figures follow from the draft prices by arithmetic. The prover-bound figures come from a 40-node simulation with modelled prover prices and a search that brackets the capacity to about 5%. " +
       "They are the least certain figures in this tool, and a different mempool design (fewer, dedicated aggregators) would move them."));

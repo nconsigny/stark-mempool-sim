@@ -191,7 +191,7 @@
     <details id="sc-overview">
       <summary>All scenarios side by side at 60 M</summary>
       <div class="stack">
-        <p class="note">Working set (4,420 bytes, 289 permutations), one signature per transaction.</p>
+        <p class="note">Working set (4,420 bytes, 289 permutations), one signature per transaction; F3 is a bundle. Aggregated scenarios are in sig/s.</p>
         <div class="scroll" tabindex="0" role="region" aria-label="All scenarios at 60 M gas">
           <table class="mid" id="sc-compare"></table>
         </div>
@@ -201,7 +201,7 @@
     <details id="agg-section">
       <summary>Reading the aggregation numbers</summary>
       <div class="stack">
-        <p class="note">One transaction with one signature, its gas split, and the tx/s that allows at 60 M. <span class="ev o">modelled</span> gas from the EIP texts; <span class="ev">simulated</span> 40-node runs.</p>
+        <p class="note">One transaction with one signature, its gas split, and the signatures per second (sig/s) that allows at 60 M. <span class="ev o">modelled</span> gas from the EIP texts; <span class="ev">simulated</span> 40-node runs.</p>
         <div class="scroll" tabindex="0" role="region" aria-label="Gas of one transaction with and without aggregation">
           <table class="mid" id="agg-table">
             <thead><tr>
@@ -210,8 +210,20 @@
               <th scope="col" class="n">Data bytes</th>
               <th scope="col" class="n">Charge<span class="sub">per signature</span></th>
               <th scope="col" class="n">Total gas</th>
-              <th scope="col" class="n">Gas bound<span class="sub">tx/s at 60 M</span></th>
-              <th scope="col" class="n">Simulated<span class="sub">tx/s at 60 M</span></th>
+              <th scope="col" class="n">Gas bound<span class="sub">sig/s at 60 M</span></th>
+              <th scope="col" class="n">Simulated<span class="sub">sig/s at 60 M</span></th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p class="note">The same unit for mempool aggregation and the user-side bundle: gas per signature, sig/s at 60 M.</p>
+        <div class="scroll" tabindex="0" role="region" aria-label="Gas per signature and signatures per second, aggregation beside the bundle">
+          <table class="mid" id="agg-like">
+            <thead><tr>
+              <th scope="col">Signatures per transaction</th>
+              <th scope="col" class="n">Gas<span class="sub">per signature</span></th>
+              <th scope="col" class="n">Gas bound<span class="sub">sig/s at 60 M</span></th>
+              <th scope="col" class="n">Simulated<span class="sub">sig/s at 60 M</span></th>
             </tr></thead>
             <tbody></tbody>
           </table>
@@ -224,6 +236,7 @@
       <summary>Words used</summary>
       <dl class="kv">
         <dt>tx/s</dt><dd>Transactions per second; sig/s, signatures per second.</dd>
+        <dt>Batch, bundle</dt><dd>A batch is many signatures in one node's proof; a bundle is many signatures in one user-side proof.</dd>
         <dt>Gas</dt><dd>Ethereum's unit of cost. A block may use at most its gas limit, one block every 12 s.</dd>
         <dt>EIP, ERC</dt><dd>An Ethereum Improvement Proposal (8141, 8288, 7623 and 7976 are EIP numbers); an ERC is an application standard.</dd>
         <dt>Fork</dt><dd>A protocol upgrade. Glamsterdam is the next one planned; H* is the fork after it, I* the one after that.</dd>
