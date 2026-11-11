@@ -482,3 +482,34 @@ details details { background: var(--bg); }
 }
 #sc-compare th[scope="row"] { min-width: 180px; }
 #sc-compare td.n .sub { white-space: normal; max-width: 260px; margin-left: auto; }
+
+/* ---- Choose a set: the path after each fork, the verdict, the table ---- */
+.ch-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px; }
+.ch-step { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.ch-step h3 { font-size: 1rem; }
+.ch-row { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 10px; }
+.ch-ev .ev { margin-right: 2px; }
+.ch-step details > summary { font-size: 0.875rem; padding: 7px 10px; }
+#ch-timeline-field { flex: 0 1 340px; }
+#ch-today-field { min-height: 0; }
+#ch-today-field label { color: var(--muted); }
+.verdict { font-size: 1.05rem; color: var(--ink); max-width: 96ch; }
+.verdict strong { color: var(--accent); }
+#ch-table th, #ch-table td, #ch-matrix-table th, #ch-matrix-table td { padding-inline: 7px; }
+#ch-table td[data-col="digits"] .sub { white-space: normal; min-width: 84px; }
+#ch-table td[data-col="proof"] .sub { white-space: normal; min-width: 70px; }
+#ch-table td .sub.no { font-weight: 600; color: var(--warn); }
+#ch-table thead th .sub, #ch-matrix-table thead th .sub, #ch-pair-table thead th .sub { text-transform: none; letter-spacing: 0; }
+#ch-table thead th .ev, #ch-matrix-table thead th .ev { margin-left: 0; display: inline-block; }
+#ch-table tbody th[scope="row"], #ch-matrix-table tbody th[scope="row"] { min-width: 132px; white-space: nowrap; }
+#ch-table tbody th .tag, #ch-matrix-table tbody th .tag { margin-left: 6px; }
+#ch-table td .sub, #ch-matrix-table td .sub { white-space: nowrap; }
+#ch-table td .sub .ev { margin-left: 4px; }
+td.best { font-weight: 600; color: var(--accent); }
+td.best .sub { color: var(--accent); }
+#ch-pair-table th .ev { margin-left: 6px; }
+#ch-pair-table td.wrap { font-size: 0.8rem; color: var(--ink-2); min-width: 150px; max-width: 240px; }
+#ch-matrix-table { min-width: 1080px; }
+.ch-step dl.kv { grid-template-columns: minmax(0, 1fr); gap: 2px 0; }
+.ch-step dl.kv dd { margin-bottom: 8px; }

@@ -17,15 +17,15 @@
   "files": 85,
   "unpacked_bytes": 1069396
  },
- "site_bytes": 16071577,
+ "site_bytes": 16223540,
  "files": {
   ".nojekyll": {
    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
    "bytes": 0
   },
   "app.css": {
-   "sha256": "36c4b5de1e6be34cc9b9d8b613dbc2f6400c746a8df8cad7ff402361af0146b9",
-   "bytes": 24691
+   "sha256": "c82131c6ae943481d4bcc5cbd4b3f91700432bf860ddccc4d6b558eb10b85be8",
+   "bytes": 26752
   },
   "data/candidates.json": {
    "sha256": "c491886ca15a453e09bde46d49311ec8dfa3d93a1a5387d545a017a67e24705b",
@@ -50,6 +50,10 @@
   "data/table_noagg.json": {
    "sha256": "9fff6a4d048c3d06f89537f18a7ddaf0c14a22b76b6e589a658eae0081c1c93d",
    "bytes": 514676
+  },
+  "data/timeline.json": {
+   "sha256": "cbad112c89d7423cb22ccd9d76b69da64d4b04db3c9b70b226427adc27686560",
+   "bytes": 118730
   },
   "engine-test.html": {
    "sha256": "07cdb52d498e9a48da29a507bdbef1a6c3afca52c61d10a5d4b5f31c8703f03b",
@@ -112,24 +116,28 @@
    "bytes": 22288
   },
   "index.html": {
-   "sha256": "feb72db88bbaf50ffadeaa3958d1fd801e34678569cc8716a074c11222c24096",
-   "bytes": 30460
+   "sha256": "7e9287ea0fec4912068fad0a2eb092048c270c5fc006f7554600c8bfef70c8d1",
+   "bytes": 33828
   },
   "js/about.mjs": {
    "sha256": "a924ada6fdf5b2675b79981f7c55270b64f04b60a5ed89bebcaf46161e8f1371",
    "bytes": 4323
+  },
+  "js/choose.mjs": {
+   "sha256": "235a060db553b7cf8ff1813a77dcc523f5d112be07f559cc271930e68fe4d1e9",
+   "bytes": 27586
   },
   "js/explore.mjs": {
    "sha256": "9d9c2a58a3d410acd6833eb66dc481e4385ac25c3174485826aeb672b7e0884c",
    "bytes": 48778
   },
   "js/main.mjs": {
-   "sha256": "53514cf5783976f301fa9df255e803b5ae647475fd435159f69d3bc301db7240",
-   "bytes": 4091
+   "sha256": "6893a34ca24fce59a56b8048a851ad8c0150ea7da5a60f1e382b4f04f1b9fdc2",
+   "bytes": 4245
   },
   "js/scenarios.mjs": {
-   "sha256": "19a32ea2f86434ccc2fc376f8b401d835485ea7932acf1414e8c6095094c4bc5",
-   "bytes": 46435
+   "sha256": "0a885c721adaa1920350d9c746a7f7975d27006c9ba199eddbbeacfd923b224a",
+   "bytes": 46499
   },
   "js/simulate.mjs": {
    "sha256": "ce87bc32e9de8b1181b38fff757630ccb8ce2d4de03e1f1747e05fe94a095938",

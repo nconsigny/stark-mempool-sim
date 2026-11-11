@@ -141,6 +141,7 @@ const PICK = {
   F3: ["User-side proof, bundled", "A bundler proves a bundle."],
 };
 export const pickLine = (id) => (PICK[id] ? PICK[id][1] : "");
+export const pickTitle = (id) => (PICK[id] ? PICK[id][0] : id);
 
 const ROUTES = {
   E0a: "ERC-4337 smart account", E0b: "Safe module", E0c: "EIP-7702 account",

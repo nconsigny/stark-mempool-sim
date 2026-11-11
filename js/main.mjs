@@ -1,18 +1,19 @@
-// Entry point: loads the JSON data, starts the engine, switches the three
-// views on the hash (#explore, #simulate, #about).
+// Entry point: loads the JSON data, starts the engine, switches the four
+// views on the hash (#choose, the start view, #explore, #simulate, #about).
 
 import { Engine, EngineCancelled } from "../engine/engine.mjs";
 import { $, fetchJson } from "./util.mjs";
 import { initExplore } from "./explore.mjs";
 import { initSimulate } from "./simulate.mjs";
 import { initAbout } from "./about.mjs";
+import { initChoose } from "./choose.mjs";
 import { initScenarioHelp } from "./scenarios.mjs";
 
-const VIEWS = ["explore", "simulate", "about"];
+const VIEWS = ["choose", "explore", "simulate", "about"];
 
 function currentView() {
   const name = location.hash.replace(/^#/, "");
-  return VIEWS.includes(name) ? name : "explore";
+  return VIEWS.includes(name) ? name : "choose";
 }
 
 function showView() {
@@ -92,11 +93,12 @@ async function main() {
   bootEngine();
   let data;
   try {
-    const [scenarios, candidates, noagg, agg, summary, build, gas] = await Promise.all([
+    const [scenarios, candidates, noagg, agg, summary, build, gas, timeline] = await Promise.all([
       fetchJson("data/scenarios.json"), fetchJson("data/candidates.json"),
       fetchJson("data/table_noagg.json"), fetchJson("data/table_agg.json"),
-      fetchJson("data/summary.json"), fetchJson("build.json"), fetchJson("data/gas.json")]);
-    data = { scenarios, candidates, noagg, agg, summary, build, gas };
+      fetchJson("data/summary.json"), fetchJson("build.json"), fetchJson("data/gas.json"),
+      fetchJson("data/timeline.json")]);
+    data = { scenarios, candidates, noagg, agg, summary, build, gas, timeline };
   } catch (error) {
     const fatal = $("#fatal");
     fatal.hidden = false;
@@ -109,6 +111,7 @@ async function main() {
   initSimulate(app);
   initScenarioHelp(app);
   initAbout(app);
+  initChoose(app);
   document.documentElement.dataset.ready = "1";
 }
 

@@ -1,0 +1,4980 @@
+{
+ "source": [
+  "data/phase2b/regret2.py (PERIODS, TIMELINES, CAPS, PENALTY)",
+  "data/phase2b/report/regret2_cells.csv",
+  "ledger-poc/results/poc-nanosp.json",
+  "data/phase2/candidates_v2.csv",
+  "site/data/table_noagg.json",
+  "site/data/table_agg.json",
+  "site/data/gas.json",
+  "site/data/candidates.json"
+ ],
+ "gas_limits": [
+  60000000,
+  200000000,
+  300000000
+ ],
+ "slot_seconds": 12,
+ "penalty": 1.0,
+ "max_verify_gas": 100000,
+ "lifetime_floor_log2": 24,
+ "steps": [
+  {
+   "key": "today",
+   "fork": null,
+   "optional": true,
+   "period": "E0@7623",
+   "options": [
+    "E0a_7623",
+    "E0b_7623",
+    "E0c_7623"
+   ],
+   "default": "E0c_7623",
+   "wanted_gas": 60000000,
+   "default_gas": {
+    "E0a_7623": 60000000,
+    "E0b_7623": 60000000,
+    "E0c_7623": 60000000
+   }
+  },
+  {
+   "key": "G",
+   "fork": "Glamsterdam",
+   "optional": false,
+   "period": "E0@7976",
+   "options": [
+    "E0a_7976",
+    "E0b_7976",
+    "E0c_7976"
+   ],
+   "default": "E0c_7976",
+   "wanted_gas": 60000000,
+   "default_gas": {
+    "E0a_7976": 200000000,
+    "E0b_7976": 200000000,
+    "E0c_7976": 200000000
+   }
+  },
+  {
+   "key": "H",
+   "fork": "Hegotá",
+   "optional": false,
+   "period": "H*",
+   "options": [
+    "A",
+    "B_pr12616_64",
+    "C1_flat_64",
+    "C2"
+   ],
+   "default": "A",
+   "wanted_gas": 200000000,
+   "default_gas": {
+    "A": 200000000,
+    "B_pr12616_64": 200000000,
+    "C1_flat_64": 200000000,
+    "C2": 200000000
+   }
+  },
+  {
+   "key": "I",
+   "fork": "the fork after Hegotá",
+   "optional": false,
+   "period": "I*",
+   "options": [
+    "D",
+    "D-dep3000",
+    "F1",
+    "F2",
+    "F3"
+   ],
+   "default": "D-dep3000",
+   "wanted_gas": 200000000,
+   "default_gas": {
+    "D": 200000000,
+    "D-dep3000": 60000000,
+    "F1": 60000000,
+    "F2": 60000000,
+    "F3": 200000000
+   }
+  }
+ ],
+ "default_timeline": 0,
+ "timelines": [
+  {
+   "name": "user (EVM to late 2027, H* to mid 2028, I* 30 months)",
+   "months": {
+    "today": 3,
+    "G": 10,
+    "H": 7,
+    "I": 30
+   }
+  },
+  {
+   "name": "public A (Glamsterdam about Jan 2027, Hegota June 2027, I* mid 2028, 30 months)",
+   "months": {
+    "today": 2,
+    "G": 5,
+    "H": 12,
+    "I": 30
+   }
+  },
+  {
+   "name": "public B (as A, I* outside the horizon: undated, unscoped)",
+   "months": {
+    "today": 2,
+    "G": 5,
+    "H": 42,
+    "I": 0
+   }
+  }
+ ],
+ "options": {
+  "E0a_7623": {
+   "key": "E0a_7623",
+   "id": "E0a",
+   "configuration": "E0a_7623",
+   "family": "E0a_7623",
+   "class": "noagg",
+   "pricing": "7623",
+   "unit": "tx/s",
+   "simulated_gas": [
+    60000000
+   ]
+  },
+  "E0b_7623": {
+   "key": "E0b_7623",
+   "id": "E0b",
+   "configuration": "E0b_7623",
+   "family": "E0b_7623",
+   "class": "noagg",
+   "pricing": "7623",
+   "unit": "tx/s",
+   "simulated_gas": [
+    60000000
+   ]
+  },
+  "E0c_7623": {
+   "key": "E0c_7623",
+   "id": "E0c",
+   "configuration": "E0c_7623",
+   "family": "E0c_7623",
+   "class": "noagg",
+   "pricing": "7623",
+   "unit": "tx/s",
+   "simulated_gas": [
+    60000000
+   ]
+  },
+  "E0a_7976": {
+   "key": "E0a_7976",
+   "id": "E0a",
+   "configuration": "E0a_7976",
+   "family": "E0a_7976",
+   "class": "noagg",
+   "pricing": "7976",
+   "unit": "tx/s",
+   "simulated_gas": [
+    200000000
+   ]
+  },
+  "E0b_7976": {
+   "key": "E0b_7976",
+   "id": "E0b",
+   "configuration": "E0b_7976",
+   "family": "E0b_7976",
+   "class": "noagg",
+   "pricing": "7976",
+   "unit": "tx/s",
+   "simulated_gas": [
+    200000000
+   ]
+  },
+  "E0c_7976": {
+   "key": "E0c_7976",
+   "id": "E0c",
+   "configuration": "E0c_7976",
+   "family": "E0c_7976",
+   "class": "noagg",
+   "pricing": "7976",
+   "unit": "tx/s",
+   "simulated_gas": [
+    200000000
+   ]
+  },
+  "A": {
+   "key": "A",
+   "id": "A",
+   "configuration": "A",
+   "family": "A",
+   "class": "noagg",
+   "pricing": "8141+7976",
+   "unit": "tx/s",
+   "simulated_gas": [
+    60000000,
+    200000000,
+    300000000
+   ]
+  },
+  "B_pr12616_64": {
+   "key": "B_pr12616_64",
+   "id": "B",
+   "configuration": "B_pr12616_64",
+   "family": "B",
+   "class": "noagg",
+   "pricing": "8141+7976",
+   "unit": "tx/s",
+   "simulated_gas": [
+    60000000,
+    200000000,
+    300000000
+   ]
+  },
+  "C1_flat_64": {
+   "key": "C1_flat_64",
+   "id": "C1",
+   "configuration": "C1_flat_64",
+   "family": "C1",
+   "class": "noagg",
+   "pricing": "8141+7976",
+   "unit": "tx/s",
+   "simulated_gas": [
+    60000000,
+    200000000,
+    300000000
+   ]
+  },
+  "C2": {
+   "key": "C2",
+   "id": "C2",
+   "configuration": "C2",
+   "family": "C2",
+   "class": "agg8288",
+   "pricing": "8288:3000+30000/dep",
+   "unit": "sig/s",
+   "simulated_gas": []
+  },
+  "D": {
+   "key": "D",
+   "id": "D",
+   "configuration": "D",
+   "family": "D/E@33000",
+   "class": "agg8288",
+   "pricing": "8288:3000+30000/dep",
+   "unit": "sig/s",
+   "simulated_gas": [
+    60000000,
+    200000000
+   ]
+  },
+  "D-dep3000": {
+   "key": "D-dep3000",
+   "id": "D",
+   "configuration": "D-dep3000",
+   "family": "D/E@3000",
+   "class": "agg8288",
+   "pricing": "leanPCS-draft:3000/dep",
+   "unit": "sig/s",
+   "simulated_gas": [
+    60000000
+   ]
+  },
+  "F1": {
+   "key": "F1",
+   "id": "F1",
+   "configuration": "F1",
+   "family": "F1",
+   "class": "pcs",
+   "pricing": "leanPCS-4905424d/7976",
+   "unit": "sig/s",
+   "simulated_gas": [
+    60000000
+   ]
+  },
+  "F2": {
+   "key": "F2",
+   "id": "F2",
+   "configuration": "F2",
+   "family": "F2",
+   "class": "pcs",
+   "pricing": "leanPCS-4905424d/7976",
+   "unit": "sig/s",
+   "simulated_gas": [
+    60000000
+   ]
+  },
+  "F3": {
+   "key": "F3",
+   "id": "F3",
+   "configuration": "F3",
+   "family": "F3",
+   "class": "pcs",
+   "pricing": "leanPCS-4905424d/7976",
+   "unit": "sig/s",
+   "simulated_gas": [
+    60000000,
+    200000000
+   ]
+  }
+ },
+ "cells": {
+  "E0a_7623": {
+   "60000000": {
+    "evidence": "simulated",
+    "simulated_sets": 8,
+    "status": "[C] simulated on [Mo] gas, prover prices and uplinks: 40 nodes, baseline profile, heterogeneous uplinks",
+    "sets": {
+     "B0": {
+      "tps": 14.5,
+      "binding": "gas",
+      "tx_gas": 344083,
+      "signatures": 1,
+      "gas_per_signature": 344083.0,
+      "gas_bound_tps": 14.5314,
+      "table_scenario": "E0a"
+     },
+     "P99r": {
+      "tps": 22.25,
+      "binding": "gas",
+      "tx_gas": 223983,
+      "signatures": 1,
+      "gas_per_signature": 223983.0,
+      "gas_bound_tps": 22.3231,
+      "table_scenario": "E0a"
+     },
+     "P99a": {
+      "tps": 22.5833,
+      "binding": "gas",
+      "tx_gas": 221296,
+      "signatures": 1,
+      "gas_per_signature": 221296.0,
+      "gas_bound_tps": 22.5942,
+      "table_scenario": "E0a"
+     },
+     "S24-minB": {
+      "tps": 22.5833,
+      "binding": "gas",
+      "tx_gas": 221036,
+      "signatures": 1,
+      "gas_per_signature": 221036.0,
+      "gas_bound_tps": 22.6207,
+      "table_scenario": "E0a"
+     },
+     "S22-minP-5K": {
+      "tps": 23.0833,
+      "binding": "gas",
+      "tx_gas": 216178,
+      "signatures": 1,
+      "gas_per_signature": 216178.0,
+      "gas_bound_tps": 23.1291,
+      "table_scenario": "E0a"
+     },
+     "S22-minB-5K": {
+      "tps": 23.0833,
+      "binding": "gas",
+      "tx_gas": 216218,
+      "signatures": 1,
+      "gas_per_signature": 216218.0,
+      "gas_bound_tps": 23.1248,
+      "table_scenario": "E0a"
+     },
+     "N2": {
+      "tps": 18.1667,
+      "binding": "gas",
+      "tx_gas": 274825,
+      "signatures": 1,
+      "gas_per_signature": 274825.0,
+      "gas_bound_tps": 18.1934,
+      "table_scenario": "E0a"
+     },
+     "N3r": {
+      "tps": 17.75,
+      "binding": "gas",
+      "tx_gas": 280909,
+      "signatures": 1,
+      "gas_per_signature": 280909.0,
+      "gas_bound_tps": 17.7994,
+      "table_scenario": "E0a"
+     }
+    }
+   },
+   "200000000": {
+    "evidence": "modelled",
+    "simulated_sets": 0,
+    "status": "[Mo] the gas bound: gas limit / gas per transaction / 12 s x signatures per transaction; not simulated for every set",
+    "sets": {
+     "B0": {
+      "tps": 48.4379,
+      "binding": "gas (bound)",
+      "tx_gas": 344083,
+      "signatures": 1,
+      "gas_per_signature": 344083.0,
+      "gas_bound_tps": 48.4379,
+      "table_scenario": null
+     },
+     "P99r": {
+      "tps": 74.4104,
+      "binding": "gas (bound)",
+      "tx_gas": 223983,
+      "signatures": 1,
+      "gas_per_signature": 223983.0,
+      "gas_bound_tps": 74.4104,
+      "table_scenario": null
+     },
+     "P99a": {
+      "tps": 75.3139,
+      "binding": "gas (bound)",
+      "tx_gas": 221296,
+      "signatures": 1,
+      "gas_per_signature": 221296.0,
+      "gas_bound_tps": 75.3139,
+      "table_scenario": null
+     },
+     "S24-minB": {
+      "tps": 75.4025,
+      "binding": "gas (bound)",
+      "tx_gas": 221036,
+      "signatures": 1,
+      "gas_per_signature": 221036.0,
+      "gas_bound_tps": 75.4025,
+      "table_scenario": null
+     },
+     "S22-minP-5K": {
+      "tps": 77.097,
+      "binding": "gas (bound)",
+      "tx_gas": 216178,
+      "signatures": 1,
+      "gas_per_signature": 216178.0,
+      "gas_bound_tps": 77.097,
+      "table_scenario": null
+     },
+     "S22-minB-5K": {
+      "tps": 77.0827,
+      "binding": "gas (bound)",
+      "tx_gas": 216218,
+      "signatures": 1,
+      "gas_per_signature": 216218.0,
+      "gas_bound_tps": 77.0827,
+      "table_scenario": null
+     },
+     "N2": {
+      "tps": 60.6447,
+      "binding": "gas (bound)",
+      "tx_gas": 274825,
+      "signatures": 1,
+      "gas_per_signature": 274825.0,
+      "gas_bound_tps": 60.6447,
+      "table_scenario": null
+     },
+     "N3r": {
+      "tps": 59.3312,
+      "binding": "gas (bound)",
+      "tx_gas": 280909,
+      "signatures": 1,
+      "gas_per_signature": 280909.0,
+      "gas_bound_tps": 59.3312,
+      "table_scenario": null
+     }
+    }
+   },
+   "300000000": {
+    "evidence": "modelled",
+    "simulated_sets": 0,
+    "status": "[Mo] the gas bound: gas limit / gas per transaction / 12 s x signatures per transaction; not simulated for every set",
+    "sets": {
+     "B0": {
+      "tps": 72.6569,
+      "binding": "gas (bound)",
+      "tx_gas": 344083,
+      "signatures": 1,
+      "gas_per_signature": 344083.0,
+      "gas_bound_tps": 72.6569,
+      "table_scenario": null
+     },
+     "P99r": {
+      "tps": 111.6156,
+      "binding": "gas (bound)",
+      "tx_gas": 223983,
+      "signatures": 1,
+      "gas_per_signature": 223983.0,
+      "gas_bound_tps": 111.6156,
+      "table_scenario": null
+     },
+     "P99a": {
+      "tps": 112.9709,
+      "binding": "gas (bound)",
+      "tx_gas": 221296,
+      "signatures": 1,
+      "gas_per_signature": 221296.0,
+      "gas_bound_tps": 112.9709,
+      "table_scenario": null
+     },
+     "S24-minB": {
+      "tps": 113.1037,
+      "binding": "gas (bound)",
+      "tx_gas": 221036,
+      "signatures": 1,
+      "gas_per_signature": 221036.0,
+      "gas_bound_tps": 113.1037,
+      "table_scenario": null
+     },
+     "S22-minP-5K": {
+      "tps": 115.6454,
+      "binding": "gas (bound)",
+      "tx_gas": 216178,
+      "signatures": 1,
+      "gas_per_signature": 216178.0,
+      "gas_bound_tps": 115.6454,
+      "table_scenario": null
+     },
+     "S22-minB-5K": {
+      "tps": 115.624,
+      "binding": "gas (bound)",
+      "tx_gas": 216218,
+      "signatures": 1,
+      "gas_per_signature": 216218.0,
+      "gas_bound_tps": 115.624,
+      "table_scenario": null
+     },
+     "N2": {
+      "tps": 90.967,
+      "binding": "gas (bound)",
+      "tx_gas": 274825,
+      "signatures": 1,
+      "gas_per_signature": 274825.0,
+      "gas_bound_tps": 90.967,
+      "table_scenario": null
+     },
+     "N3r": {
+      "tps": 88.9968,
+      "binding": "gas (bound)",
+      "tx_gas": 280909,
+      "signatures": 1,
+      "gas_per_signature": 280909.0,
+      "gas_bound_tps": 88.9968,
+      "table_scenario": null
+     }
+    }
+   }
+  },
+  "E0b_7623": {
+   "60000000": {
+    "evidence": "simulated",
+    "simulated_sets": 8,
+    "status": "[C] simulated on [Mo] gas, prover prices and uplinks: 40 nodes, baseline profile, heterogeneous uplinks",
+    "sets": {
+     "B0": {
+      "tps": 15,
+      "binding": "gas",
+      "tx_gas": 332923,
+      "signatures": 1,
+      "gas_per_signature": 332923.0,
+      "gas_bound_tps": 15.0185,
+      "table_scenario": "E0b"
+     },
+     "P99r": {
+      "tps": 24.9167,
+      "binding": "gas",
+      "tx_gas": 200513,
+      "signatures": 1,
+      "gas_per_signature": 200513.0,
+      "gas_bound_tps": 24.936,
+      "table_scenario": "E0b"
+     },
+     "P99a": {
+      "tps": 25.5,
+      "binding": "gas",
+      "tx_gas": 196046,
+      "signatures": 1,
+      "gas_per_signature": 196046.0,
+      "gas_bound_tps": 25.5042,
+      "table_scenario": "E0b"
+     },
+     "S24-minB": {
+      "tps": 27.3333,
+      "binding": "gas",
+      "tx_gas": 182645,
+      "signatures": 1,
+      "gas_per_signature": 182645.0,
+      "gas_bound_tps": 27.3755,
+      "table_scenario": "E0b"
+     },
+     "S22-minP-5K": {
+      "tps": 26.5833,
+      "binding": "gas",
+      "tx_gas": 187750,
+      "signatures": 1,
+      "gas_per_signature": 187750.0,
+      "gas_bound_tps": 26.6312,
+      "table_scenario": "E0b"
+     },
+     "S22-minB-5K": {
+      "tps": 28.6667,
+      "binding": "gas",
+      "tx_gas": 174349,
+      "signatures": 1,
+      "gas_per_signature": 174349.0,
+      "gas_bound_tps": 28.6781,
+      "table_scenario": "E0b"
+     },
+     "N2": {
+      "tps": 19,
+      "binding": "gas",
+      "tx_gas": 262730,
+      "signatures": 1,
+      "gas_per_signature": 262730.0,
+      "gas_bound_tps": 19.0309,
+      "table_scenario": "E0b"
+     },
+     "N3r": {
+      "tps": 18.5,
+      "binding": "gas",
+      "tx_gas": 269749,
+      "signatures": 1,
+      "gas_per_signature": 269749.0,
+      "gas_bound_tps": 18.5357,
+      "table_scenario": "E0b"
+     }
+    }
+   },
+   "200000000": {
+    "evidence": "modelled",
+    "simulated_sets": 0,
+    "status": "[Mo] the gas bound: gas limit / gas per transaction / 12 s x signatures per transaction; not simulated for every set",
+    "sets": {
+     "B0": {
+      "tps": 50.0616,
+      "binding": "gas (bound)",
+      "tx_gas": 332923,
+      "signatures": 1,
+      "gas_per_signature": 332923.0,
+      "gas_bound_tps": 50.0616,
+      "table_scenario": null
+     },
+     "P99r": {
+      "tps": 83.1201,
+      "binding": "gas (bound)",
+      "tx_gas": 200513,
+      "signatures": 1,
+      "gas_per_signature": 200513.0,
+      "gas_bound_tps": 83.1201,
+      "table_scenario": null
+     },
+     "P99a": {
+      "tps": 85.0141,
+      "binding": "gas (bound)",
+      "tx_gas": 196046,
+      "signatures": 1,
+      "gas_per_signature": 196046.0,
+      "gas_bound_tps": 85.0141,
+      "table_scenario": null
+     },
+     "S24-minB": {
+      "tps": 91.2517,
+      "binding": "gas (bound)",
+      "tx_gas": 182645,
+      "signatures": 1,
+      "gas_per_signature": 182645.0,
+      "gas_bound_tps": 91.2517,
+      "table_scenario": null
+     },
+     "S22-minP-5K": {
+      "tps": 88.7705,
+      "binding": "gas (bound)",
+      "tx_gas": 187750,
+      "signatures": 1,
+      "gas_per_signature": 187750.0,
+      "gas_bound_tps": 88.7705,
+      "table_scenario": null
+     },
+     "S22-minB-5K": {
+      "tps": 95.5937,
+      "binding": "gas (bound)",
+      "tx_gas": 174349,
+      "signatures": 1,
+      "gas_per_signature": 174349.0,
+      "gas_bound_tps": 95.5937,
+      "table_scenario": null
+     },
+     "N2": {
+      "tps": 63.4365,
+      "binding": "gas (bound)",
+      "tx_gas": 262730,
+      "signatures": 1,
+      "gas_per_signature": 262730.0,
+      "gas_bound_tps": 63.4365,
+      "table_scenario": null
+     },
+     "N3r": {
+      "tps": 61.7858,
+      "binding": "gas (bound)",
+      "tx_gas": 269749,
+      "signatures": 1,
+      "gas_per_signature": 269749.0,
+      "gas_bound_tps": 61.7858,
+      "table_scenario": null
+     }
+    }
+   },
+   "300000000": {
+    "evidence": "modelled",
+    "simulated_sets": 0,
+    "status": "[Mo] the gas bound: gas limit / gas per transaction / 12 s x signatures per transaction; not simulated for every set",
+    "sets": {
+     "B0": {
+      "tps": 75.0924,
+      "binding": "gas (bound)",
+      "tx_gas": 332923,
+      "signatures": 1,
+      "gas_per_signature": 332923.0,
+      "gas_bound_tps": 75.0924,
+      "table_scenario": null
+     },
+     "P99r": {
+      "tps": 124.6802,
+      "binding": "gas (bound)",
+      "tx_gas": 200513,
+      "signatures": 1,
+      "gas_per_signature": 200513.0,
+      "gas_bound_tps": 124.6802,
+      "table_scenario": null
+     },
+     "P99a": {
+      "tps": 127.5211,
+      "binding": "gas (bound)",
+      "tx_gas": 196046,
+      "signatures": 1,
+      "gas_per_signature": 196046.0,
+      "gas_bound_tps": 127.5211,
+      "table_scenario": null
+     },
+     "S24-minB": {
+      "tps": 136.8775,
+      "binding": "gas (bound)",
+      "tx_gas": 182645,
+      "signatures": 1,
+      "gas_per_signature": 182645.0,
+      "gas_bound_tps": 136.8775,
+      "table_scenario": null
+     },
+     "S22-minP-5K": {
+      "tps": 133.1558,
+      "binding": "gas (bound)",
+      "tx_gas": 187750,
+      "signatures": 1,
+      "gas_per_signature": 187750.0,
+      "gas_bound_tps": 133.1558,
+      "table_scenario": null
+     },
+     "S22-minB-5K": {
+      "tps": 143.3906,
+      "binding": "gas (bound)",
+      "tx_gas": 174349,
+      "signatures": 1,
+      "gas_per_signature": 174349.0,
+      "gas_bound_tps": 143.3906,
+      "table_scenario": null
+     },
+     "N2": {
+      "tps": 95.1547,
+      "binding": "gas (bound)",
+      "tx_gas": 262730,
+      "signatures": 1,
+      "gas_per_signature": 262730.0,
+      "gas_bound_tps": 95.1547,
+      "table_scenario": null
+     },
+     "N3r": {
+      "tps": 92.6787,
+      "binding": "gas (bound)",
+      "tx_gas": 269749,
+      "signatures": 1,
+      "gas_per_signature": 269749.0,
+      "gas_bound_tps": 92.6787,
+      "table_scenario": null
+     }
+    }
+   }
+  },
+  "E0c_7623": {
+   "60000000": {
+    "evidence": "simulated",
+    "simulated_sets": 8,
+    "status": "[C] simulated on [Mo] gas, prover prices and uplinks: 40 nodes, baseline profile, heterogeneous uplinks",
+    "sets": {
+     "B0": {
+      "tps": 15,
+      "binding": "gas",
+      "tx_gas": 332613,
+      "signatures": 1,
+      "gas_per_signature": 332613.0,
+      "gas_bound_tps": 15.0325,
+      "table_scenario": "E0c"
+     },
+     "P99r": {
+      "tps": 24.9167,
+      "binding": "gas",
+      "tx_gas": 200203,
+      "signatures": 1,
+      "gas_per_signature": 200203.0,
+      "gas_bound_tps": 24.9747,
+      "table_scenario": "E0c"
+     },
+     "P99a": {
+      "tps": 25.5,
+      "binding": "gas",
+      "tx_gas": 195736,
+      "signatures": 1,
+      "gas_per_signature": 195736.0,
+      "gas_bound_tps": 25.5446,
+      "table_scenario": "E0c"
+     },
+     "S24-minB": {
+      "tps": 27.4167,
+      "binding": "gas",
+      "tx_gas": 182335,
+      "signatures": 1,
+      "gas_per_signature": 182335.0,
+      "gas_bound_tps": 27.4221,
+      "table_scenario": "E0c"
+     },
+     "S22-minP-5K": {
+      "tps": 26.6667,
+      "binding": "gas",
+      "tx_gas": 187440,
+      "signatures": 1,
+      "gas_per_signature": 187440.0,
+      "gas_bound_tps": 26.6752,
+      "table_scenario": "E0c"
+     },
+     "S22-minB-5K": {
+      "tps": 28.6667,
+      "binding": "gas",
+      "tx_gas": 174039,
+      "signatures": 1,
+      "gas_per_signature": 174039.0,
+      "gas_bound_tps": 28.7292,
+      "table_scenario": "E0c"
+     },
+     "N2": {
+      "tps": 19,
+      "binding": "gas",
+      "tx_gas": 262420,
+      "signatures": 1,
+      "gas_per_signature": 262420.0,
+      "gas_bound_tps": 19.0534,
+      "table_scenario": "E0c"
+     },
+     "N3r": {
+      "tps": 18.5,
+      "binding": "gas",
+      "tx_gas": 269439,
+      "signatures": 1,
+      "gas_per_signature": 269439.0,
+      "gas_bound_tps": 18.5571,
+      "table_scenario": "E0c"
+     }
+    }
+   },
+   "200000000": {
+    "evidence": "modelled",
+    "simulated_sets": 0,
+    "status": "[Mo] the gas bound: gas limit / gas per transaction / 12 s x signatures per transaction; not simulated for every set",
+    "sets": {
+     "B0": {
+      "tps": 50.1083,
+      "binding": "gas (bound)",
+      "tx_gas": 332613,
+      "signatures": 1,
+      "gas_per_signature": 332613.0,
+      "gas_bound_tps": 50.1083,
+      "table_scenario": null
+     },
+     "P99r": {
+      "tps": 83.2488,
+      "binding": "gas (bound)",
+      "tx_gas": 200203,
+      "signatures": 1,
+      "gas_per_signature": 200203.0,
+      "gas_bound_tps": 83.2488,
+      "table_scenario": null
+     },
+     "P99a": {
+      "tps": 85.1487,
+      "binding": "gas (bound)",
+      "tx_gas": 195736,
+      "signatures": 1,
+      "gas_per_signature": 195736.0,
+      "gas_bound_tps": 85.1487,
+      "table_scenario": null
+     },
+     "S24-minB": {
+      "tps": 91.4068,
+      "binding": "gas (bound)",
+      "tx_gas": 182335,
+      "signatures": 1,
+      "gas_per_signature": 182335.0,
+      "gas_bound_tps": 91.4068,
+      "table_scenario": null
+     },
+     "S22-minP-5K": {
+      "tps": 88.9173,
+      "binding": "gas (bound)",
+      "tx_gas": 187440,
+      "signatures": 1,
+      "gas_per_signature": 187440.0,
+      "gas_bound_tps": 88.9173,
+      "table_scenario": null
+     },
+     "S22-minB-5K": {
+      "tps": 95.764,
+      "binding": "gas (bound)",
+      "tx_gas": 174039,
+      "signatures": 1,
+      "gas_per_signature": 174039.0,
+      "gas_bound_tps": 95.764,
+      "table_scenario": null
+     },
+     "N2": {
+      "tps": 63.5114,
+      "binding": "gas (bound)",
+      "tx_gas": 262420,
+      "signatures": 1,
+      "gas_per_signature": 262420.0,
+      "gas_bound_tps": 63.5114,
+      "table_scenario": null
+     },
+     "N3r": {
+      "tps": 61.8569,
+      "binding": "gas (bound)",
+      "tx_gas": 269439,
+      "signatures": 1,
+      "gas_per_signature": 269439.0,
+      "gas_bound_tps": 61.8569,
+      "table_scenario": null
+     }
+    }
+   },
+   "300000000": {
+    "evidence": "modelled",
+    "simulated_sets": 0,
+    "status": "[Mo] the gas bound: gas limit / gas per transaction / 12 s x signatures per transaction; not simulated for every set",
+    "sets": {
+     "B0": {
+      "tps": 75.1624,
+      "binding": "gas (bound)",
+      "tx_gas": 332613,
+      "signatures": 1,
+      "gas_per_signature": 332613.0,
+      "gas_bound_tps": 75.1624,
+      "table_scenario": null
+     },
+     "P99r": {
+      "tps": 124.8733,
+      "binding": "gas (bound)",
+      "tx_gas": 200203,
+      "signatures": 1,
+      "gas_per_signature": 200203.0,
+      "gas_bound_tps": 124.8733,
+      "table_scenario": null
+     },
+     "P99a": {
+      "tps": 127.7231,
+      "binding": "gas (bound)",
+      "tx_gas": 195736,
+      "signatures": 1,
+      "gas_per_signature": 195736.0,
+      "gas_bound_tps": 127.7231,
+      "table_scenario": null
+     },
+     "S24-minB": {
+      "tps": 137.1103,
+      "binding": "gas (bound)",
+      "tx_gas": 182335,
+      "signatures": 1,
+      "gas_per_signature": 182335.0,
+      "gas_bound_tps": 137.1103,
+      "table_scenario": null
+     },
+     "S22-minP-5K": {
+      "tps": 133.376,
+      "binding": "gas (bound)",
+      "tx_gas": 187440,
+      "signatures": 1,
+      "gas_per_signature": 187440.0,
+      "gas_bound_tps": 133.376,
+      "table_scenario": null
+     },
+     "S22-minB-5K": {
+      "tps": 143.646,
+      "binding": "gas (bound)",
+      "tx_gas": 174039,
+      "signatures": 1,
+      "gas_per_signature": 174039.0,
+      "gas_bound_tps": 143.646,
+      "table_scenario": null
+     },
+     "N2": {
+      "tps": 95.2671,
+      "binding": "gas (bound)",
+      "tx_gas": 262420,
+      "signatures": 1,
+      "gas_per_signature": 262420.0,
+      "gas_bound_tps": 95.2671,
+      "table_scenario": null
+     },
+     "N3r": {
+      "tps": 92.7854,
+      "binding": "gas (bound)",
+      "tx_gas": 269439,
+      "signatures": 1,
+      "gas_per_signature": 269439.0,
+      "gas_bound_tps": 92.7854,
+      "table_scenario": null
+     }
+    }
+   }
+  },
+  "E0a_7976": {
+   "60000000": {
+    "evidence": "modelled",
+    "simulated_sets": 0,
+    "status": "[Mo] the gas bound: gas limit / gas per transaction / 12 s x signatures per transaction; not simulated for every set",
+    "sets": {
+     "B0": {
+      "tps": 8.7718,
+      "binding": "gas (bound)",
+      "tx_gas": 570008,
+      "signatures": 1,
+      "gas_per_signature": 570008.0,
+      "gas_bound_tps": 8.7718,
+      "table_scenario": null
+     },
+     "P99r": {
+      "tps": 13.9849,
+      "binding": "gas (bound)",
+      "tx_gas": 357528,
+      "signatures": 1,
+      "gas_per_signature": 357528.0,
+      "gas_bound_tps": 13.9849,
+      "table_scenario": null
+     },
+     "P99a": {
+      "tps": 14.271,
+      "binding": "gas (bound)",
+      "tx_gas": 350360,
+      "signatures": 1,
+      "gas_per_signature": 350360.0,
+      "gas_bound_tps": 14.271,
+      "table_scenario": null
+     },
+     "S24-minB": {
+      "tps": 15.2042,
+      "binding": "gas (bound)",
+      "tx_gas": 328856,
+      "signatures": 1,
+      "gas_per_signature": 328856.0,
+      "gas_bound_tps": 15.2042,
+      "table_scenario": null
+     },
+     "S22-minP-5K": {
+      "tps": 14.8347,
+      "binding": "gas (bound)",
+      "tx_gas": 337048,
+      "signatures": 1,
+      "gas_per_signature": 337048.0,
+      "gas_bound_tps": 14.8347,
+      "table_scenario": null
+     },
+     "S22-minB-5K": {
+      "tps": 15.8457,
+      "binding": "gas (bound)",
+      "tx_gas": 315544,
+      "signatures": 1,
+      "gas_per_signature": 315544.0,
+      "gas_bound_tps": 15.8457,
+      "table_scenario": null
+     },
+     "N2": {
+      "tps": 10.9321,
+      "binding": "gas (bound)",
+      "tx_gas": 457368,
+      "signatures": 1,
+      "gas_per_signature": 457368.0,
+      "gas_bound_tps": 10.9321,
+      "table_scenario": null
+     },
+     "N3r": {
+      "tps": 10.6694,
+      "binding": "gas (bound)",
+      "tx_gas": 468632,
+      "signatures": 1,
+      "gas_per_signature": 468632.0,
+      "gas_bound_tps": 10.6694,
+      "table_scenario": null
+     }
+    }
+   },
+   "200000000": {
+    "evidence": "simulated",
+    "simulated_sets": 8,
+    "status": "[C] simulated on [Mo] gas, prover prices and uplinks: 40 nodes, baseline profile, heterogeneous uplinks",
+    "sets": {
+     "B0": {
+      "tps": 29.1667,
+      "binding": "gas",
+      "tx_gas": 570008,
+      "signatures": 1,
+      "gas_per_signature": 570008.0,
+      "gas_bound_tps": 29.2394,
+      "table_scenario": "E0a"
+     },
+     "P99r": {
+      "tps": 46.5,
+      "binding": "gas",
+      "tx_gas": 357528,
+      "signatures": 1,
+      "gas_per_signature": 357528.0,
+      "gas_bound_tps": 46.6164,
+      "table_scenario": "E0a"
+     },
+     "P99a": {
+      "tps": 47.5,
+      "binding": "gas",
+      "tx_gas": 350360,
+      "signatures": 1,
+      "gas_per_signature": 350360.0,
+      "gas_bound_tps": 47.5701,
+      "table_scenario": "E0a"
+     },
+     "S24-minB": {
+      "tps": 50.6667,
+      "binding": "gas",
+      "tx_gas": 328856,
+      "signatures": 1,
+      "gas_per_signature": 328856.0,
+      "gas_bound_tps": 50.6807,
+      "table_scenario": "E0a"
+     },
+     "S22-minP-5K": {
+      "tps": 49.3333,
+      "binding": "gas",
+      "tx_gas": 337048,
+      "signatures": 1,
+      "gas_per_signature": 337048.0,
+      "gas_bound_tps": 49.4489,
+      "table_scenario": "E0a"
+     },
+     "S22-minB-5K": {
+      "tps": 52.6667,
+      "binding": "gas",
+      "tx_gas": 315544,
+      "signatures": 1,
+      "gas_per_signature": 315544.0,
+      "gas_bound_tps": 52.8188,
+      "table_scenario": "E0a"
+     },
+     "N2": {
+      "tps": 36.3333,
+      "binding": "gas",
+      "tx_gas": 457368,
+      "signatures": 1,
+      "gas_per_signature": 457368.0,
+      "gas_bound_tps": 36.4404,
+      "table_scenario": "E0a"
+     },
+     "N3r": {
+      "tps": 35.5,
+      "binding": "gas",
+      "tx_gas": 468632,
+      "signatures": 1,
+      "gas_per_signature": 468632.0,
+      "gas_bound_tps": 35.5645,
+      "table_scenario": "E0a"
+     }
+    }
+   },
+   "300000000": {
+    "evidence": "modelled",
+    "simulated_sets": 0,
+    "status": "[Mo] the gas bound: gas limit / gas per transaction / 12 s x signatures per transaction; not simulated for every set",
+    "sets": {
+     "B0": {
+      "tps": 43.859,
+      "binding": "gas (bound)",
+      "tx_gas": 570008,
+      "signatures": 1,
+      "gas_per_signature": 570008.0,
+      "gas_bound_tps": 43.859,
+      "table_scenario": null
+     },
+     "P99r": {
+      "tps": 69.9246,
+      "binding": "gas (bound)",
+      "tx_gas": 357528,
+      "signatures": 1,
+      "gas_per_signature": 357528.0,
+      "gas_bound_tps": 69.9246,
+      "table_scenario": null
+     },
+     "P99a": {
+      "tps": 71.3552,
+      "binding": "gas (bound)",
+      "tx_gas": 350360,
+      "signatures": 1,
+      "gas_per_signature": 350360.0,
+      "gas_bound_tps": 71.3552,
+      "table_scenario": null
+     },
+     "S24-minB": {
+      "tps": 76.0211,
+      "binding": "gas (bound)",
+      "tx_gas": 328856,
+      "signatures": 1,
+      "gas_per_signature": 328856.0,
+      "gas_bound_tps": 76.0211,
+      "table_scenario": null
+     },
+     "S22-minP-5K": {
+      "tps": 74.1734,
+      "binding": "gas (bound)",
+      "tx_gas": 337048,
+      "signatures": 1,
+      "gas_per_signature": 337048.0,
+      "gas_bound_tps": 74.1734,
+      "table_scenario": null
+     },
+     "S22-minB-5K": {
+      "tps": 79.2283,
+      "binding": "gas (bound)",
+      "tx_gas": 315544,
+      "signatures": 1,
+      "gas_per_signature": 315544.0,
+      "gas_bound_tps": 79.2283,
+      "table_scenario": null
+     },
+     "N2": {
+      "tps": 54.6606,
+      "binding": "gas (bound)",
+      "tx_gas": 457368,
+      "signatures": 1,
+      "gas_per_signature": 457368.0,
+      "gas_bound_tps": 54.6606,
+      "table_scenario": null
+     },
+     "N3r": {
+      "tps": 53.3468,
+      "binding": "gas (bound)",
+      "tx_gas": 468632,
+      "signatures": 1,
+      "gas_per_signature": 468632.0,
+      "gas_bound_tps": 53.3468,
+      "table_scenario": null
+     }
+    }
+   }
+  },
+  "E0b_7976": {
+   "60000000": {
+    "evidence": "modelled",
+    "simulated_sets": 0,
+    "status": "[Mo] the gas bound: gas limit / gas per transaction / 12 s x signatures per transaction; not simulated for every set",
+    "sets": {
+     "B0": {
+      "tps": 9.4877,
+      "binding": "gas (bound)",
+      "tx_gas": 527000,
+      "signatures": 1,
+      "gas_per_signature": 527000.0,
+      "gas_bound_tps": 9.4877,
+      "table_scenario": null
+     },
+     "P99r": {
+      "tps": 15.8972,
+      "binding": "gas (bound)",
+      "tx_gas": 314520,
+      "signatures": 1,
+      "gas_per_signature": 314520.0,
+      "gas_bound_tps": 15.8972,
+      "table_scenario": null
+     },
+     "P99a": {
+      "tps": 16.268,
+      "binding": "gas (bound)",
+      "tx_gas": 307352,
+      "signatures": 1,
+      "gas_per_signature": 307352.0,
+      "gas_bound_tps": 16.268,
+      "table_scenario": null
+     },
+     "S24-minB": {
+      "tps": 17.4918,
+      "binding": "gas (bound)",
+      "tx_gas": 285848,
+      "signatures": 1,
+      "gas_per_signature": 285848.0,
+      "gas_bound_tps": 17.4918,
+      "table_scenario": null
+     },
+     "S22-minP-5K": {
+      "tps": 17.0045,
+      "binding": "gas (bound)",
+      "tx_gas": 294040,
+      "signatures": 1,
+      "gas_per_signature": 294040.0,
+      "gas_bound_tps": 17.0045,
+      "table_scenario": null
+     },
+     "S22-minB-5K": {
+      "tps": 18.3462,
+      "binding": "gas (bound)",
+      "tx_gas": 272536,
+      "signatures": 1,
+      "gas_per_signature": 272536.0,
+      "gas_bound_tps": 18.3462,
+      "table_scenario": null
+     },
+     "N2": {
+      "tps": 12.0668,
+      "binding": "gas (bound)",
+      "tx_gas": 414360,
+      "signatures": 1,
+      "gas_per_signature": 414360.0,
+      "gas_bound_tps": 12.0668,
+      "table_scenario": null
+     },
+     "N3r": {
+      "tps": 11.7475,
+      "binding": "gas (bound)",
+      "tx_gas": 425624,
+      "signatures": 1,
+      "gas_per_signature": 425624.0,
+      "gas_bound_tps": 11.7475,
+      "table_scenario": null
+     }
+    }
+   },
+   "200000000": {
+    "evidence": "simulated",
+    "simulated_sets": 8,
+    "status": "[C] simulated on [Mo] gas, prover prices and uplinks: 40 nodes, baseline profile, heterogeneous uplinks",
+    "sets": {
+     "B0": {
+      "tps": 31.5833,
+      "binding": "gas",
+      "tx_gas": 527000,
+      "signatures": 1,
+      "gas_per_signature": 527000.0,
+      "gas_bound_tps": 31.6256,
+      "table_scenario": "E0b"
+     },
+     "P99r": {
+      "tps": 52.8333,
+      "binding": "gas",
+      "tx_gas": 314520,
+      "signatures": 1,
+      "gas_per_signature": 314520.0,
+      "gas_bound_tps": 52.9908,
+      "table_scenario": "E0b"
+     },
+     "P99a": {
+      "tps": 54.1667,
+      "binding": "gas",
+      "tx_gas": 307352,
+      "signatures": 1,
+      "gas_per_signature": 307352.0,
+      "gas_bound_tps": 54.2266,
+      "table_scenario": "E0b"
+     },
+     "S24-minB": {
+      "tps": 58.1667,
+      "binding": "gas",
+      "tx_gas": 285848,
+      "signatures": 1,
+      "gas_per_signature": 285848.0,
+      "gas_bound_tps": 58.306,
+      "table_scenario": "E0b"
+     },
+     "S22-minP-5K": {
+      "tps": 56.6667,
+      "binding": "gas",
+      "tx_gas": 294040,
+      "signatures": 1,
+      "gas_per_signature": 294040.0,
+      "gas_bound_tps": 56.6816,
+      "table_scenario": "E0b"
+     },
+     "S22-minB-5K": {
+      "tps": 61,
+      "binding": "gas",
+      "tx_gas": 272536,
+      "signatures": 1,
+      "gas_per_signature": 272536.0,
+      "gas_bound_tps": 61.154,
+      "table_scenario": "E0b"
+     },
+     "N2": {
+      "tps": 40.1667,
+      "binding": "gas",
+      "tx_gas": 414360,
+      "signatures": 1,
+      "gas_per_signature": 414360.0,
+      "gas_bound_tps": 40.2227,
+      "table_scenario": "E0b"
+     },
+     "N3r": {
+      "tps": 39,
+      "binding": "gas",
+      "tx_gas": 425624,
+      "signatures": 1,
+      "gas_per_signature": 425624.0,
+      "gas_bound_tps": 39.1582,
+      "table_scenario": "E0b"
+     }
+    }
+   },
+   "300000000": {
+    "evidence": "modelled",
+    "simulated_sets": 0,
+    "status": "[Mo] the gas bound: gas limit / gas per transaction / 12 s x signatures per transaction; not simulated for every set",
+    "sets": {
+     "B0": {
+      "tps": 47.4383,
+      "binding": "gas (bound)",
+      "tx_gas": 527000,
+      "signatures": 1,
+      "gas_per_signature": 527000.0,
+      "gas_bound_tps": 47.4383,
+      "table_scenario": null
+     },
+     "P99r": {
+      "tps": 79.4862,
+      "binding": "gas (bound)",
+      "tx_gas": 314520,
+      "signatures": 1,
+      "gas_per_signature": 314520.0,
+      "gas_bound_tps": 79.4862,
+      "table_scenario": null
+     },
+     "P99a": {
+      "tps": 81.34,
+      "binding": "gas (bound)",
+      "tx_gas": 307352,
+      "signatures": 1,
+      "gas_per_signature": 307352.0,
+      "gas_bound_tps": 81.34,
+      "table_scenario": null
+     },
+     "S24-minB": {
+      "tps": 87.4591,
+      "binding": "gas (bound)",
+      "tx_gas": 285848,
+      "signatures": 1,
+      "gas_per_signature": 285848.0,
+      "gas_bound_tps": 87.4591,
+      "table_scenario": null
+     },
+     "S22-minP-5K": {
+      "tps": 85.0224,
+      "binding": "gas (bound)",
+      "tx_gas": 294040,
+      "signatures": 1,
+      "gas_per_signature": 294040.0,
+      "gas_bound_tps": 85.0224,
+      "table_scenario": null
+     },
+     "S22-minB-5K": {
+      "tps": 91.731,
+      "binding": "gas (bound)",
+      "tx_gas": 272536,
+      "signatures": 1,
+      "gas_per_signature": 272536.0,
+      "gas_bound_tps": 91.731,
+      "table_scenario": null
+     },
+     "N2": {
+      "tps": 60.334,
+      "binding": "gas (bound)",
+      "tx_gas": 414360,
+      "signatures": 1,
+      "gas_per_signature": 414360.0,
+      "gas_bound_tps": 60.334,
+      "table_scenario": null
+     },
+     "N3r": {
+      "tps": 58.7373,
+      "binding": "gas (bound)",
+      "tx_gas": 425624,
+      "signatures": 1,
+      "gas_per_signature": 425624.0,
+      "gas_bound_tps": 58.7373,
+      "table_scenario": null
+     }
+    }
+   }
+  },
+  "E0c_7976": {
+   "60000000": {
+    "evidence": "modelled",
+    "simulated_sets": 0,
+    "status": "[Mo] the gas bound: gas limit / gas per transaction / 12 s x signatures per transaction; not simulated for every set",
+    "sets": {
+     "B0": {
+      "tps": 9.562,
+      "binding": "gas (bound)",
+      "tx_gas": 522904,
+      "signatures": 1,
+      "gas_per_signature": 522904.0,
+      "gas_bound_tps": 9.562,
+      "table_scenario": null
+     },
+     "P99r": {
+      "tps": 16.107,
+      "binding": "gas (bound)",
+      "tx_gas": 310424,
+      "signatures": 1,
+      "gas_per_signature": 310424.0,
+      "gas_bound_tps": 16.107,
+      "table_scenario": null
+     },
+     "P99a": {
+      "tps": 16.4877,
+      "binding": "gas (bound)",
+      "tx_gas": 303256,
+      "signatures": 1,
+      "gas_per_signature": 303256.0,
+      "gas_bound_tps": 16.4877,
+      "table_scenario": null
+     },
+     "S24-minB": {
+      "tps": 17.7461,
+      "binding": "gas (bound)",
+      "tx_gas": 281752,
+      "signatures": 1,
+      "gas_per_signature": 281752.0,
+      "gas_bound_tps": 17.7461,
+      "table_scenario": null
+     },
+     "S22-minP-5K": {
+      "tps": 17.2447,
+      "binding": "gas (bound)",
+      "tx_gas": 289944,
+      "signatures": 1,
+      "gas_per_signature": 289944.0,
+      "gas_bound_tps": 17.2447,
+      "table_scenario": null
+     },
+     "S22-minB-5K": {
+      "tps": 18.6261,
+      "binding": "gas (bound)",
+      "tx_gas": 268440,
+      "signatures": 1,
+      "gas_per_signature": 268440.0,
+      "gas_bound_tps": 18.6261,
+      "table_scenario": null
+     },
+     "N2": {
+      "tps": 12.1873,
+      "binding": "gas (bound)",
+      "tx_gas": 410264,
+      "signatures": 1,
+      "gas_per_signature": 410264.0,
+      "gas_bound_tps": 12.1873,
+      "table_scenario": null
+     },
+     "N3r": {
+      "tps": 11.8616,
+      "binding": "gas (bound)",
+      "tx_gas": 421528,
+      "signatures": 1,
+      "gas_per_signature": 421528.0,
+      "gas_bound_tps": 11.8616,
+      "table_scenario": null
+     }
+    }
+   },
+   "200000000": {
+    "evidence": "simulated",
+    "simulated_sets": 8,
+    "status": "[C] simulated on [Mo] gas, prover prices and uplinks: 40 nodes, baseline profile, heterogeneous uplinks",
+    "sets": {
+     "B0": {
+      "tps": 31.8333,
+      "binding": "gas",
+      "tx_gas": 522904,
+      "signatures": 1,
+      "gas_per_signature": 522904.0,
+      "gas_bound_tps": 31.8733,
+      "table_scenario": "E0c"
+     },
+     "P99r": {
+      "tps": 53.6667,
+      "binding": "gas",
+      "tx_gas": 310424,
+      "signatures": 1,
+      "gas_per_signature": 310424.0,
+      "gas_bound_tps": 53.69,
+      "table_scenario": "E0c"
+     },
+     "P99a": {
+      "tps": 54.8333,
+      "binding": "gas",
+      "tx_gas": 303256,
+      "signatures": 1,
+      "gas_per_signature": 303256.0,
+      "gas_bound_tps": 54.9591,
+      "table_scenario": "E0c"
+     },
+     "S24-minB": {
+      "tps": 59,
+      "binding": "gas",
+      "tx_gas": 281752,
+      "signatures": 1,
+      "gas_per_signature": 281752.0,
+      "gas_bound_tps": 59.1537,
+      "table_scenario": "E0c"
+     },
+     "S22-minP-5K": {
+      "tps": 57.3333,
+      "binding": "gas",
+      "tx_gas": 289944,
+      "signatures": 1,
+      "gas_per_signature": 289944.0,
+      "gas_bound_tps": 57.4824,
+      "table_scenario": "E0c"
+     },
+     "S22-minB-5K": {
+      "tps": 62,
+      "binding": "gas",
+      "tx_gas": 268440,
+      "signatures": 1,
+      "gas_per_signature": 268440.0,
+      "gas_bound_tps": 62.0871,
+      "table_scenario": "E0c"
+     },
+     "N2": {
+      "tps": 40.5,
+      "binding": "gas",
+      "tx_gas": 410264,
+      "signatures": 1,
+      "gas_per_signature": 410264.0,
+      "gas_bound_tps": 40.6242,
+      "table_scenario": "E0c"
+     },
+     "N3r": {
+      "tps": 39.5,
+      "binding": "gas",
+      "tx_gas": 421528,
+      "signatures": 1,
+      "gas_per_signature": 421528.0,
+      "gas_bound_tps": 39.5387,
+      "table_scenario": "E0c"
+     }
+    }
+   },
+   "300000000": {
+    "evidence": "modelled",
+    "simulated_sets": 0,
+    "status": "[Mo] the gas bound: gas limit / gas per transaction / 12 s x signatures per transaction; not simulated for every set",
+    "sets": {
+     "B0": {
+      "tps": 47.8099,
+      "binding": "gas (bound)",
+      "tx_gas": 522904,
+      "signatures": 1,
+      "gas_per_signature": 522904.0,
+      "gas_bound_tps": 47.8099,
+      "table_scenario": null
+     },
+     "P99r": {
+      "tps": 80.535,
+      "binding": "gas (bound)",
+      "tx_gas": 310424,
+      "signatures": 1,
+      "gas_per_signature": 310424.0,
+      "gas_bound_tps": 80.535,
+      "table_scenario": null
+     },
+     "P99a": {
+      "tps": 82.4386,
+      "binding": "gas (bound)",
+      "tx_gas": 303256,
+      "signatures": 1,
+      "gas_per_signature": 303256.0,
+      "gas_bound_tps": 82.4386,
+      "table_scenario": null
+     },
+     "S24-minB": {
+      "tps": 88.7305,
+      "binding": "gas (bound)",
+      "tx_gas": 281752,
+      "signatures": 1,
+      "gas_per_signature": 281752.0,
+      "gas_bound_tps": 88.7305,
+      "table_scenario": null
+     },
+     "S22-minP-5K": {
+      "tps": 86.2235,
+      "binding": "gas (bound)",
+      "tx_gas": 289944,
+      "signatures": 1,
+      "gas_per_signature": 289944.0,
+      "gas_bound_tps": 86.2235,
+      "table_scenario": null
+     },
+     "S22-minB-5K": {
+      "tps": 93.1307,
+      "binding": "gas (bound)",
+      "tx_gas": 268440,
+      "signatures": 1,
+      "gas_per_signature": 268440.0,
+      "gas_bound_tps": 93.1307,
+      "table_scenario": null
+     },
+     "N2": {
+      "tps": 60.9364,
+      "binding": "gas (bound)",
+      "tx_gas": 410264,
+      "signatures": 1,
+      "gas_per_signature": 410264.0,
+      "gas_bound_tps": 60.9364,
+      "table_scenario": null
+     },
+     "N3r": {
+      "tps": 59.308,
+      "binding": "gas (bound)",
+      "tx_gas": 421528,
+      "signatures": 1,
+      "gas_per_signature": 421528.0,
+      "gas_bound_tps": 59.308,
+      "table_scenario": null
+     }
+    }
+   }
+  },
+  "A": {
+   "60000000": {
+    "evidence": "simulated",
+    "simulated_sets": 8,
+    "status": "[C] simulated on [Mo] gas, prover prices and uplinks: 40 nodes, baseline profile, heterogeneous uplinks",
+    "sets": {
+     "B0": {
+      "tps": 9.66667,
+      "binding": "gas",
+      "tx_gas": 516906,
+      "signatures": 1,
+      "gas_per_signature": 516906.0,
+      "gas_bound_tps": 9.6729,
+      "table_scenario": "A"
+     },
+     "P99r": {
+      "tps": 16.4167,
+      "binding": "gas",
+      "tx_gas": 304426,
+      "signatures": 1,
+      "gas_per_signature": 304426.0,
+      "gas_bound_tps": 16.4244,
+      "table_scenario": "A"
+     },
+     "P99a": {
+      "tps": 16.75,
+      "binding": "gas",
+      "tx_gas": 297258,
+      "signatures": 1,
+      "gas_per_signature": 297258.0,
+      "gas_bound_tps": 16.8204,
+      "table_scenario": "A"
+     },
+     "S24-minB": {
+      "tps": 18.0833,
+      "binding": "gas",
+      "tx_gas": 275754,
+      "signatures": 1,
+      "gas_per_signature": 275754.0,
+      "gas_bound_tps": 18.1321,
+      "table_scenario": "A"
+     },
+     "S22-minP-5K": {
+      "tps": 17.5833,
+      "binding": "gas",
+      "tx_gas": 283946,
+      "signatures": 1,
+      "gas_per_signature": 283946.0,
+      "gas_bound_tps": 17.609,
+      "table_scenario": "A"
+     },
+     "S22-minB-5K": {
+      "tps": 19,
+      "binding": "gas",
+      "tx_gas": 262442,
+      "signatures": 1,
+      "gas_per_signature": 262442.0,
+      "gas_bound_tps": 19.0518,
+      "table_scenario": "A"
+     },
+     "N2": {
+      "tps": 12.3333,
+      "binding": "gas",
+      "tx_gas": 404266,
+      "signatures": 1,
+      "gas_per_signature": 404266.0,
+      "gas_bound_tps": 12.3681,
+      "table_scenario": "A"
+     },
+     "N3r": {
+      "tps": 12,
+      "binding": "gas",
+      "tx_gas": 415530,
+      "signatures": 1,
+      "gas_per_signature": 415530.0,
+      "gas_bound_tps": 12.0328,
+      "table_scenario": "A"
+     }
+    }
+   },
+   "200000000": {
+    "evidence": "simulated",
+    "simulated_sets": 8,
+    "status": "[C] simulated on [Mo] gas, prover prices and uplinks: 40 nodes, baseline profile, heterogeneous uplinks",
+    "sets": {
+     "B0": {
+      "tps": 32.1667,
+      "binding": "gas",
+      "tx_gas": 516906,
+      "signatures": 1,
+      "gas_per_signature": 516906.0,
+      "gas_bound_tps": 32.2431,
+      "table_scenario": "A"
+     },
+     "P99r": {
+      "tps": 54.6667,
+      "binding": "gas",
+      "tx_gas": 304426,
+      "signatures": 1,
+      "gas_per_signature": 304426.0,
+      "gas_bound_tps": 54.7478,
+      "table_scenario": "A"
+     },
+     "P99a": {
+      "tps": 56,
+      "binding": "gas",
+      "tx_gas": 297258,
+      "signatures": 1,
+      "gas_per_signature": 297258.0,
+      "gas_bound_tps": 56.068,
+      "table_scenario": "A"
+     },
+     "S24-minB": {
+      "tps": 60.3333,
+      "binding": "gas",
+      "tx_gas": 275754,
+      "signatures": 1,
+      "gas_per_signature": 275754.0,
+      "gas_bound_tps": 60.4403,
+      "table_scenario": "A"
+     },
+     "S22-minP-5K": {
+      "tps": 58.6667,
+      "binding": "gas",
+      "tx_gas": 283946,
+      "signatures": 1,
+      "gas_per_signature": 283946.0,
+      "gas_bound_tps": 58.6966,
+      "table_scenario": "A"
+     },
+     "S22-minB-5K": {
+      "tps": 63.5,
+      "binding": "gas",
+      "tx_gas": 262442,
+      "signatures": 1,
+      "gas_per_signature": 262442.0,
+      "gas_bound_tps": 63.5061,
+      "table_scenario": "A"
+     },
+     "N2": {
+      "tps": 41.1667,
+      "binding": "gas",
+      "tx_gas": 404266,
+      "signatures": 1,
+      "gas_per_signature": 404266.0,
+      "gas_bound_tps": 41.227,
+      "table_scenario": "A"
+     },
+     "N3r": {
+      "tps": 40,
+      "binding": "gas",
+      "tx_gas": 415530,
+      "signatures": 1,
+      "gas_per_signature": 415530.0,
+      "gas_bound_tps": 40.1094,
+      "table_scenario": "A"
+     }
+    }
+   },
+   "300000000": {
+    "evidence": "simulated",
+    "simulated_sets": 8,
+    "status": "[C] simulated on [Mo] gas, prover prices and uplinks: 40 nodes, baseline profile, heterogeneous uplinks",
+    "sets": {
+     "B0": {
+      "tps": 48.25,
+      "binding": "gas",
+      "tx_gas": 516906,
+      "signatures": 1,
+      "gas_per_signature": 516906.0,
+      "gas_bound_tps": 48.3647,
+      "table_scenario": "A"
+     },
+     "P99r": {
+      "tps": 82,
+      "binding": "gas",
+      "tx_gas": 304426,
+      "signatures": 1,
+      "gas_per_signature": 304426.0,
+      "gas_bound_tps": 82.1218,
+      "table_scenario": "A"
+     },
+     "P99a": {
+      "tps": 84,
+      "binding": "gas",
+      "tx_gas": 297258,
+      "signatures": 1,
+      "gas_per_signature": 297258.0,
+      "gas_bound_tps": 84.102,
+      "table_scenario": "A"
+     },
+     "S24-minB": {
+      "tps": 90.5,
+      "binding": "gas",
+      "tx_gas": 275754,
+      "signatures": 1,
+      "gas_per_signature": 275754.0,
+      "gas_bound_tps": 90.6605,
+      "table_scenario": "A"
+     },
+     "S22-minP-5K": {
+      "tps": 88,
+      "binding": "gas",
+      "tx_gas": 283946,
+      "signatures": 1,
+      "gas_per_signature": 283946.0,
+      "gas_bound_tps": 88.0449,
+      "table_scenario": "A"
+     },
+     "S22-minB-5K": {
+      "tps": 95.25,
+      "binding": "gas",
+      "tx_gas": 262442,
+      "signatures": 1,
+      "gas_per_signature": 262442.0,
+      "gas_bound_tps": 95.2591,
+      "table_scenario": "A"
+     },
+     "N2": {
+      "tps": 61.8333,
+      "binding": "gas",
+      "tx_gas": 404266,
+      "signatures": 1,
+      "gas_per_signature": 404266.0,
+      "gas_bound_tps": 61.8405,
+      "table_scenario": "A"
+     },
+     "N3r": {
+      "tps": 60,
+      "binding": "gas",
+      "tx_gas": 415530,
+      "signatures": 1,
+      "gas_per_signature": 415530.0,
+      "gas_bound_tps": 60.1641,
+      "table_scenario": "A"
+     }
+    }
+   }
+  },
+  "B_pr12616_64": {
+   "60000000": {
+    "evidence": "simulated",
+    "simulated_sets": 8,
+    "status": "[C] simulated on [Mo] gas, prover prices and uplinks: 40 nodes, baseline profile, heterogeneous uplinks",
+    "sets": {
+     "B0": {
+      "tps": 9.33333,
+      "binding": "gas",
+      "tx_gas": 531454,
+      "signatures": 1,
+      "gas_per_signature": 531454.0,
+      "gas_bound_tps": 9.4082,
+      "table_scenario": "B"
+     },
+     "P99r": {
+      "tps": 15.9167,
+      "binding": "gas",
+      "tx_gas": 313774,
+      "signatures": 1,
+      "gas_per_signature": 313774.0,
+      "gas_bound_tps": 15.935,
+      "table_scenario": "B"
+     },
+     "P99a": {
+      "tps": 16.25,
+      "binding": "gas",
+      "tx_gas": 306506,
+      "signatures": 1,
+      "gas_per_signature": 306506.0,
+      "gas_bound_tps": 16.3129,
+      "table_scenario": "B"
+     },
+     "S24-minB": {
+      "tps": 17.4167,
+      "binding": "gas",
+      "tx_gas": 285802,
+      "signatures": 1,
+      "gas_per_signature": 285802.0,
+      "gas_bound_tps": 17.4946,
+      "table_scenario": "B"
+     },
+     "S22-minP-5K": {
+      "tps": 17,
+      "binding": "gas",
+      "tx_gas": 292894,
+      "signatures": 1,
+      "gas_per_signature": 292894.0,
+      "gas_bound_tps": 17.071,
+      "table_scenario": "B"
+     },
+     "S22-minB-5K": {
+      "tps": 18.3333,
+      "binding": "gas",
+      "tx_gas": 272290,
+      "signatures": 1,
+      "gas_per_signature": 272290.0,
+      "gas_bound_tps": 18.3628,
+      "table_scenario": "B"
+     },
+     "N2": {
+      "tps": 11.9167,
+      "binding": "gas",
+      "tx_gas": 416814,
+      "signatures": 1,
+      "gas_per_signature": 416814.0,
+      "gas_bound_tps": 11.9958,
+      "table_scenario": "B"
+     },
+     "N3r": {
+      "tps": 11.6667,
+      "binding": "gas",
+      "tx_gas": 428378,
+      "signatures": 1,
+      "gas_per_signature": 428378.0,
+      "gas_bound_tps": 11.6719,
+      "table_scenario": "B"
+     }
+    }
+   },
+   "200000000": {
+    "evidence": "simulated",
+    "simulated_sets": 8,
+    "status": "[C] simulated on [Mo] gas, prover prices and uplinks: 40 nodes, baseline profile, heterogeneous uplinks",
+    "sets": {
+     "B0": {
+      "tps": 31.3333,
+      "binding": "gas",
+      "tx_gas": 531454,
+      "signatures": 1,
+      "gas_per_signature": 531454.0,
+      "gas_bound_tps": 31.3605,
+      "table_scenario": "B"
+     },
+     "P99r": {
+      "tps": 53,
+      "binding": "gas",
+      "tx_gas": 313774,
+      "signatures": 1,
+      "gas_per_signature": 313774.0,
+      "gas_bound_tps": 53.1168,
+      "table_scenario": "B"
+     },
+     "P99a": {
+      "tps": 54.3333,
+      "binding": "gas",
+      "tx_gas": 306506,
+      "signatures": 1,
+      "gas_per_signature": 306506.0,
+      "gas_bound_tps": 54.3763,
+      "table_scenario": "B"
+     },
+     "S24-minB": {
+      "tps": 58.1667,
+      "binding": "gas",
+      "tx_gas": 285802,
+      "signatures": 1,
+      "gas_per_signature": 285802.0,
+      "gas_bound_tps": 58.3154,
+      "table_scenario": "B"
+     },
+     "S22-minP-5K": {
+      "tps": 56.8333,
+      "binding": "gas",
+      "tx_gas": 292894,
+      "signatures": 1,
+      "gas_per_signature": 292894.0,
+      "gas_bound_tps": 56.9034,
+      "table_scenario": "B"
+     },
+     "S22-minB-5K": {
+      "tps": 61.1667,
+      "binding": "gas",
+      "tx_gas": 272290,
+      "signatures": 1,
+      "gas_per_signature": 272290.0,
+      "gas_bound_tps": 61.2092,
+      "table_scenario": "B"
+     },
+     "N2": {
+      "tps": 39.8333,
+      "binding": "gas",
+      "tx_gas": 416814,
+      "signatures": 1,
+      "gas_per_signature": 416814.0,
+      "gas_bound_tps": 39.9859,
+      "table_scenario": "B"
+     },
+     "N3r": {
+      "tps": 38.8333,
+      "binding": "gas",
+      "tx_gas": 428378,
+      "signatures": 1,
+      "gas_per_signature": 428378.0,
+      "gas_bound_tps": 38.9064,
+      "table_scenario": "B"
+     }
+    }
+   },
+   "300000000": {
+    "evidence": "simulated",
+    "simulated_sets": 8,
+    "status": "[C] simulated on [Mo] gas, prover prices and uplinks: 40 nodes, baseline profile, heterogeneous uplinks",
+    "sets": {
+     "B0": {
+      "tps": 46.9028,
+      "binding": "gas",
+      "tx_gas": 531454,
+      "signatures": 1,
+      "gas_per_signature": 531454.0,
+      "gas_bound_tps": 47.0408,
+      "table_scenario": "B"
+     },
+     "P99r": {
+      "tps": 79.5,
+      "binding": "gas",
+      "tx_gas": 313774,
+      "signatures": 1,
+      "gas_per_signature": 313774.0,
+      "gas_bound_tps": 79.6752,
+      "table_scenario": "B"
+     },
+     "P99a": {
+      "tps": 81.4792,
+      "binding": "gas",
+      "tx_gas": 306506,
+      "signatures": 1,
+      "gas_per_signature": 306506.0,
+      "gas_bound_tps": 81.5645,
+      "table_scenario": "B"
+     },
+     "S24-minB": {
+      "tps": 87.25,
+      "binding": "gas",
+      "tx_gas": 285802,
+      "signatures": 1,
+      "gas_per_signature": 285802.0,
+      "gas_bound_tps": 87.4731,
+      "table_scenario": "B"
+     },
+     "S22-minP-5K": {
+      "tps": 85.2083,
+      "binding": "gas",
+      "tx_gas": 292894,
+      "signatures": 1,
+      "gas_per_signature": 292894.0,
+      "gas_bound_tps": 85.3551,
+      "table_scenario": "B"
+     },
+     "S22-minB-5K": {
+      "tps": 91.75,
+      "binding": "gas",
+      "tx_gas": 272290,
+      "signatures": 1,
+      "gas_per_signature": 272290.0,
+      "gas_bound_tps": 91.8139,
+      "table_scenario": "B"
+     },
+     "N2": {
+      "tps": 59.8333,
+      "binding": "gas",
+      "tx_gas": 416814,
+      "signatures": 1,
+      "gas_per_signature": 416814.0,
+      "gas_bound_tps": 59.9788,
+      "table_scenario": "B"
+     },
+     "N3r": {
+      "tps": 58.3333,
+      "binding": "gas",
+      "tx_gas": 428378,
+      "signatures": 1,
+      "gas_per_signature": 428378.0,
+      "gas_bound_tps": 58.3597,
+      "table_scenario": "B"
+     }
+    }
+   }
+  },
+  "C1_flat_64": {
+   "60000000": {
+    "evidence": "simulated",
+    "simulated_sets": 8,
+    "status": "[C] simulated on [Mo] gas, prover prices and uplinks: 40 nodes, baseline profile, heterogeneous uplinks",
+    "sets": {
+     "B0": {
+      "tps": 9.5,
+      "binding": "gas",
+      "tx_gas": 523233,
+      "signatures": 1,
+      "gas_per_signature": 523233.0,
+      "gas_bound_tps": 9.556,
+      "table_scenario": "C1"
+     },
+     "P99r": {
+      "tps": 16.0833,
+      "binding": "gas",
+      "tx_gas": 310753,
+      "signatures": 1,
+      "gas_per_signature": 310753.0,
+      "gas_bound_tps": 16.0899,
+      "table_scenario": "C1"
+     },
+     "P99a": {
+      "tps": 16.4167,
+      "binding": "gas",
+      "tx_gas": 303585,
+      "signatures": 1,
+      "gas_per_signature": 303585.0,
+      "gas_bound_tps": 16.4699,
+      "table_scenario": "C1"
+     },
+     "S24-minB": {
+      "tps": 17.6667,
+      "binding": "gas",
+      "tx_gas": 282081,
+      "signatures": 1,
+      "gas_per_signature": 282081.0,
+      "gas_bound_tps": 17.7254,
+      "table_scenario": "C1"
+     },
+     "S22-minP-5K": {
+      "tps": 17.1667,
+      "binding": "gas",
+      "tx_gas": 290273,
+      "signatures": 1,
+      "gas_per_signature": 290273.0,
+      "gas_bound_tps": 17.2252,
+      "table_scenario": "C1"
+     },
+     "S22-minB-5K": {
+      "tps": 18.5833,
+      "binding": "gas",
+      "tx_gas": 268769,
+      "signatures": 1,
+      "gas_per_signature": 268769.0,
+      "gas_bound_tps": 18.6033,
+      "table_scenario": "C1"
+     },
+     "N2": {
+      "tps": 12.1667,
+      "binding": "gas",
+      "tx_gas": 410593,
+      "signatures": 1,
+      "gas_per_signature": 410593.0,
+      "gas_bound_tps": 12.1775,
+      "table_scenario": "C1"
+     },
+     "N3r": {
+      "tps": 11.8333,
+      "binding": "gas",
+      "tx_gas": 421857,
+      "signatures": 1,
+      "gas_per_signature": 421857.0,
+      "gas_bound_tps": 11.8524,
+      "table_scenario": "C1"
+     }
+    }
+   },
+   "200000000": {
+    "evidence": "simulated",
+    "simulated_sets": 8,
+    "status": "[C] simulated on [Mo] gas, prover prices and uplinks: 40 nodes, baseline profile, heterogeneous uplinks",
+    "sets": {
+     "B0": {
+      "tps": 31.8333,
+      "binding": "gas",
+      "tx_gas": 523233,
+      "signatures": 1,
+      "gas_per_signature": 523233.0,
+      "gas_bound_tps": 31.8532,
+      "table_scenario": "C1"
+     },
+     "P99r": {
+      "tps": 53.5,
+      "binding": "gas",
+      "tx_gas": 310753,
+      "signatures": 1,
+      "gas_per_signature": 310753.0,
+      "gas_bound_tps": 53.6332,
+      "table_scenario": "C1"
+     },
+     "P99a": {
+      "tps": 54.8333,
+      "binding": "gas",
+      "tx_gas": 303585,
+      "signatures": 1,
+      "gas_per_signature": 303585.0,
+      "gas_bound_tps": 54.8995,
+      "table_scenario": "C1"
+     },
+     "S24-minB": {
+      "tps": 59,
+      "binding": "gas",
+      "tx_gas": 282081,
+      "signatures": 1,
+      "gas_per_signature": 282081.0,
+      "gas_bound_tps": 59.0847,
+      "table_scenario": "C1"
+     },
+     "S22-minP-5K": {
+      "tps": 57.3333,
+      "binding": "gas",
+      "tx_gas": 290273,
+      "signatures": 1,
+      "gas_per_signature": 290273.0,
+      "gas_bound_tps": 57.4172,
+      "table_scenario": "C1"
+     },
+     "S22-minB-5K": {
+      "tps": 62,
+      "binding": "gas",
+      "tx_gas": 268769,
+      "signatures": 1,
+      "gas_per_signature": 268769.0,
+      "gas_bound_tps": 62.0111,
+      "table_scenario": "C1"
+     },
+     "N2": {
+      "tps": 40.5,
+      "binding": "gas",
+      "tx_gas": 410593,
+      "signatures": 1,
+      "gas_per_signature": 410593.0,
+      "gas_bound_tps": 40.5917,
+      "table_scenario": "C1"
+     },
+     "N3r": {
+      "tps": 39.5,
+      "binding": "gas",
+      "tx_gas": 421857,
+      "signatures": 1,
+      "gas_per_signature": 421857.0,
+      "gas_bound_tps": 39.5079,
+      "table_scenario": "C1"
+     }
+    }
+   },
+   "300000000": {
+    "evidence": "simulated",
+    "simulated_sets": 8,
+    "status": "[C] simulated on [Mo] gas, prover prices and uplinks: 40 nodes, baseline profile, heterogeneous uplinks",
+    "sets": {
+     "B0": {
+      "tps": 47.625,
+      "binding": "gas",
+      "tx_gas": 523233,
+      "signatures": 1,
+      "gas_per_signature": 523233.0,
+      "gas_bound_tps": 47.7799,
+      "table_scenario": "C1"
+     },
+     "P99r": {
+      "tps": 80.25,
+      "binding": "gas",
+      "tx_gas": 310753,
+      "signatures": 1,
+      "gas_per_signature": 310753.0,
+      "gas_bound_tps": 80.4497,
+      "table_scenario": "C1"
+     },
+     "P99a": {
+      "tps": 82.25,
+      "binding": "gas",
+      "tx_gas": 303585,
+      "signatures": 1,
+      "gas_per_signature": 303585.0,
+      "gas_bound_tps": 82.3493,
+      "table_scenario": "C1"
+     },
+     "S24-minB": {
+      "tps": 88.5,
+      "binding": "gas",
+      "tx_gas": 282081,
+      "signatures": 1,
+      "gas_per_signature": 282081.0,
+      "gas_bound_tps": 88.627,
+      "table_scenario": "C1"
+     },
+     "S22-minP-5K": {
+      "tps": 86,
+      "binding": "gas",
+      "tx_gas": 290273,
+      "signatures": 1,
+      "gas_per_signature": 290273.0,
+      "gas_bound_tps": 86.1258,
+      "table_scenario": "C1"
+     },
+     "S22-minB-5K": {
+      "tps": 92.9792,
+      "binding": "gas",
+      "tx_gas": 268769,
+      "signatures": 1,
+      "gas_per_signature": 268769.0,
+      "gas_bound_tps": 93.0167,
+      "table_scenario": "C1"
+     },
+     "N2": {
+      "tps": 60.8333,
+      "binding": "gas",
+      "tx_gas": 410593,
+      "signatures": 1,
+      "gas_per_signature": 410593.0,
+      "gas_bound_tps": 60.8875,
+      "table_scenario": "C1"
+     },
+     "N3r": {
+      "tps": 59.1667,
+      "binding": "gas",
+      "tx_gas": 421857,
+      "signatures": 1,
+      "gas_per_signature": 421857.0,
+      "gas_bound_tps": 59.2618,
+      "table_scenario": "C1"
+     }
+    }
+   }
+  },
+  "C2": {
+   "60000000": {
+    "evidence": "modelled",
+    "simulated_sets": 2,
+    "status": "[Mo] the gas bound: gas limit / gas per transaction / 12 s x signatures per transaction; not simulated for every set",
+    "sets": {
+     "B0": {
+      "tps": 77.1831,
+      "binding": "gas (bound)",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 77.1831,
+      "table_scenario": null
+     },
+     "P99r": {
+      "tps": 77.1831,
+      "binding": "gas (bound)",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 77.1831,
+      "table_scenario": null
+     },
+     "P99a": {
+      "tps": 77.1831,
+      "binding": "gas (bound)",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 77.1831,
+      "table_scenario": null
+     },
+     "S24-minB": {
+      "tps": 77.1831,
+      "binding": "gas (bound)",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 77.1831,
+      "table_scenario": null
+     },
+     "S22-minP-5K": {
+      "tps": 77.1831,
+      "binding": "gas (bound)",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 77.1831,
+      "table_scenario": null
+     },
+     "S22-minB-5K": {
+      "tps": 77.1831,
+      "binding": "gas (bound)",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 77.1831,
+      "table_scenario": null
+     },
+     "N2": {
+      "tps": 77.1831,
+      "binding": "gas (bound)",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 77.1831,
+      "table_scenario": null
+     },
+     "N3r": {
+      "tps": 77.1831,
+      "binding": "gas (bound)",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 77.1831,
+      "table_scenario": null
+     }
+    }
+   },
+   "200000000": {
+    "evidence": "modelled",
+    "simulated_sets": 2,
+    "status": "[Mo] the gas bound: gas limit / gas per transaction / 12 s x signatures per transaction; not simulated for every set",
+    "sets": {
+     "B0": {
+      "tps": 257.2771,
+      "binding": "gas (bound)",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 257.2771,
+      "table_scenario": null
+     },
+     "P99r": {
+      "tps": 257.2771,
+      "binding": "gas (bound)",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 257.2771,
+      "table_scenario": null
+     },
+     "P99a": {
+      "tps": 257.2771,
+      "binding": "gas (bound)",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 257.2771,
+      "table_scenario": null
+     },
+     "S24-minB": {
+      "tps": 257.2771,
+      "binding": "gas (bound)",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 257.2771,
+      "table_scenario": null
+     },
+     "S22-minP-5K": {
+      "tps": 257.2771,
+      "binding": "gas (bound)",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 257.2771,
+      "table_scenario": null
+     },
+     "S22-minB-5K": {
+      "tps": 257.2771,
+      "binding": "gas (bound)",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 257.2771,
+      "table_scenario": null
+     },
+     "N2": {
+      "tps": 257.2771,
+      "binding": "gas (bound)",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 257.2771,
+      "table_scenario": null
+     },
+     "N3r": {
+      "tps": 257.2771,
+      "binding": "gas (bound)",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 257.2771,
+      "table_scenario": null
+     }
+    }
+   },
+   "300000000": {
+    "evidence": "modelled",
+    "simulated_sets": 1,
+    "status": "[Mo] the gas bound: gas limit / gas per transaction / 12 s x signatures per transaction; not simulated for every set",
+    "sets": {
+     "B0": {
+      "tps": 385.9156,
+      "binding": "gas (bound)",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 385.9156,
+      "table_scenario": null
+     },
+     "P99r": {
+      "tps": 385.9156,
+      "binding": "gas (bound)",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 385.9156,
+      "table_scenario": null
+     },
+     "P99a": {
+      "tps": 385.9156,
+      "binding": "gas (bound)",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 385.9156,
+      "table_scenario": null
+     },
+     "S24-minB": {
+      "tps": 385.9156,
+      "binding": "gas (bound)",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 385.9156,
+      "table_scenario": null
+     },
+     "S22-minP-5K": {
+      "tps": 385.9156,
+      "binding": "gas (bound)",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 385.9156,
+      "table_scenario": null
+     },
+     "S22-minB-5K": {
+      "tps": 385.9156,
+      "binding": "gas (bound)",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 385.9156,
+      "table_scenario": null
+     },
+     "N2": {
+      "tps": 385.9156,
+      "binding": "gas (bound)",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 385.9156,
+      "table_scenario": null
+     },
+     "N3r": {
+      "tps": 385.9156,
+      "binding": "gas (bound)",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 385.9156,
+      "table_scenario": null
+     }
+    }
+   }
+  },
+  "D": {
+   "60000000": {
+    "evidence": "simulated",
+    "simulated_sets": 8,
+    "status": "[C] simulated on [Mo] gas, prover prices and uplinks: 40 nodes, baseline profile, heterogeneous uplinks",
+    "sets": {
+     "B0": {
+      "tps": 76.6389,
+      "binding": "gas",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 77.1831,
+      "table_scenario": "D"
+     },
+     "P99r": {
+      "tps": 76.2222,
+      "binding": "gas",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 77.1831,
+      "table_scenario": "D"
+     },
+     "P99a": {
+      "tps": 76.5278,
+      "binding": "gas",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 77.1831,
+      "table_scenario": "D"
+     },
+     "S24-minB": {
+      "tps": 76.5694,
+      "binding": "gas",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 77.1831,
+      "table_scenario": "D"
+     },
+     "S22-minP-5K": {
+      "tps": 76.8472,
+      "binding": "gas",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 77.1831,
+      "table_scenario": "D"
+     },
+     "S22-minB-5K": {
+      "tps": 76.9167,
+      "binding": "gas",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 77.1831,
+      "table_scenario": "D"
+     },
+     "N2": {
+      "tps": 76.3333,
+      "binding": "gas",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 77.1831,
+      "table_scenario": "D"
+     },
+     "N3r": {
+      "tps": 76.7222,
+      "binding": "gas",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 77.1831,
+      "table_scenario": "D"
+     }
+    }
+   },
+   "200000000": {
+    "evidence": "simulated",
+    "simulated_sets": 8,
+    "status": "[C] simulated on [Mo] gas, prover prices and uplinks: 40 nodes, baseline profile, heterogeneous uplinks",
+    "sets": {
+     "B0": {
+      "tps": 138.6011,
+      "binding": "prover",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 257.2771,
+      "table_scenario": "D"
+     },
+     "P99r": {
+      "tps": 236.6806,
+      "binding": "prover",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 257.2771,
+      "table_scenario": "D"
+     },
+     "P99a": {
+      "tps": 231.6875,
+      "binding": "prover(2)/gas(1)",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 257.2771,
+      "table_scenario": "D"
+     },
+     "S24-minB": {
+      "tps": 225.5972,
+      "binding": "prover(2)/gas(1)",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 257.2771,
+      "table_scenario": "D"
+     },
+     "S22-minP-5K": {
+      "tps": 241.7431,
+      "binding": "prover",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 257.2771,
+      "table_scenario": "D"
+     },
+     "S22-minB-5K": {
+      "tps": 238.9236,
+      "binding": "prover",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 257.2771,
+      "table_scenario": "D"
+     },
+     "N2": {
+      "tps": 166.0208,
+      "binding": "prover",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 257.2771,
+      "table_scenario": "D"
+     },
+     "N3r": {
+      "tps": 161.3056,
+      "binding": "prover",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 257.2771,
+      "table_scenario": "D"
+     }
+    }
+   },
+   "300000000": {
+    "evidence": "modelled",
+    "simulated_sets": 3,
+    "status": "[Mo] the gas bound: gas limit / gas per transaction / 12 s x signatures per transaction; not simulated for every set",
+    "sets": {
+     "B0": {
+      "tps": 385.9156,
+      "binding": "gas (bound)",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 385.9156,
+      "table_scenario": null
+     },
+     "P99r": {
+      "tps": 385.9156,
+      "binding": "gas (bound)",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 385.9156,
+      "table_scenario": null
+     },
+     "P99a": {
+      "tps": 385.9156,
+      "binding": "gas (bound)",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 385.9156,
+      "table_scenario": null
+     },
+     "S24-minB": {
+      "tps": 385.9156,
+      "binding": "gas (bound)",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 385.9156,
+      "table_scenario": null
+     },
+     "S22-minP-5K": {
+      "tps": 385.9156,
+      "binding": "gas (bound)",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 385.9156,
+      "table_scenario": null
+     },
+     "S22-minB-5K": {
+      "tps": 385.9156,
+      "binding": "gas (bound)",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 385.9156,
+      "table_scenario": null
+     },
+     "N2": {
+      "tps": 385.9156,
+      "binding": "gas (bound)",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 385.9156,
+      "table_scenario": null
+     },
+     "N3r": {
+      "tps": 385.9156,
+      "binding": "gas (bound)",
+      "tx_gas": 64781,
+      "signatures": 1,
+      "gas_per_signature": 64781.0,
+      "gas_bound_tps": 385.9156,
+      "table_scenario": null
+     }
+    }
+   }
+  },
+  "D-dep3000": {
+   "60000000": {
+    "evidence": "simulated",
+    "simulated_sets": 8,
+    "status": "[C] simulated on [Mo] gas, prover prices and uplinks: 40 nodes, baseline profile, heterogeneous uplinks",
+    "sets": {
+     "B0": {
+      "tps": 133.3333,
+      "binding": "prover(2)/gas(1)",
+      "tx_gas": 34781,
+      "signatures": 1,
+      "gas_per_signature": 34781.0,
+      "gas_bound_tps": 143.7566,
+      "table_scenario": "E"
+     },
+     "P99r": {
+      "tps": 141.6667,
+      "binding": "gas",
+      "tx_gas": 34781,
+      "signatures": 1,
+      "gas_per_signature": 34781.0,
+      "gas_bound_tps": 143.7566,
+      "table_scenario": "E"
+     },
+     "P99a": {
+      "tps": 142.8611,
+      "binding": "gas",
+      "tx_gas": 34781,
+      "signatures": 1,
+      "gas_per_signature": 34781.0,
+      "gas_bound_tps": 143.7566,
+      "table_scenario": "E"
+     },
+     "S24-minB": {
+      "tps": 142.0278,
+      "binding": "gas",
+      "tx_gas": 34781,
+      "signatures": 1,
+      "gas_per_signature": 34781.0,
+      "gas_bound_tps": 143.7566,
+      "table_scenario": "E"
+     },
+     "S22-minP-5K": {
+      "tps": 142.2778,
+      "binding": "gas",
+      "tx_gas": 34781,
+      "signatures": 1,
+      "gas_per_signature": 34781.0,
+      "gas_bound_tps": 143.7566,
+      "table_scenario": "E"
+     },
+     "S22-minB-5K": {
+      "tps": 142.0833,
+      "binding": "gas",
+      "tx_gas": 34781,
+      "signatures": 1,
+      "gas_per_signature": 34781.0,
+      "gas_bound_tps": 143.7566,
+      "table_scenario": "E"
+     },
+     "N2": {
+      "tps": 140.6389,
+      "binding": "gas",
+      "tx_gas": 34781,
+      "signatures": 1,
+      "gas_per_signature": 34781.0,
+      "gas_bound_tps": 143.7566,
+      "table_scenario": "E"
+     },
+     "N3r": {
+      "tps": 140.4722,
+      "binding": "gas",
+      "tx_gas": 34781,
+      "signatures": 1,
+      "gas_per_signature": 34781.0,
+      "gas_bound_tps": 143.7566,
+      "table_scenario": "E"
+     }
+    }
+   },
+   "200000000": {
+    "evidence": "modelled",
+    "simulated_sets": 5,
+    "status": "[Mo] the gas bound: gas limit / gas per transaction / 12 s x signatures per transaction; not simulated for every set",
+    "sets": {
+     "B0": {
+      "tps": 479.1888,
+      "binding": "gas (bound)",
+      "tx_gas": 34781,
+      "signatures": 1,
+      "gas_per_signature": 34781.0,
+      "gas_bound_tps": 479.1888,
+      "table_scenario": null
+     },
+     "P99r": {
+      "tps": 479.1888,
+      "binding": "gas (bound)",
+      "tx_gas": 34781,
+      "signatures": 1,
+      "gas_per_signature": 34781.0,
+      "gas_bound_tps": 479.1888,
+      "table_scenario": null
+     },
+     "P99a": {
+      "tps": 479.1888,
+      "binding": "gas (bound)",
+      "tx_gas": 34781,
+      "signatures": 1,
+      "gas_per_signature": 34781.0,
+      "gas_bound_tps": 479.1888,
+      "table_scenario": null
+     },
+     "S24-minB": {
+      "tps": 479.1888,
+      "binding": "gas (bound)",
+      "tx_gas": 34781,
+      "signatures": 1,
+      "gas_per_signature": 34781.0,
+      "gas_bound_tps": 479.1888,
+      "table_scenario": null
+     },
+     "S22-minP-5K": {
+      "tps": 479.1888,
+      "binding": "gas (bound)",
+      "tx_gas": 34781,
+      "signatures": 1,
+      "gas_per_signature": 34781.0,
+      "gas_bound_tps": 479.1888,
+      "table_scenario": null
+     },
+     "S22-minB-5K": {
+      "tps": 479.1888,
+      "binding": "gas (bound)",
+      "tx_gas": 34781,
+      "signatures": 1,
+      "gas_per_signature": 34781.0,
+      "gas_bound_tps": 479.1888,
+      "table_scenario": null
+     },
+     "N2": {
+      "tps": 479.1888,
+      "binding": "gas (bound)",
+      "tx_gas": 34781,
+      "signatures": 1,
+      "gas_per_signature": 34781.0,
+      "gas_bound_tps": 479.1888,
+      "table_scenario": null
+     },
+     "N3r": {
+      "tps": 479.1888,
+      "binding": "gas (bound)",
+      "tx_gas": 34781,
+      "signatures": 1,
+      "gas_per_signature": 34781.0,
+      "gas_bound_tps": 479.1888,
+      "table_scenario": null
+     }
+    }
+   },
+   "300000000": {
+    "evidence": "modelled",
+    "simulated_sets": 0,
+    "status": "[Mo] the gas bound: gas limit / gas per transaction / 12 s x signatures per transaction; not simulated for every set",
+    "sets": {
+     "B0": {
+      "tps": 718.7832,
+      "binding": "gas (bound)",
+      "tx_gas": 34781,
+      "signatures": 1,
+      "gas_per_signature": 34781.0,
+      "gas_bound_tps": 718.7832,
+      "table_scenario": null
+     },
+     "P99r": {
+      "tps": 718.7832,
+      "binding": "gas (bound)",
+      "tx_gas": 34781,
+      "signatures": 1,
+      "gas_per_signature": 34781.0,
+      "gas_bound_tps": 718.7832,
+      "table_scenario": null
+     },
+     "P99a": {
+      "tps": 718.7832,
+      "binding": "gas (bound)",
+      "tx_gas": 34781,
+      "signatures": 1,
+      "gas_per_signature": 34781.0,
+      "gas_bound_tps": 718.7832,
+      "table_scenario": null
+     },
+     "S24-minB": {
+      "tps": 718.7832,
+      "binding": "gas (bound)",
+      "tx_gas": 34781,
+      "signatures": 1,
+      "gas_per_signature": 34781.0,
+      "gas_bound_tps": 718.7832,
+      "table_scenario": null
+     },
+     "S22-minP-5K": {
+      "tps": 718.7832,
+      "binding": "gas (bound)",
+      "tx_gas": 34781,
+      "signatures": 1,
+      "gas_per_signature": 34781.0,
+      "gas_bound_tps": 718.7832,
+      "table_scenario": null
+     },
+     "S22-minB-5K": {
+      "tps": 718.7832,
+      "binding": "gas (bound)",
+      "tx_gas": 34781,
+      "signatures": 1,
+      "gas_per_signature": 34781.0,
+      "gas_bound_tps": 718.7832,
+      "table_scenario": null
+     },
+     "N2": {
+      "tps": 718.7832,
+      "binding": "gas (bound)",
+      "tx_gas": 34781,
+      "signatures": 1,
+      "gas_per_signature": 34781.0,
+      "gas_bound_tps": 718.7832,
+      "table_scenario": null
+     },
+     "N3r": {
+      "tps": 718.7832,
+      "binding": "gas (bound)",
+      "tx_gas": 34781,
+      "signatures": 1,
+      "gas_per_signature": 34781.0,
+      "gas_bound_tps": 718.7832,
+      "table_scenario": null
+     }
+    }
+   }
+  },
+  "F1": {
+   "60000000": {
+    "evidence": "simulated",
+    "simulated_sets": 8,
+    "status": "[C] simulated on [Mo] gas, prover prices and uplinks: 40 nodes, baseline profile, heterogeneous uplinks",
+    "sets": {
+     "B0": {
+      "tps": 14.2083,
+      "binding": "prover",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 49.1314,
+      "table_scenario": "F1"
+     },
+     "P99r": {
+      "tps": 14.6806,
+      "binding": "prover",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 49.1314,
+      "table_scenario": "F1"
+     },
+     "P99a": {
+      "tps": 14.4792,
+      "binding": "prover",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 49.1314,
+      "table_scenario": "F1"
+     },
+     "S24-minB": {
+      "tps": 14.3333,
+      "binding": "prover",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 49.1314,
+      "table_scenario": "F1"
+     },
+     "S22-minP-5K": {
+      "tps": 14.4653,
+      "binding": "prover",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 49.1314,
+      "table_scenario": "F1"
+     },
+     "S22-minB-5K": {
+      "tps": 14.7014,
+      "binding": "prover",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 49.1314,
+      "table_scenario": "F1"
+     },
+     "N2": {
+      "tps": 14.3264,
+      "binding": "prover",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 49.1314,
+      "table_scenario": "F1"
+     },
+     "N3r": {
+      "tps": 14.4861,
+      "binding": "prover",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 49.1314,
+      "table_scenario": "F1"
+     }
+    }
+   },
+   "200000000": {
+    "evidence": "modelled",
+    "simulated_sets": 2,
+    "status": "[Mo] the gas bound: gas limit / gas per transaction / 12 s x signatures per transaction; not simulated for every set",
+    "sets": {
+     "B0": {
+      "tps": 163.7712,
+      "binding": "gas (bound)",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 163.7712,
+      "table_scenario": null
+     },
+     "P99r": {
+      "tps": 163.7712,
+      "binding": "gas (bound)",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 163.7712,
+      "table_scenario": null
+     },
+     "P99a": {
+      "tps": 163.7712,
+      "binding": "gas (bound)",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 163.7712,
+      "table_scenario": null
+     },
+     "S24-minB": {
+      "tps": 163.7712,
+      "binding": "gas (bound)",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 163.7712,
+      "table_scenario": null
+     },
+     "S22-minP-5K": {
+      "tps": 163.7712,
+      "binding": "gas (bound)",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 163.7712,
+      "table_scenario": null
+     },
+     "S22-minB-5K": {
+      "tps": 163.7712,
+      "binding": "gas (bound)",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 163.7712,
+      "table_scenario": null
+     },
+     "N2": {
+      "tps": 163.7712,
+      "binding": "gas (bound)",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 163.7712,
+      "table_scenario": null
+     },
+     "N3r": {
+      "tps": 163.7712,
+      "binding": "gas (bound)",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 163.7712,
+      "table_scenario": null
+     }
+    }
+   },
+   "300000000": {
+    "evidence": "modelled",
+    "simulated_sets": 0,
+    "status": "[Mo] the gas bound: gas limit / gas per transaction / 12 s x signatures per transaction; not simulated for every set",
+    "sets": {
+     "B0": {
+      "tps": 245.6568,
+      "binding": "gas (bound)",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 245.6568,
+      "table_scenario": null
+     },
+     "P99r": {
+      "tps": 245.6568,
+      "binding": "gas (bound)",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 245.6568,
+      "table_scenario": null
+     },
+     "P99a": {
+      "tps": 245.6568,
+      "binding": "gas (bound)",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 245.6568,
+      "table_scenario": null
+     },
+     "S24-minB": {
+      "tps": 245.6568,
+      "binding": "gas (bound)",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 245.6568,
+      "table_scenario": null
+     },
+     "S22-minP-5K": {
+      "tps": 245.6568,
+      "binding": "gas (bound)",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 245.6568,
+      "table_scenario": null
+     },
+     "S22-minB-5K": {
+      "tps": 245.6568,
+      "binding": "gas (bound)",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 245.6568,
+      "table_scenario": null
+     },
+     "N2": {
+      "tps": 245.6568,
+      "binding": "gas (bound)",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 245.6568,
+      "table_scenario": null
+     },
+     "N3r": {
+      "tps": 245.6568,
+      "binding": "gas (bound)",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 245.6568,
+      "table_scenario": null
+     }
+    }
+   }
+  },
+  "F2": {
+   "60000000": {
+    "evidence": "simulated",
+    "simulated_sets": 8,
+    "status": "[C] simulated on [Mo] gas, prover prices and uplinks: 40 nodes, baseline profile, heterogeneous uplinks",
+    "sets": {
+     "B0": {
+      "tps": 14.2083,
+      "binding": "prover",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 49.1314,
+      "table_scenario": "F1"
+     },
+     "P99r": {
+      "tps": 14.6806,
+      "binding": "prover",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 49.1314,
+      "table_scenario": "F1"
+     },
+     "P99a": {
+      "tps": 14.4792,
+      "binding": "prover",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 49.1314,
+      "table_scenario": "F1"
+     },
+     "S24-minB": {
+      "tps": 14.3333,
+      "binding": "prover",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 49.1314,
+      "table_scenario": "F1"
+     },
+     "S22-minP-5K": {
+      "tps": 14.4653,
+      "binding": "prover",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 49.1314,
+      "table_scenario": "F1"
+     },
+     "S22-minB-5K": {
+      "tps": 14.7014,
+      "binding": "prover",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 49.1314,
+      "table_scenario": "F1"
+     },
+     "N2": {
+      "tps": 14.3264,
+      "binding": "prover",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 49.1314,
+      "table_scenario": "F1"
+     },
+     "N3r": {
+      "tps": 14.4861,
+      "binding": "prover",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 49.1314,
+      "table_scenario": "F1"
+     }
+    }
+   },
+   "200000000": {
+    "evidence": "modelled",
+    "simulated_sets": 2,
+    "status": "[Mo] the gas bound: gas limit / gas per transaction / 12 s x signatures per transaction; not simulated for every set",
+    "sets": {
+     "B0": {
+      "tps": 163.7712,
+      "binding": "gas (bound)",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 163.7712,
+      "table_scenario": null
+     },
+     "P99r": {
+      "tps": 163.7712,
+      "binding": "gas (bound)",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 163.7712,
+      "table_scenario": null
+     },
+     "P99a": {
+      "tps": 163.7712,
+      "binding": "gas (bound)",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 163.7712,
+      "table_scenario": null
+     },
+     "S24-minB": {
+      "tps": 163.7712,
+      "binding": "gas (bound)",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 163.7712,
+      "table_scenario": null
+     },
+     "S22-minP-5K": {
+      "tps": 163.7712,
+      "binding": "gas (bound)",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 163.7712,
+      "table_scenario": null
+     },
+     "S22-minB-5K": {
+      "tps": 163.7712,
+      "binding": "gas (bound)",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 163.7712,
+      "table_scenario": null
+     },
+     "N2": {
+      "tps": 163.7712,
+      "binding": "gas (bound)",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 163.7712,
+      "table_scenario": null
+     },
+     "N3r": {
+      "tps": 163.7712,
+      "binding": "gas (bound)",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 163.7712,
+      "table_scenario": null
+     }
+    }
+   },
+   "300000000": {
+    "evidence": "modelled",
+    "simulated_sets": 0,
+    "status": "[Mo] the gas bound: gas limit / gas per transaction / 12 s x signatures per transaction; not simulated for every set",
+    "sets": {
+     "B0": {
+      "tps": 245.6568,
+      "binding": "gas (bound)",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 245.6568,
+      "table_scenario": null
+     },
+     "P99r": {
+      "tps": 245.6568,
+      "binding": "gas (bound)",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 245.6568,
+      "table_scenario": null
+     },
+     "P99a": {
+      "tps": 245.6568,
+      "binding": "gas (bound)",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 245.6568,
+      "table_scenario": null
+     },
+     "S24-minB": {
+      "tps": 245.6568,
+      "binding": "gas (bound)",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 245.6568,
+      "table_scenario": null
+     },
+     "S22-minP-5K": {
+      "tps": 245.6568,
+      "binding": "gas (bound)",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 245.6568,
+      "table_scenario": null
+     },
+     "S22-minB-5K": {
+      "tps": 245.6568,
+      "binding": "gas (bound)",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 245.6568,
+      "table_scenario": null
+     },
+     "N2": {
+      "tps": 245.6568,
+      "binding": "gas (bound)",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 245.6568,
+      "table_scenario": null
+     },
+     "N3r": {
+      "tps": 245.6568,
+      "binding": "gas (bound)",
+      "tx_gas": 101768,
+      "signatures": 1,
+      "gas_per_signature": 101768.0,
+      "gas_bound_tps": 245.6568,
+      "table_scenario": null
+     }
+    }
+   }
+  },
+  "F3": {
+   "60000000": {
+    "evidence": "simulated",
+    "simulated_sets": 8,
+    "status": "[C] simulated on [Mo] gas, prover prices and uplinks: 40 nodes, baseline profile, heterogeneous uplinks",
+    "sets": {
+     "B0": {
+      "tps": 1038.9306,
+      "binding": "gas(2)/prover(1)",
+      "tx_gas": 605576,
+      "signatures": 124,
+      "gas_per_signature": 4883.677,
+      "gas_bound_tps": 1023.8186,
+      "table_scenario": "F3"
+     },
+     "P99r": {
+      "tps": 1123.7222,
+      "binding": "gas",
+      "tx_gas": 994696,
+      "signatures": 219,
+      "gas_per_signature": 4541.991,
+      "gas_bound_tps": 1100.8388,
+      "table_scenario": "F3"
+     },
+     "P99a": {
+      "tps": 1126.125,
+      "binding": "gas",
+      "tx_gas": 1011080,
+      "signatures": 223,
+      "gas_per_signature": 4533.991,
+      "gas_bound_tps": 1102.7812,
+      "table_scenario": "F3"
+     },
+     "S24-minB": {
+      "tps": 1112.9722,
+      "binding": "gas",
+      "tx_gas": 916872,
+      "signatures": 200,
+      "gas_per_signature": 4584.36,
+      "gas_bound_tps": 1090.6648,
+      "table_scenario": "F3"
+     },
+     "S22-minP-5K": {
+      "tps": 1138.0556,
+      "binding": "gas",
+      "tx_gas": 1052040,
+      "signatures": 233,
+      "gas_per_signature": 4515.193,
+      "gas_bound_tps": 1107.3723,
+      "table_scenario": "F3"
+     },
+     "S22-minB-5K": {
+      "tps": 1110.8542,
+      "binding": "gas",
+      "tx_gas": 941448,
+      "signatures": 206,
+      "gas_per_signature": 4570.136,
+      "gas_bound_tps": 1094.0594,
+      "table_scenario": "F3"
+     },
+     "N2": {
+      "tps": 1060.8403,
+      "binding": "gas",
+      "tx_gas": 728456,
+      "signatures": 154,
+      "gas_per_signature": 4730.234,
+      "gas_bound_tps": 1057.0302,
+      "table_scenario": "F3"
+     },
+     "N3r": {
+      "tps": 1059.3125,
+      "binding": "gas",
+      "tx_gas": 712072,
+      "signatures": 150,
+      "gas_per_signature": 4747.147,
+      "gas_bound_tps": 1053.2643,
+      "table_scenario": "F3"
+     }
+    }
+   },
+   "200000000": {
+    "evidence": "simulated",
+    "simulated_sets": 8,
+    "status": "[C] simulated on [Mo] gas, prover prices and uplinks: 40 nodes, baseline profile, heterogeneous uplinks",
+    "sets": {
+     "B0": {
+      "tps": 1929.6944,
+      "binding": "prover",
+      "tx_gas": 605576,
+      "signatures": 124,
+      "gas_per_signature": 4883.677,
+      "gas_bound_tps": 3412.7288,
+      "table_scenario": "F3"
+     },
+     "P99r": {
+      "tps": 3463.7639,
+      "binding": "prover",
+      "tx_gas": 994696,
+      "signatures": 219,
+      "gas_per_signature": 4541.991,
+      "gas_bound_tps": 3669.4628,
+      "table_scenario": "F3"
+     },
+     "P99a": {
+      "tps": 3556.4375,
+      "binding": "prover",
+      "tx_gas": 1011080,
+      "signatures": 223,
+      "gas_per_signature": 4533.991,
+      "gas_bound_tps": 3675.9373,
+      "table_scenario": "F3"
+     },
+     "S24-minB": {
+      "tps": 3205.875,
+      "binding": "prover",
+      "tx_gas": 916872,
+      "signatures": 200,
+      "gas_per_signature": 4584.36,
+      "gas_bound_tps": 3635.5493,
+      "table_scenario": "F3"
+     },
+     "S22-minP-5K": {
+      "tps": 3606.6319,
+      "binding": "prover",
+      "tx_gas": 1052040,
+      "signatures": 233,
+      "gas_per_signature": 4515.193,
+      "gas_bound_tps": 3691.2411,
+      "table_scenario": "F3"
+     },
+     "S22-minB-5K": {
+      "tps": 3449.4167,
+      "binding": "prover",
+      "tx_gas": 941448,
+      "signatures": 206,
+      "gas_per_signature": 4570.136,
+      "gas_bound_tps": 3646.8645,
+      "table_scenario": "F3"
+     },
+     "N2": {
+      "tps": 2304.8472,
+      "binding": "prover",
+      "tx_gas": 728456,
+      "signatures": 154,
+      "gas_per_signature": 4730.234,
+      "gas_bound_tps": 3523.434,
+      "table_scenario": "F3"
+     },
+     "N3r": {
+      "tps": 2301.375,
+      "binding": "prover",
+      "tx_gas": 712072,
+      "signatures": 150,
+      "gas_per_signature": 4747.147,
+      "gas_bound_tps": 3510.8809,
+      "table_scenario": "F3"
+     }
+    }
+   },
+   "300000000": {
+    "evidence": "modelled",
+    "simulated_sets": 0,
+    "status": "[Mo] the gas bound: gas limit / gas per transaction / 12 s x signatures per transaction; not simulated for every set",
+    "sets": {
+     "B0": {
+      "tps": 5119.0932,
+      "binding": "gas (bound)",
+      "tx_gas": 605576,
+      "signatures": 124,
+      "gas_per_signature": 4883.677,
+      "gas_bound_tps": 5119.0932,
+      "table_scenario": null
+     },
+     "P99r": {
+      "tps": 5504.1942,
+      "binding": "gas (bound)",
+      "tx_gas": 994696,
+      "signatures": 219,
+      "gas_per_signature": 4541.991,
+      "gas_bound_tps": 5504.1942,
+      "table_scenario": null
+     },
+     "P99a": {
+      "tps": 5513.9059,
+      "binding": "gas (bound)",
+      "tx_gas": 1011080,
+      "signatures": 223,
+      "gas_per_signature": 4533.991,
+      "gas_bound_tps": 5513.9059,
+      "table_scenario": null
+     },
+     "S24-minB": {
+      "tps": 5453.3239,
+      "binding": "gas (bound)",
+      "tx_gas": 916872,
+      "signatures": 200,
+      "gas_per_signature": 4584.36,
+      "gas_bound_tps": 5453.3239,
+      "table_scenario": null
+     },
+     "S22-minP-5K": {
+      "tps": 5536.8617,
+      "binding": "gas (bound)",
+      "tx_gas": 1052040,
+      "signatures": 233,
+      "gas_per_signature": 4515.193,
+      "gas_bound_tps": 5536.8617,
+      "table_scenario": null
+     },
+     "S22-minB-5K": {
+      "tps": 5470.2968,
+      "binding": "gas (bound)",
+      "tx_gas": 941448,
+      "signatures": 206,
+      "gas_per_signature": 4570.136,
+      "gas_bound_tps": 5470.2968,
+      "table_scenario": null
+     },
+     "N2": {
+      "tps": 5285.1511,
+      "binding": "gas (bound)",
+      "tx_gas": 728456,
+      "signatures": 154,
+      "gas_per_signature": 4730.234,
+      "gas_bound_tps": 5285.1511,
+      "table_scenario": null
+     },
+     "N3r": {
+      "tps": 5266.3214,
+      "binding": "gas (bound)",
+      "tx_gas": 712072,
+      "signatures": 150,
+      "gas_per_signature": 4747.147,
+      "gas_bound_tps": 5266.3214,
+      "table_scenario": null
+     }
+    }
+   }
+  }
+ },
+ "admission": {
+  "E0a_7623": {
+   "B0": {
+    "basis": "ERC-7562 userOp <= 8,192 B [E]",
+    "k1": false,
+    "rule6_gas_k1": null,
+    "k2": false,
+    "rule6_gas_k2": null
+   },
+   "P99r": {
+    "basis": "ERC-7562 userOp <= 8,192 B [E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": false,
+    "rule6_gas_k2": null
+   },
+   "P99a": {
+    "basis": "ERC-7562 userOp <= 8,192 B [E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": false,
+    "rule6_gas_k2": null
+   },
+   "S24-minB": {
+    "basis": "ERC-7562 userOp <= 8,192 B [E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": false,
+    "rule6_gas_k2": null
+   },
+   "S22-minP-5K": {
+    "basis": "ERC-7562 userOp <= 8,192 B [E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": false,
+    "rule6_gas_k2": null
+   },
+   "S22-minB-5K": {
+    "basis": "ERC-7562 userOp <= 8,192 B [E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": false,
+    "rule6_gas_k2": null
+   },
+   "N2": {
+    "basis": "ERC-7562 userOp <= 8,192 B [E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": false,
+    "rule6_gas_k2": null
+   },
+   "N3r": {
+    "basis": "ERC-7562 userOp <= 8,192 B [E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": false,
+    "rule6_gas_k2": null
+   }
+  },
+  "E0b_7623": {
+   "B0": {
+    "basis": "txpool 128 KiB and EIP-7825 2^24 gas [R/E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "P99r": {
+    "basis": "txpool 128 KiB and EIP-7825 2^24 gas [R/E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "P99a": {
+    "basis": "txpool 128 KiB and EIP-7825 2^24 gas [R/E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "S24-minB": {
+    "basis": "txpool 128 KiB and EIP-7825 2^24 gas [R/E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "S22-minP-5K": {
+    "basis": "txpool 128 KiB and EIP-7825 2^24 gas [R/E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "S22-minB-5K": {
+    "basis": "txpool 128 KiB and EIP-7825 2^24 gas [R/E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "N2": {
+    "basis": "txpool 128 KiB and EIP-7825 2^24 gas [R/E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "N3r": {
+    "basis": "txpool 128 KiB and EIP-7825 2^24 gas [R/E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   }
+  },
+  "E0c_7623": {
+   "B0": {
+    "basis": "txpool 128 KiB and EIP-7825 2^24 gas [R/E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "P99r": {
+    "basis": "txpool 128 KiB and EIP-7825 2^24 gas [R/E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "P99a": {
+    "basis": "txpool 128 KiB and EIP-7825 2^24 gas [R/E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "S24-minB": {
+    "basis": "txpool 128 KiB and EIP-7825 2^24 gas [R/E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "S22-minP-5K": {
+    "basis": "txpool 128 KiB and EIP-7825 2^24 gas [R/E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "S22-minB-5K": {
+    "basis": "txpool 128 KiB and EIP-7825 2^24 gas [R/E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "N2": {
+    "basis": "txpool 128 KiB and EIP-7825 2^24 gas [R/E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "N3r": {
+    "basis": "txpool 128 KiB and EIP-7825 2^24 gas [R/E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   }
+  },
+  "E0a_7976": {
+   "B0": {
+    "basis": "ERC-7562 userOp <= 8,192 B [E]",
+    "k1": false,
+    "rule6_gas_k1": null,
+    "k2": false,
+    "rule6_gas_k2": null
+   },
+   "P99r": {
+    "basis": "ERC-7562 userOp <= 8,192 B [E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": false,
+    "rule6_gas_k2": null
+   },
+   "P99a": {
+    "basis": "ERC-7562 userOp <= 8,192 B [E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": false,
+    "rule6_gas_k2": null
+   },
+   "S24-minB": {
+    "basis": "ERC-7562 userOp <= 8,192 B [E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": false,
+    "rule6_gas_k2": null
+   },
+   "S22-minP-5K": {
+    "basis": "ERC-7562 userOp <= 8,192 B [E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": false,
+    "rule6_gas_k2": null
+   },
+   "S22-minB-5K": {
+    "basis": "ERC-7562 userOp <= 8,192 B [E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": false,
+    "rule6_gas_k2": null
+   },
+   "N2": {
+    "basis": "ERC-7562 userOp <= 8,192 B [E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": false,
+    "rule6_gas_k2": null
+   },
+   "N3r": {
+    "basis": "ERC-7562 userOp <= 8,192 B [E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": false,
+    "rule6_gas_k2": null
+   }
+  },
+  "E0b_7976": {
+   "B0": {
+    "basis": "txpool 128 KiB and EIP-7825 2^24 gas [R/E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "P99r": {
+    "basis": "txpool 128 KiB and EIP-7825 2^24 gas [R/E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "P99a": {
+    "basis": "txpool 128 KiB and EIP-7825 2^24 gas [R/E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "S24-minB": {
+    "basis": "txpool 128 KiB and EIP-7825 2^24 gas [R/E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "S22-minP-5K": {
+    "basis": "txpool 128 KiB and EIP-7825 2^24 gas [R/E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "S22-minB-5K": {
+    "basis": "txpool 128 KiB and EIP-7825 2^24 gas [R/E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "N2": {
+    "basis": "txpool 128 KiB and EIP-7825 2^24 gas [R/E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "N3r": {
+    "basis": "txpool 128 KiB and EIP-7825 2^24 gas [R/E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   }
+  },
+  "E0c_7976": {
+   "B0": {
+    "basis": "txpool 128 KiB and EIP-7825 2^24 gas [R/E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "P99r": {
+    "basis": "txpool 128 KiB and EIP-7825 2^24 gas [R/E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "P99a": {
+    "basis": "txpool 128 KiB and EIP-7825 2^24 gas [R/E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "S24-minB": {
+    "basis": "txpool 128 KiB and EIP-7825 2^24 gas [R/E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "S22-minP-5K": {
+    "basis": "txpool 128 KiB and EIP-7825 2^24 gas [R/E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "S22-minB-5K": {
+    "basis": "txpool 128 KiB and EIP-7825 2^24 gas [R/E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "N2": {
+    "basis": "txpool 128 KiB and EIP-7825 2^24 gas [R/E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "N3r": {
+    "basis": "txpool 128 KiB and EIP-7825 2^24 gas [R/E]",
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   }
+  },
+  "A": {
+   "B0": {
+    "basis": "rule 6, modelled layered verifier at 167 gas per permutation, no reserves [Mo] (models_noagg)",
+    "k1": true,
+    "rule6_gas_k1": 96882.4,
+    "k2": false,
+    "rule6_gas_k2": 186384.0
+   },
+   "P99r": {
+    "basis": "rule 6, measured single-layer verifier, worst case, with call reserves [M on Mo module] (evm_gas.json)",
+    "k1": true,
+    "rule6_gas_k1": 52198.9,
+    "k2": true,
+    "rule6_gas_k2": 97715.6
+   },
+   "P99a": {
+    "basis": "rule 6, measured single-layer verifier, worst case, with call reserves [M on Mo module] (evm_gas.json)",
+    "k1": true,
+    "rule6_gas_k1": 51205.1,
+    "k2": true,
+    "rule6_gas_k2": 95743.5
+   },
+   "S24-minB": {
+    "basis": "rule 6, measured single-layer verifier, worst case, with call reserves [M on Mo module] (evm_gas.json)",
+    "k1": true,
+    "rule6_gas_k1": 52438.4,
+    "k2": true,
+    "rule6_gas_k2": 98190.7
+   },
+   "S22-minP-5K": {
+    "basis": "rule 6, measured single-layer verifier, worst case, with call reserves [M on Mo module] (evm_gas.json)",
+    "k1": true,
+    "rule6_gas_k1": 49316.6,
+    "k2": true,
+    "rule6_gas_k2": 91995.9
+   },
+   "S22-minB-5K": {
+    "basis": "rule 6, measured single-layer verifier, worst case, with call reserves [M on Mo module] (evm_gas.json)",
+    "k1": true,
+    "rule6_gas_k1": 50680.9,
+    "k2": true,
+    "rule6_gas_k2": 94703.2
+   },
+   "N2": {
+    "basis": "rule 6, modelled layered verifier at 167 gas per permutation, no reserves [Mo] (models_noagg)",
+    "k1": true,
+    "rule6_gas_k1": 79648.0,
+    "k2": false,
+    "rule6_gas_k2": 152185.0
+   },
+   "N3r": {
+    "basis": "rule 6, modelled layered verifier at 167 gas per permutation, no reserves [Mo] (models_noagg)",
+    "k1": true,
+    "rule6_gas_k1": 81543.8,
+    "k2": false,
+    "rule6_gas_k2": 155947.0
+   }
+  },
+  "B_pr12616_64": {
+   "B0": {
+    "basis": "rule 6 with G of PR #12616 (reading a: no bytes) [Mo on PR]",
+    "k1": true,
+    "rule6_gas_k1": 16646.0,
+    "k2": true,
+    "rule6_gas_k2": 31292.0
+   },
+   "P99r": {
+    "basis": "rule 6 with G of PR #12616 (reading a: no bytes) [Mo on PR]",
+    "k1": true,
+    "rule6_gas_k1": 11061.5,
+    "k2": true,
+    "rule6_gas_k2": 20123.0
+   },
+   "P99a": {
+    "basis": "rule 6 with G of PR #12616 (reading a: no bytes) [Mo on PR]",
+    "k1": true,
+    "rule6_gas_k1": 10934.0,
+    "k2": true,
+    "rule6_gas_k2": 19868.0
+   },
+   "S24-minB": {
+    "basis": "rule 6 with G of PR #12616 (reading a: no bytes) [Mo on PR]",
+    "k1": true,
+    "rule6_gas_k1": 11801.0,
+    "k2": true,
+    "rule6_gas_k2": 21602.0
+   },
+   "S22-minP-5K": {
+    "basis": "rule 6 with G of PR #12616 (reading a: no bytes) [Mo on PR]",
+    "k1": true,
+    "rule6_gas_k1": 10704.5,
+    "k2": true,
+    "rule6_gas_k2": 19409.0
+   },
+   "S22-minB-5K": {
+    "basis": "rule 6 with G of PR #12616 (reading a: no bytes) [Mo on PR]",
+    "k1": true,
+    "rule6_gas_k1": 11622.5,
+    "k2": true,
+    "rule6_gas_k2": 21245.0
+   },
+   "N2": {
+    "basis": "rule 6 with G of PR #12616 (reading a: no bytes) [Mo on PR]",
+    "k1": true,
+    "rule6_gas_k1": 14325.5,
+    "k2": true,
+    "rule6_gas_k2": 26651.0
+   },
+   "N3r": {
+    "basis": "rule 6 with G of PR #12616 (reading a: no bytes) [Mo on PR]",
+    "k1": true,
+    "rule6_gas_k1": 14580.5,
+    "k2": true,
+    "rule6_gas_k2": 27161.0
+   }
+  },
+  "C1_flat_64": {
+   "B0": {
+    "basis": "rule 6 with G and the dependency frame [Mo]",
+    "k1": true,
+    "rule6_gas_k1": 11000.0,
+    "k2": true,
+    "rule6_gas_k2": 16100.0
+   },
+   "P99r": {
+    "basis": "rule 6 with G and the dependency frame [Mo]",
+    "k1": true,
+    "rule6_gas_k1": 11000.0,
+    "k2": true,
+    "rule6_gas_k2": 16100.0
+   },
+   "P99a": {
+    "basis": "rule 6 with G and the dependency frame [Mo]",
+    "k1": true,
+    "rule6_gas_k1": 11000.0,
+    "k2": true,
+    "rule6_gas_k2": 16100.0
+   },
+   "S24-minB": {
+    "basis": "rule 6 with G and the dependency frame [Mo]",
+    "k1": true,
+    "rule6_gas_k1": 11000.0,
+    "k2": true,
+    "rule6_gas_k2": 16100.0
+   },
+   "S22-minP-5K": {
+    "basis": "rule 6 with G and the dependency frame [Mo]",
+    "k1": true,
+    "rule6_gas_k1": 11000.0,
+    "k2": true,
+    "rule6_gas_k2": 16100.0
+   },
+   "S22-minB-5K": {
+    "basis": "rule 6 with G and the dependency frame [Mo]",
+    "k1": true,
+    "rule6_gas_k1": 11000.0,
+    "k2": true,
+    "rule6_gas_k2": 16100.0
+   },
+   "N2": {
+    "basis": "rule 6 with G and the dependency frame [Mo]",
+    "k1": true,
+    "rule6_gas_k1": 11000.0,
+    "k2": true,
+    "rule6_gas_k2": 16100.0
+   },
+   "N3r": {
+    "basis": "rule 6 with G and the dependency frame [Mo]",
+    "k1": true,
+    "rule6_gas_k1": 11000.0,
+    "k2": true,
+    "rule6_gas_k2": 16100.0
+   }
+  },
+  "C2": {
+   "B0": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "P99r": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "P99a": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "S24-minB": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "S22-minP-5K": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "S22-minB-5K": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "N2": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "N3r": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   }
+  },
+  "D": {
+   "B0": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "P99r": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "P99a": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "S24-minB": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "S22-minP-5K": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "S22-minB-5K": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "N2": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "N3r": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   }
+  },
+  "D-dep3000": {
+   "B0": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "P99r": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "P99a": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "S24-minB": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "S22-minP-5K": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "S22-minB-5K": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "N2": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   },
+   "N3r": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": true,
+    "rule6_gas_k2": null
+   }
+  },
+  "F1": {
+   "B0": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": null,
+    "rule6_gas_k2": null
+   },
+   "P99r": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": null,
+    "rule6_gas_k2": null
+   },
+   "P99a": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": null,
+    "rule6_gas_k2": null
+   },
+   "S24-minB": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": null,
+    "rule6_gas_k2": null
+   },
+   "S22-minP-5K": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": null,
+    "rule6_gas_k2": null
+   },
+   "S22-minB-5K": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": null,
+    "rule6_gas_k2": null
+   },
+   "N2": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": null,
+    "rule6_gas_k2": null
+   },
+   "N3r": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": null,
+    "rule6_gas_k2": null
+   }
+  },
+  "F2": {
+   "B0": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": null,
+    "rule6_gas_k2": null
+   },
+   "P99r": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": null,
+    "rule6_gas_k2": null
+   },
+   "P99a": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": null,
+    "rule6_gas_k2": null
+   },
+   "S24-minB": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": null,
+    "rule6_gas_k2": null
+   },
+   "S22-minP-5K": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": null,
+    "rule6_gas_k2": null
+   },
+   "S22-minB-5K": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": null,
+    "rule6_gas_k2": null
+   },
+   "N2": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": null,
+    "rule6_gas_k2": null
+   },
+   "N3r": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": null,
+    "rule6_gas_k2": null
+   }
+  },
+  "F3": {
+   "B0": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": null,
+    "rule6_gas_k2": null
+   },
+   "P99r": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": null,
+    "rule6_gas_k2": null
+   },
+   "P99a": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": null,
+    "rule6_gas_k2": null
+   },
+   "S24-minB": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": null,
+    "rule6_gas_k2": null
+   },
+   "S22-minP-5K": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": null,
+    "rule6_gas_k2": null
+   },
+   "S22-minB-5K": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": null,
+    "rule6_gas_k2": null
+   },
+   "N2": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": null,
+    "rule6_gas_k2": null
+   },
+   "N3r": {
+    "basis": null,
+    "k1": true,
+    "rule6_gas_k1": null,
+    "k2": null,
+    "rule6_gas_k2": null
+   }
+  }
+ },
+ "matrix": [
+  {
+   "id": "E0a",
+   "option": "E0a_7976"
+  },
+  {
+   "id": "E0b",
+   "option": "E0b_7976"
+  },
+  {
+   "id": "E0c",
+   "option": "E0c_7976"
+  },
+  {
+   "id": "A",
+   "option": "A"
+  },
+  {
+   "id": "B",
+   "option": "B_pr12616_64"
+  },
+  {
+   "id": "C1",
+   "option": "C1_flat_64"
+  },
+  {
+   "id": "C2",
+   "option": "C2"
+  },
+  {
+   "id": "D",
+   "option": "D"
+  },
+  {
+   "id": "E",
+   "option": "D-dep3000"
+  },
+  {
+   "id": "F1",
+   "option": "F1"
+  },
+  {
+   "id": "F2",
+   "option": "F2"
+  },
+  {
+   "id": "F3",
+   "option": "F3"
+  }
+ ],
+ "constraints": {
+  "B0": {
+   "digit_bits": 2,
+   "layers": 3,
+   "ledger_ok": false,
+   "lifetime_ok": true,
+   "proof": {
+    "certificate": "not run",
+    "caveat": null,
+    "evm_verifier": "not built",
+    "leanvm_rows": "counted",
+    "status": "[R] candidates_v2.csv `life_full_log2_certified` and the row's status; evm_gas.json; the simulator's registry"
+   }
+  },
+  "P99r": {
+   "digit_bits": 2,
+   "layers": 1,
+   "ledger_ok": true,
+   "lifetime_ok": true,
+   "proof": {
+    "certificate": ">=24 (127-bit, Python mirror)",
+    "caveat": null,
+    "evm_verifier": "built",
+    "leanvm_rows": "counted",
+    "status": "[R] candidates_v2.csv `life_full_log2_certified` and the row's status; evm_gas.json; the simulator's registry"
+   }
+  },
+  "P99a": {
+   "digit_bits": 2,
+   "layers": 1,
+   "ledger_ok": true,
+   "lifetime_ok": true,
+   "proof": {
+    "certificate": ">=24 (127-bit, Python mirror)",
+    "caveat": null,
+    "evm_verifier": "built",
+    "leanvm_rows": "counted",
+    "status": "[R] candidates_v2.csv `life_full_log2_certified` and the row's status; evm_gas.json; the simulator's registry"
+   }
+  },
+  "S24-minB": {
+   "digit_bits": 3,
+   "layers": 1,
+   "ledger_ok": true,
+   "lifetime_ok": true,
+   "proof": {
+    "certificate": ">=24 (127-bit, Python mirror)",
+    "caveat": null,
+    "evm_verifier": "built",
+    "leanvm_rows": "modelled",
+    "status": "[R] candidates_v2.csv `life_full_log2_certified` and the row's status; evm_gas.json; the simulator's registry"
+   }
+  },
+  "S22-minP-5K": {
+   "digit_bits": 2,
+   "layers": 1,
+   "ledger_ok": true,
+   "lifetime_ok": false,
+   "proof": {
+    "certificate": ">=22 (127-bit, Python mirror); 2^24 not certified",
+    "caveat": null,
+    "evm_verifier": "built",
+    "leanvm_rows": "modelled",
+    "status": "[R] candidates_v2.csv `life_full_log2_certified` and the row's status; evm_gas.json; the simulator's registry"
+   }
+  },
+  "S22-minB-5K": {
+   "digit_bits": 3,
+   "layers": 1,
+   "ledger_ok": true,
+   "lifetime_ok": false,
+   "proof": {
+    "certificate": ">=22 (127-bit, Python mirror); 2^24 not certified",
+    "caveat": null,
+    "evm_verifier": "built",
+    "leanvm_rows": "modelled",
+    "status": "[R] candidates_v2.csv `life_full_log2_certified` and the row's status; evm_gas.json; the simulator's registry"
+   }
+  },
+  "N2": {
+   "digit_bits": 2,
+   "layers": 3,
+   "ledger_ok": true,
+   "lifetime_ok": true,
+   "proof": {
+    "certificate": "NA (FORS+C: not in fors_certificates.py)",
+    "caveat": "FORS+C: rests on the unverified +a term",
+    "evm_verifier": "not built",
+    "leanvm_rows": "counted",
+    "status": "[R] candidates_v2.csv `life_full_log2_certified` and the row's status; evm_gas.json; the simulator's registry"
+   }
+  },
+  "N3r": {
+   "digit_bits": 2,
+   "layers": 3,
+   "ledger_ok": true,
+   "lifetime_ok": true,
+   "proof": {
+    "certificate": ">=24 (127-bit, Python mirror)",
+    "caveat": null,
+    "evm_verifier": "not built",
+    "leanvm_rows": "counted",
+    "status": "[R] candidates_v2.csv `life_full_log2_certified` and the row's status; evm_gas.json; the simulator's registry"
+   }
+  }
+ },
+ "ledger": {
+  "budget": {
+   "sign_p99_s": 32.0,
+   "sign_hard_s": 35.0,
+   "sign_hard_share": 0.001,
+   "keygen_s": 180.0
+  },
+  "reference_rate_per_second": 5800,
+  "modelled_status": "[Mo] candidates.json `figures`: the signing law of each set at the reference rate; not measured",
+  "measured": {
+   "candidate": "P99r",
+   "params": "24|fors|a10|k17|w4|T127|b11",
+   "device": "Ledger Nano S+",
+   "status": "[M] measured on the device over USB, the test app 0.2.0",
+   "source": "ledger-poc/results/poc-nanosp.json",
+   "date": "2026-11-11T15:21:20",
+   "signatures": 50,
+   "state_count": 1023,
+   "sign_s": {
+    "mean": 11.911,
+    "min": 7.951,
+    "p50": 11.668,
+    "p90": 16.272,
+    "p95": 18.39,
+    "p99": 21.227,
+    "max": 21.227
+   },
+   "sign_permutations_mean": 69513.72,
+   "over_32_s": 0,
+   "over_35_s": 0,
+   "rate_in_signing_per_second": 5836.0,
+   "rate_over_reference": 1.0062,
+   "keygen_s": 102.3,
+   "keygen_permutations": 578622,
+   "keygen_rate_per_second": 5655.1,
+   "extrapolated_sign_s": {
+    "mean": 12.01,
+    "p50": 11.24,
+    "p95": 18.35,
+    "p99": 22.95,
+    "p99.9": 29.44
+   },
+   "extrapolated_status": "[Mo on M] the modelled law of SPEC 5.2 (permutations at s = 1,023) divided by the rate measured here",
+   "budget_note": "50 samples cannot show P(T > 35 s) <= 1e-3; see extrapolation"
+  }
+ }
+}

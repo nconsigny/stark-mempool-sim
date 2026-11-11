@@ -19,6 +19,7 @@
   <p class="small" id="ev-line">Figures are modelled or simulated unless marked <span class="ev m">measured</span>. <a href="#about">About</a> explains.</p>
   <div class="bar">
     <nav class="tabs" aria-label="Views">
+      <a href="#choose" data-view="choose">Choose a set</a>
       <a href="#explore" data-view="explore">Explore</a>
       <a href="#simulate" data-view="simulate">Simulate</a>
       <a href="#about" data-view="about">About</a>
@@ -29,6 +30,80 @@
 
 <noscript><p class="fatal">This page needs JavaScript: it draws its tables from JSON files and runs the simulator in a Web Worker.</p></noscript>
 <p class="fatal" id="fatal" role="alert" hidden></p>
+
+<!-- ============================================================= Choose a set -->
+<main id="view-choose" class="view" data-view="choose" hidden>
+
+  <section aria-labelledby="ch-path-h" id="ch-path-section">
+    <div class="hl-top">
+      <div class="stack tight">
+        <h2 id="ch-path-h">Choose a set along the forks</h2>
+        <p class="sc-simple">Pick one deployment per fork. The table ranks the eight sets on that path.</p>
+      </div>
+      <div class="field" id="ch-timeline-field">
+        <label for="ch-timeline">Months per step, from the campaign's timelines</label>
+        <select id="ch-timeline"></select>
+      </div>
+    </div>
+    <div id="ch-steps" class="ch-steps"></div>
+    <div class="field check" id="ch-today-field">
+      <input type="checkbox" id="ch-today">
+      <label for="ch-today">Add the step before Glamsterdam (today's calldata price). The choices above are defaults.</label>
+    </div>
+  </section>
+
+  <section aria-labelledby="ch-result-h" id="ch-result">
+    <h2 id="ch-result-h" class="sr">The sets along this path</h2>
+    <p class="verdict" id="ch-verdict" aria-live="polite"></p>
+    <div class="scroll" tabindex="0" role="region" aria-label="The eight sets along the chosen path">
+      <table class="wide" id="ch-table"></table>
+    </div>
+    <p class="note" id="ch-note"></p>
+  </section>
+
+  <section aria-label="More comparisons" class="more" id="ch-more">
+    <details id="ch-pair">
+      <summary>Compare two sets, attribute by attribute</summary>
+      <div class="stack">
+        <div class="formgrid">
+          <div class="field">
+            <label for="ch-pair-a">First set</label>
+            <select id="ch-pair-a"></select>
+          </div>
+          <div class="field">
+            <label for="ch-pair-b">Second set</label>
+            <select id="ch-pair-b"></select>
+          </div>
+        </div>
+        <div class="scroll" tabindex="0" role="region" aria-label="Two sets side by side">
+          <table class="mid" id="ch-pair-table"></table>
+        </div>
+        <p class="note">Gas and throughput rows follow the path chosen above. The admission margin is what is left of the validation gas limit with two signatures; below zero the transaction is refused.</p>
+      </div>
+    </details>
+
+    <details id="ch-matrix">
+      <summary>All sets across the twelve scenarios</summary>
+      <div class="stack">
+        <div class="formgrid">
+          <div class="field">
+            <label for="ch-matrix-gas">Block gas limit</label>
+            <select id="ch-matrix-gas"></select>
+          </div>
+        </div>
+        <div class="scroll" tabindex="0" role="region" aria-label="All sets across the twelve scenarios">
+          <table class="wide" id="ch-matrix-table"></table>
+        </div>
+        <p class="note">Throughput, and under it the loss against the best set of the column. E0a to E0c at Glamsterdam's calldata price; D at the EIP's price and E at the leanPCS draft's; F2 shows F1's cells.</p>
+      </div>
+    </details>
+
+    <details id="ch-rules">
+      <summary>How the table and the verdict are computed</summary>
+      <ul class="plain" id="ch-rules-body"></ul>
+    </details>
+  </section>
+</main>
 
 <!-- ================================================================== Explore -->
 <main id="view-explore" class="view" data-view="explore" hidden>
@@ -419,7 +494,7 @@
   <section aria-labelledby="ab-what-h">
     <h2 id="ab-what-h">About this tool</h2>
     <div class="prose">
-      <p>A study of leanSPHINCS, a hash-based post-quantum signature for Ethereum accounts: how its size in bytes and the Keccak permutations to verify it move throughput in twelve deployment scenarios. Nothing here was measured on a Ledger or on a real network, except the receipts under "Measured on chain".</p>
+      <p>A study of leanSPHINCS, a hash-based post-quantum signature for Ethereum accounts: how its size in bytes and the Keccak permutations to verify it move throughput in twelve deployment scenarios. Nothing here was measured on a real network, except the receipts under "Measured on chain"; one Ledger run of the working set is the only device measurement.</p>
     </div>
     <ul class="legend" aria-label="Evidence levels">
       <li><span class="ev m">measured</span> Forge gas or a receipt</li>
@@ -445,7 +520,7 @@
           </table>
         </div>
         <ul class="plain">
-          <li><strong>Nothing was measured on a Ledger.</strong> Signing times are permutation counts divided by a benchmark rate. A run of the real signer on a Nano S+ is the first thing still to measure.</li>
+          <li><strong>One set was measured on a Ledger.</strong> The working set's signer ran on a Nano S+ (50 signatures and one key generation; the figures are under "Choose a set"). Every other set's signing time is a permutation count divided by a benchmark rate.</li>
           <li><strong>Nothing in the tables or the simulator was measured on a real network.</strong> No client, devnet or testnet was involved in the campaign, and no EIP-8141 transaction has been run with the campaign's verifiers. The receipts under "Measured on chain" are the exception: they are real transactions, but of other parameter sets of the same family, deployed earlier and recorded in the SPHINCs- repository.</li>
           <li><strong>Throughput is a ceiling for one kind of transaction.</strong> A block of plain ECDSA transfers (21,000 gas each) at 60 M gas every 12 s holds at most <span id="ab-baseline">238.10</span> tx/s; every throughput figure here is of that kind, a gas bound or a simulated capacity. Mainnet really carries about 15 to 20 tx/s, because real transactions do more than a transfer and use more gas each.</li>
           <li>Gas per transaction in Explore, in the calculator and in Simulate is the gas model's figure, split into fixed cost, calldata, verification and overhead. The build stops if the model and a recorded receipt differ by more than 1%.</li>
