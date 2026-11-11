@@ -128,6 +128,19 @@ export function unitOf(cls) {
   return cls === "noagg" ? { key: "tps_tx", unit: "tx/s" } : { key: "tps_sig", unit: "sig/s" };
 }
 
+// Plain names for the campaign's pricing codes (the codes stay in the data).
+const PRICING_NAMES = {
+  "7623": "calldata as today (EIP-7623)",
+  "7976": "calldata after Glamsterdam (EIP-7976)",
+  "8141+7976": "frame transaction, Glamsterdam calldata",
+  "8288:3000+30000/dep": "EIP-8288: 33,000 gas per signature",
+  "leanPCS-draft:3000/dep": "leanPCS draft: 3,000 gas per signature",
+  "leanPCS-4905424d/7976": "user-side proof checked through leanPCS claims",
+};
+export function pricingName(code) {
+  return PRICING_NAMES[code] || code;
+}
+
 export function scenarioLabel(entry) {
   return entry.name + (entry.route ? ": " + entry.route : "") + " (" + entry.id + ")";
 }

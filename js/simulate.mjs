@@ -3,7 +3,7 @@
 // the full row, the command line, and the last few runs.
 
 import { EngineCancelled } from "../engine/engine.mjs";
-import { $, el, clear, fmtInt, fmtTps, fmtFixed, fmtShare, fmtGas,
+import { pricingName, $, el, clear, fmtInt, fmtTps, fmtFixed, fmtShare, fmtGas,
          scenarioLabel, setLabel, CLASS_NAMES } from "./util.mjs";
 
 const STORE_KEY = "leansphincs-web-form-v1";
@@ -13,16 +13,16 @@ const DASH = "—";
 // The headline figures, in the order of the result table. `field` is the
 // column of the phase-2 row; the same column exists in the campaign's tables.
 export const HEADLINES = [
-  { field: "tps_tx", label: "Sustained throughput", sub: "transactions per second included over the measured slots", value: (v) => fmtTps(v), unit: "tx/s" },
+  { field: "tps_tx", main: true, label: "Sustained throughput", sub: "transactions per second included over the measured slots", value: (v) => fmtTps(v), unit: "tx/s" },
   { field: "tps_sig", label: "Sustained throughput, signatures", sub: "transactions times signatures per transaction", value: (v) => fmtTps(v), unit: "sig/s" },
   { field: "tps_timely", label: "Timely throughput", sub: "transactions per second in blocks that reached the network in time", value: (v) => fmtTps(v), unit: "tx/s" },
-  { field: "binding", label: "What binds", sub: "the limit that set the sustained rate", value: (v) => String(v), unit: "" },
+  { field: "binding", main: true, label: "What binds", sub: "the limit that set the sustained rate", value: (v) => String(v), unit: "" },
   { field: "block_bytes", label: "Block size", sub: "mean bytes per block", value: (v) => fmtFixed(v / 1e6, 2), unit: "MB" },
   { field: "t90_block_s", label: "Block reaches 90% of nodes", sub: "seconds after the slot starts", value: (v) => fmtFixed(v, 2), unit: "s" },
   { field: "bw_node_mbit", label: "Bandwidth per node", sub: "mean upload", value: (v) => fmtFixed(v, 2), unit: "Mbit/s" },
   { field: "dup_share", label: "Duplicates", sub: "share of bytes received more than once", value: (v) => fmtShare(v), unit: "of bytes" },
   // Not simulated: the gas model's figures for one transaction of the run.
-  { field: "tx_gas", gas: true, label: "Gas per transaction", sub: "total, from the gas model (not simulated)", value: (v) => fmtInt(v), unit: "gas" },
+  { field: "tx_gas", gas: true, main: true, label: "Gas per transaction", sub: "total, from the gas model (not simulated)", value: (v) => fmtInt(v), unit: "gas" },
   { field: "tx_calldata_gas", gas: true, label: "Calldata gas per transaction", sub: "data bytes at the price that binds (gas model)", value: (v) => fmtInt(v), unit: "gas" },
 ];
 
@@ -85,6 +85,8 @@ export function initSimulate(app) {
   const progress = $("#sim-progress");
   const progressText = $("#sim-progress-text");
   const resultBody = $("#sim-result tbody");
+  const moreBody = $("#sim-result-more tbody");
+  const resultRow = (field) => document.querySelector(`#sim-result tr[data-field="${field}"], #sim-result-more tr[data-field="${field}"]`);
   const history = [];
   let running = null;      // {started, timer, label, last}
 
@@ -116,7 +118,7 @@ export function initSimulate(app) {
     for (const name of names) {
       const config = configs.get(name);
       const text = name + (name === entry.default_configuration ? " (default)" : "") +
-        (config ? " · pricing " + config.pricing : "");
+        (config ? " · " + pricingName(config.pricing) : "");
       f.config.append(el("option", { value: name }, text));
     }
     f.config.disabled = names.length < 2;
@@ -143,7 +145,7 @@ export function initSimulate(app) {
       : "one simulation at the offered load";
     clear($("#sim-scenario-note")).append(
       entry.description, " When: ", entry.when, ". Class: ", CLASS_NAMES[config.class] || config.class,
-      ". Pricing: ", el("code", {}, config.pricing), ". Mode: ", mode, ".");
+      ". Pricing: ", pricingName(config.pricing), ". Mode: ", mode, ".");
 
     if (app.scenarioHelp) { app.scenarioHelp.simHelp(); }
     const exploreOnly = $("#sim-explore-only");
@@ -221,14 +223,11 @@ export function initSimulate(app) {
     const gasText = settings.gas_limit.values.length < 2
       ? `a gas limit of ${fmtGas(limits.max_gas_limit)} only`
       : `gas limits up to ${fmtGas(limits.max_gas_limit)}`;
-    clear($("#sim-limits")).append(
-      `Limits for ${config.configuration} in the browser: ${limits.min_nodes} to ${limits.max_nodes} nodes, ` +
-      `1 to ${limits.max_measured_slots} measured slots, ${gasText}. ` +
-      (limits.reason ? `Why: ${limits.reason}. ` : "") +
-      `They keep the heaviest run near ${limits.est_s} s on the build machine and under about ` +
-      `${data.scenarios.budget_s} s on a slower laptop; the engine stops any run after ` +
-      `${data.scenarios.time_limit_s} s. The campaign's tables are ${tableNodes}-node runs` +
-      (limits.max_nodes >= tableNodes ? ", which this scenario can reach here." : ", larger than a browser run of this scenario."));
+    const limitsLine = clear($("#sim-limits"));
+    limitsLine.append(`Browser limits: ${limits.min_nodes} to ${limits.max_nodes} nodes, ` +
+      `1 to ${limits.max_measured_slots} measured slots, ${gasText}; the engine stops any run after ${data.scenarios.time_limit_s} s.`);
+    limitsLine.title = (limits.reason ? `Why: ${limits.reason}. ` : "") +
+      `The heaviest run takes about ${limits.est_s} s on the build machine, under about ${data.scenarios.budget_s} s on a slower laptop.`;
     updateButtons();
     save();
   }
@@ -413,13 +412,15 @@ export function initSimulate(app) {
   // ------------------------------------------------------------ the result
   function buildResultRows() {
     clear(resultBody);
+    clear(moreBody);
     for (const spec of HEADLINES) {
       const runCell = el("td", { class: "n run" });
       const tableCell = el("td", { class: "n cell" });
       valueCell(runCell, DASH, spec.unit);
       valueCell(tableCell, DASH, spec.unit);
-      resultBody.append(el("tr", { "data-field": spec.field },
-        el("th", { scope: "row" }, spec.label, el("span", { class: "sub" }, spec.sub)), runCell, tableCell));
+      (spec.main ? resultBody : moreBody).append(el("tr", { "data-field": spec.field },
+        spec.main ? el("th", { scope: "row", title: spec.sub }, spec.label)
+          : el("th", { scope: "row" }, spec.label, el("span", { class: "sub" }, spec.sub)), runCell, tableCell));
     }
     $("#sim-col-table-sub").textContent = `${tableNodes} nodes`;
   }
@@ -435,7 +436,7 @@ export function initSimulate(app) {
       item.configuration === cfg.configuration && item.candidate === config.candidate && item.k === row.k);
     const gasTable = gasRow ? { tx_gas: gasRow.total, tx_calldata_gas: gasRow.parts.calldata } : null;
     for (const spec of HEADLINES) {
-      const tr = resultBody.querySelector(`tr[data-field="${spec.field}"]`);
+      const tr = resultRow(spec.field);
       const runCell = tr.querySelector("td.run");
       const tableCell = tr.querySelector("td.cell");
       if (spec.gas) {
@@ -530,6 +531,7 @@ export function initSimulate(app) {
         el("td", { class: "n" }, (item.timing.wall_ms / 1000).toFixed(1) + " s")));
     }
     if (!history.length) body.append(el("tr", { class: "empty" }, el("td", { colspan: "12" }, "No run yet.")));
+    $("#sim-history-h").textContent = `Recent runs of this visit (${history.length})`;
   }
 
   // --------------------------------------------------------------- wiring

@@ -2,9 +2,9 @@
 // the model calculator.
 
 import { EngineCancelled } from "../engine/engine.mjs";
-import { $, el, clear, chip, fmtInt, fmtTps, fmtPct, fmtGas, withExponent, taggedProse,
+import { $, el, clear, chip, fmtInt, fmtTps, fmtPct, fmtGas, withExponent, taggedProse, pricingName,
          unitOf, scenarioLabel, setLabel, CLASS_NAMES } from "./util.mjs";
-import { ecdsaBaseline } from "./scenarios.mjs";
+import { ecdsaBaseline, WORKING_SET, TODAY_SET } from "./scenarios.mjs";
 
 // F2 has no table rows of its own (web/SCHEMA.md): it equals F1 in this model.
 const TABLE_ALIAS = { F2: "F1" };
@@ -72,7 +72,7 @@ export function pctFactor(table) {
 
 export function groupLabel(group) {
   const k = group.k === "per set" ? "bundle size per set" : `${group.k} signature${group.k === 1 ? "" : "s"} per transaction`;
-  return [`pricing ${group.pricing}`, `${group.profile} profile`, `${group.uplinks} uplinks`,
+  return [`${pricingName(group.pricing)}`, `${group.profile} profile`, `${group.uplinks} uplinks`,
     `${group.nodes} nodes`, k, group.mode ? `mode ${group.mode}` : null, group.variant,
     `${group.rows.length} rows`].filter(Boolean).join(" · ");
 }
@@ -105,17 +105,21 @@ export function initExplore(app) {
     const config = configs.get(entry.default_configuration);
     const card = clear($("#ex-scenario-card"));
     card.append(
-      el("h3", {}, entry.name + (entry.route ? ": " + entry.route : "")),
       el("p", {}, entry.description),
       el("ul", { class: "facts" },
         el("li", {}, el("b", {}, "When"), entry.when),
         el("li", {}, el("b", {}, "Class"), CLASS_NAMES[entry.class] || entry.class),
-        el("li", {}, el("b", {}, "Pricing"), el("code", {}, entry.pricing)),
+        el("li", {}, el("b", {}, "Pricing"), pricingName(entry.pricing)),
         el("li", {}, el("b", {}, "Simulated as"), entry.mode === "capacity" ? "a search for the highest sustained rate" : "one run at the offered load"),
         el("li", {}, el("b", {}, "Configurations"), String(entry.configurations.length))),
-      el("p", { class: "small" }, "H* and I* stand for the hard forks after Glamsterdam: H* the next one, I* the one after it.",
-        entry.explore_only ? " This scenario has tables but is not run in the browser: " + entry.limits.reason + "." : ""));
+      entry.explore_only ? el("p", { class: "small" }, "Tables only, not run in the browser: " + entry.limits.reason + ".") : null);
     card.dataset.scenario = entry.id;
+    const head = clear($("#ex-head-h"));
+    head.append(entry.name + (entry.route ? ": " + entry.route : ""), " ", el("span", { class: "sc-id" }, entry.id));
+    const alias = $("#ex-alias");
+    alias.hidden = !TABLE_ALIAS[entry.id];
+    alias.textContent = TABLE_ALIAS[entry.id]
+      ? `${entry.id} was not simulated separately: these are ${TABLE_ALIAS[entry.id]}'s cells, equal in this model.` : "";
 
     const tableId = TABLE_ALIAS[entry.id] || entry.id;
     groups = groupRows(allRows.filter((row) => row.scenario === tableId), order);
@@ -177,8 +181,9 @@ export function initExplore(app) {
     table.dataset.tableScenario = tableId;
     table.dataset.unit = unit.key;
 
+    renderHeadline(entry, group);
     if (TABLE_ALIAS[entry.id]) {
-      lead.append(`${entry.id} was not simulated separately: it equals ${tableId} in this model, and its first hop is not simulated. The cells below are ${tableId}'s. `);
+      lead.append(`${entry.id} was not simulated separately; its first hop is not simulated. `);
     }
     if (!group) {
       $("#ex-group-full").textContent = "";
@@ -187,10 +192,8 @@ export function initExplore(app) {
     }
     table.dataset.group = group.key;
     $("#ex-group-full").textContent = "Cells shown: " + groupLabel(group) + ".";
-    lead.append(`Throughput is in ${unit.unit === "tx/s" ? "transactions per second (tx/s)" : "signatures per second (sig/s)"}` +
-      ", the mean over the seeds; the bar under a figure compares the sets at one gas limit. " +
-      "The percentage columns give the change in throughput when the signature grows by 10% or 100% in bytes, or in permutations. " +
-      "Every row is one row of the campaign's final table.");
+    lead.append(`${unit.unit}, mean over the seeds; the bar compares the sets at one gas limit. ` +
+      "Percent columns: the change in throughput when bytes or permutations grow by 10% or 100%.");
 
     table.append(el("thead", {}, el("tr", {},
       el("th", { scope: "col" }, "Set"),
@@ -207,10 +210,10 @@ export function initExplore(app) {
       const body = el("tbody", { "data-gas": String(gas) });
       body.append(el("tr", { class: "group" }, el("th", { colspan: "7", scope: "colgroup", "data-baseline": String(ecdsaBaseline(gas)) },
         fmtGas(gas) + " gas limit",
-        el("span", { class: "sub baseline" }, `Reference: plain ECDSA transfers, ${fmtTps(ecdsaBaseline(gas))} tx/s (a gas bound for plain transfers)`))));
+        el("span", { class: "sub baseline" }, `ECDSA reference: ${fmtTps(ecdsaBaseline(gas))} tx/s (gas bound)`))));
       if (!rows.length) {
         body.append(el("tr", { class: "empty" }, el("td", { colspan: "7" },
-          `Not simulated at ${fmtGas(gas)} in these cells. Where the report gives a model bound for it, it is in the summary below.`)));
+          `Not simulated at ${fmtGas(gas)} in these cells; the report's summary below may give a model bound.`)));
       }
       const max = Math.max(0, ...rows.map((row) => row[unit.key]).filter((value) => typeof value === "number"));
       for (const row of rows) {
@@ -240,6 +243,89 @@ export function initExplore(app) {
     }
     note.append("A label such as ", el("code", {}, "gas(2)/prover(1)"), " counts the seeds per limit. Source: ",
       el("span", { class: "mono" }, sources.join("; ")), ".");
+  }
+
+  // ---------------------------------------------------------- the headline
+  // The working set and today's set at one gas limit, from the group of
+  // cells the full table shows (its first group by default), what binds, and
+  // the gas of one transaction from data/gas.json.
+  let hlGas = MAIN_GAS[0];
+  const hlOpts = $("#hl-gas-opts");
+  let hlState = null;
+
+  function gasRowFor(entry, group, candidate) {
+    const names = entry.configurations.filter((name) => configs.get(name) && group && configs.get(name).pricing === group.pricing);
+    const name = names.includes(entry.default_configuration) ? entry.default_configuration : (names[0] || entry.default_configuration);
+    const cls = configs.get(name).class;
+    const k = group && typeof group.k === "number" ? group.k : 1;
+    return data.gas.rows.find((row) => row.configuration === name && row.candidate === candidate && (cls === "pcs" || row.k === k)) || null;
+  }
+
+  function stat(key, label, value, sub, attrs = {}) {
+    return el("div", { class: "stat", "data-stat": key, ...attrs },
+      el("p", { class: "stat-label" }, label),
+      el("p", { class: "stat-value" }, ...value),
+      el("p", { class: "stat-sub" }, sub || "\u00a0"));
+  }
+
+  function renderHeadline(entry, group) {
+    hlState = { entry, group };
+    const unit = unitOf(entry.class);
+    const limits = [...new Set([...MAIN_GAS, ...(group ? group.rows.map((row) => row.gas_limit) : [])])].sort((a, b) => a - b);
+    if (!limits.includes(hlGas)) hlGas = limits.includes(MAIN_GAS[0]) ? MAIN_GAS[0] : limits[0];
+    if (hlOpts.dataset.limits !== limits.join()) {
+      hlOpts.dataset.limits = limits.join();
+      clear(hlOpts);
+      for (const gas of limits) {
+        const input = el("input", { type: "radio", name: "hl-gas", value: String(gas), id: "hl-gas-" + gas });
+        input.addEventListener("change", () => {
+          if (!input.checked) return;
+          hlGas = gas;
+          renderHeadline(hlState.entry, hlState.group);
+        });
+        hlOpts.append(el("label", { class: "seg-opt", for: "hl-gas-" + gas }, input, el("span", {}, fmtGas(gas))));
+      }
+    }
+    for (const input of hlOpts.querySelectorAll("input")) input.checked = Number(input.value) === hlGas;
+
+    const rows = group ? group.rows.filter((row) => row.gas_limit === hlGas) : [];
+    const rowOf = (name) => rows.find((row) => row.candidate === name) || null;
+    const work = rowOf(WORKING_SET), today = rowOf(TODAY_SET);
+    const box = clear($("#ex-headline"));
+    box.dataset.scenario = entry.id;
+    box.dataset.gas = String(hlGas);
+    box.dataset.group = group ? group.key : "";
+    const tpsStat = (key, label, name, row) => {
+      const set = setByName.get(name);
+      const sub = set ? `${name} · ${fmtInt(set.sig_bytes)} B · ${set.perms} perms` : name;
+      if (!row || typeof row[unit.key] !== "number") {
+        return stat(key, label, [el("span", { class: "dim" }, "not simulated")], `${sub} · none at ${fmtGas(hlGas)}`, { "data-value": "null" });
+      }
+      return stat(key, label, [el("span", { class: "num" }, fmtTps(row[unit.key])), " " + unit.unit,
+        chip("simulated", `${row.status}. Source: ${row.source}`)], sub, { "data-value": JSON.stringify(row[unit.key]) });
+    };
+    const gasWork = gasRowFor(entry, group, WORKING_SET), gasToday = gasRowFor(entry, group, TODAY_SET);
+    let gasSub = "";
+    if (gasWork && gasWork.signatures > 1) gasSub = `bundle of ${fmtInt(gasWork.signatures)}, ${fmtInt(gasWork.gas_per_signature)} per signature`;
+    else if (gasWork && gasToday && gasToday.total !== gasWork.total) gasSub = `working set; today's set ${fmtInt(gasToday.total)}`;
+    else if (gasWork) gasSub = "the same for every set";
+    const binding = work ? work.binding : null;
+    const todayBinding = today ? today.binding : null;
+    box.append(
+      tpsStat("work", "Working set", WORKING_SET, work),
+      tpsStat("today", "Today's set", TODAY_SET, today),
+      stat("binding", "What limits it", [binding ? el("span", { class: "word" }, binding) : el("span", { class: "dim" }, "n/a")],
+        todayBinding && todayBinding !== binding ? `today's set: ${todayBinding}` : (binding ? "both sets" : ""),
+        { "data-value": JSON.stringify(binding) }),
+      stat("gas", "Gas per transaction", gasWork ? [el("span", { class: "num" }, fmtInt(gasWork.total)), " gas", chip("modelled", data.gas.status_default)]
+        : [el("span", { class: "dim" }, "n/a")], gasSub,
+        { "data-value": JSON.stringify(gasWork ? gasWork.total : null), "data-configuration": gasWork ? gasWork.configuration : "" }));
+
+    const ref = clear($("#sc-reference"));
+    ref.dataset.baseline = String(ecdsaBaseline(hlGas));
+    ref.dataset.gas = String(hlGas);
+    ref.append("Reference: plain ECDSA transfers, ", el("strong", {}, fmtTps(ecdsaBaseline(hlGas)) + " tx/s"),
+      ` at ${fmtGas(hlGas)} gas `, chip("modelled", "A gas bound: gas limit / 21,000 / 12 s"), " (a gas bound, not a measurement).");
   }
 
   // ------------------------------------------------- the report's summary
@@ -295,7 +381,7 @@ export function initExplore(app) {
     for (const name of entry.configurations) {
       const config = configs.get(name);
       gasConfig.append(el("option", { value: name },
-        `${name} · pricing ${config.pricing}` + (name === entry.default_configuration ? " (the scenario's own)" : "")));
+        `${name} · ${pricingName(config.pricing)}` + (name === entry.default_configuration ? " (the scenario's own)" : "")));
     }
     gasConfig.value = entry.default_configuration;
     gasConfig.disabled = entry.configurations.length < 2;
@@ -578,9 +664,9 @@ export function initExplore(app) {
 
   function updateCalcContext(entry, config) {
     const follows = config.settings.k && config.settings.k.follows;
-    clear($("#calc-context")).append("Scenario: ", el("strong", {}, scenarioLabel(entry)), ", configuration ",
-      el("code", {}, entry.default_configuration), " (chosen above). The base set fixes the EVM verifier model: single layer for the working set and its siblings, layered for today's set, N2 and N3r. ",
-      follows ? "Here a transaction is a bundle whose size follows the permutations, so the percentage rows are changes of the bundle rate, not of signatures per second." : "");
+    clear($("#calc-context")).append("Scenario ", el("strong", {}, scenarioLabel(entry)), ", configuration ",
+      el("code", {}, entry.default_configuration), ". The base set fixes the verifier model (single layer, or layered for B0, N2 and N3r). ",
+      follows ? "A transaction here is a bundle whose size follows the permutations: percentage rows are changes of the bundle rate." : "");
   }
 
   // The engine's config for the calculator. At the base set's own bytes and

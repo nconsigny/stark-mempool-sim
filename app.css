@@ -397,3 +397,88 @@ tr.group th .sub.baseline { font-family: var(--font-body); font-weight: 400; fon
 /* the cells' own key is one long token: let it wrap (it widened the page at 400 px for the user-side-proof scenarios) */
 #ex-group-full { overflow-wrap: anywhere; }
 tr.group th .sub.baseline { max-width: min(86ch, calc(100vw - 64px)); }
+
+/* ------------------------------------------------------------------ the light default view (2026-11-11)
+   Explore opens on a scenario picker and one headline; everything else is
+   in closed <details> blocks below it. */
+.sr { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; margin: 0; padding: 0; border: 0; }
+.page { gap: 28px; }
+.view { gap: 28px; }
+.top { gap: 10px !important; }
+.top .lede { font-size: 1.05rem; }
+#ev-line .ev { margin-inline: 2px; }
+.stack.tight { gap: 4px; }
+
+/* the picker */
+#ex-pick { border-top: 0; padding-top: 0; }
+.sc-picker { display: grid; grid-template-columns: repeat(auto-fill, minmax(232px, 1fr)); gap: 6px; }
+button.sc-pick {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
+  text-align: left; font-size: 0.85rem; line-height: 1.3; padding: 7px 10px; min-height: 42px; width: 100%;
+  border-color: var(--rule); color: var(--ink-2); white-space: normal; background: var(--surface);
+}
+button.sc-pick:hover { border-color: var(--accent); }
+button.sc-pick[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--ink); box-shadow: inset 3px 0 0 var(--accent); }
+button.sc-pick[aria-pressed="true"]::before { content: none; }
+.sc-pick-title { font-weight: 600; color: var(--ink); }
+.sc-line { font-size: 0.78rem; color: var(--muted); }
+
+/* the headline */
+.headline { gap: 12px !important; }
+.hl-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 10px 24px; }
+.hl-top h2 { font-size: 1.3rem; }
+.hl-top .sc-simple { font-size: 0.95rem; color: var(--ink-2); }
+fieldset.seg { border: 0; margin: 0; padding: 0; min-width: 0; }
+fieldset.seg legend { font-size: 0.8rem; font-weight: 500; color: var(--ink-2); padding: 0; margin-bottom: 4px; }
+.seg-opts { display: inline-flex; border: 1px solid var(--muted); border-radius: 6px; overflow: hidden; }
+.seg-opt { position: relative; display: block; cursor: pointer; }
+.seg-opt + .seg-opt { border-left: 1px solid var(--rule); }
+.seg-opt input { position: absolute; opacity: 0; inset: 0; width: 100%; height: 100%; margin: 0; min-height: 0; cursor: pointer; }
+.seg-opt span { display: block; padding: 8px 14px; font-family: var(--font-data); font-size: 0.85rem; color: var(--ink-2); background: var(--surface); min-height: 40px; line-height: 24px; }
+.seg-opt input:checked + span { background: var(--accent); color: var(--surface); font-weight: 500; }
+.seg-opt input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: -4px; }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.stat { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 12px 14px; min-width: 0; }
+.stat-label { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.stat-value { font-size: 0.95rem; color: var(--ink-2); margin-top: 2px; }
+.stat-value .num { font-family: var(--font-data); font-size: 1.45rem; font-weight: 500; color: var(--ink); }
+.stat-value .word { font-family: var(--font-data); font-size: 1.15rem; font-weight: 500; color: var(--ink); overflow-wrap: anywhere; }
+.stat-value .ev { margin-left: 6px; }
+.stat-sub { font-size: 0.76rem; color: var(--muted); line-height: 1.4; margin-top: 2px; overflow-wrap: anywhere; }
+#sc-reference .ev { margin-inline: 2px; }
+
+/* the closed sections */
+.view > section.more { gap: 8px; }
+.more > details > summary, .more details > summary { color: var(--ink); }
+.more > details > summary:hover { background: var(--accent-soft); }
+.more > details[open] > summary { background: var(--accent-soft); font-weight: 600; }
+.more-h { font-size: 0.78rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-top: 14px; font-family: var(--font-body); }
+.more > details > .stack, .more > details > ul, .more > details > dl { margin: 14px; }
+details details { background: var(--bg); }
+#sim-more > .formgrid { margin: 12px 14px 14px; }
+#sim-result-section .more { display: flex; flex-direction: column; gap: 8px; }
+#sim-scenario-simple { font-size: 0.9rem; color: var(--ink-2); }
+#sim-baseline { min-height: 1.6em; }
+#sim-result-lead { min-height: 0; }
+#sim-command { min-height: 0; }
+#sc-compare th[scope="row"] button.link { text-align: left; font-weight: 600; font-size: inherit; }
+#sc-compare tr.pick th, #sc-compare tr.pick td { background: var(--accent-soft); }
+#sc-compare .sc-num { font-weight: 500; }
+.page > footer { padding-top: 16px; }
+
+@media (max-width: 760px) {
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 520px) {
+  .page { gap: 22px; }
+  .view { gap: 22px; }
+  .sc-picker { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; }
+  .sc-line { display: none; }
+  button.sc-pick { padding: 6px 8px; font-size: 0.8rem; min-height: 44px; }
+  .stat { padding: 10px; }
+  .stat-value .num { font-size: 1.2rem; }
+  #sim-baseline { min-height: 3.2em; }
+  #sim-result-lead { min-height: 0; } #sim-command { min-height: 0; }
+}
+#sc-compare th[scope="row"] { min-width: 180px; }
+#sc-compare td.n .sub { white-space: normal; max-width: 260px; margin-left: auto; }

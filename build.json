@@ -17,15 +17,15 @@
   "files": 85,
   "unpacked_bytes": 1066517
  },
- "site_bytes": 15988222,
+ "site_bytes": 16001838,
  "files": {
   ".nojekyll": {
    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
    "bytes": 0
   },
   "app.css": {
-   "sha256": "791ee3e1cdd8ce82842d6101f2b4f8f6d3a18e751b9fc94359853e16c1b764d7",
-   "bytes": 19414
+   "sha256": "36c4b5de1e6be34cc9b9d8b613dbc2f6400c746a8df8cad7ff402361af0146b9",
+   "bytes": 24691
   },
   "data/candidates.json": {
    "sha256": "c491886ca15a453e09bde46d49311ec8dfa3d93a1a5387d545a017a67e24705b",
@@ -112,32 +112,32 @@
    "bytes": 22288
   },
   "index.html": {
-   "sha256": "5e8810876113c51ce04d5efb5013757316c3187750068269b3ed83f2c8de30db",
-   "bytes": 27270
+   "sha256": "5edbe53d96dc17434a6e564788d5c674d4c0c40df167ca3cb1955c78949abf0a",
+   "bytes": 29482
   },
   "js/about.mjs": {
-   "sha256": "19d66f23bb243c29965a6cb01c3ad3008e338f7c41f7064878d526ef3d557748",
-   "bytes": 4318
+   "sha256": "a924ada6fdf5b2675b79981f7c55270b64f04b60a5ed89bebcaf46161e8f1371",
+   "bytes": 4323
   },
   "js/explore.mjs": {
-   "sha256": "a8d381724560f54f5ee6f62857ba9008c83a32c23b10819da0b2f17c84cf00f2",
-   "bytes": 43626
+   "sha256": "ad8b43c81cba5ca082eb6d583863aa46b860e4a482eb71297ee8a5689bc8f0c5",
+   "bytes": 48426
   },
   "js/main.mjs": {
    "sha256": "53514cf5783976f301fa9df255e803b5ae647475fd435159f69d3bc301db7240",
    "bytes": 4091
   },
   "js/scenarios.mjs": {
-   "sha256": "c42c5fec0922561a099f7b1bdd843da101bae8c876806c4b2c95188e2a05487d",
-   "bytes": 36664
+   "sha256": "4439dc3e8b60e892f7eae47c0d9695acade51d4737666c19b6229742f18b073d",
+   "bytes": 37231
   },
   "js/simulate.mjs": {
-   "sha256": "e7c7b6fe0889ce28eee5a78e6132cf99e3039a3ddfd0462d2b32692390a028a5",
-   "bytes": 28941
+   "sha256": "ce87bc32e9de8b1181b38fff757630ccb8ce2d4de03e1f1747e05fe94a095938",
+   "bytes": 29153
   },
   "js/util.mjs": {
-   "sha256": "63193cf61c34142fa49de535d27c47e5b4771a035f79fa219841530572520d65",
-   "bytes": 5302
+   "sha256": "a4611d298bb293417c1dff8acc3e427407c3aeb0f5065b10080fba7d1212512d",
+   "bytes": 5845
   }
  }
 }

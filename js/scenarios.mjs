@@ -22,10 +22,8 @@ const TABLE_ALIAS = { F2: "F1" };
 const SIDE_RUN = /kill:|axis=|iso:|run@|mesh=/;
 
 export function baselineSentence(gasLimit) {
-  return `Reference: a block of plain ECDSA transfers at ${fmtGas(gasLimit)} gas holds at most ${fmtTps(ecdsaBaseline(gasLimit))} tx/s. ` +
-    "That is a gas bound for plain transfers, not a measurement.";
+  return `ECDSA reference at ${fmtGas(gasLimit)} gas: ${fmtTps(ecdsaBaseline(gasLimit))} tx/s (a gas bound for plain transfers).`;
 }
-export const MAINNET_SENTENCE = "Mainnet really carries about 15 to 20 tx/s, because real transactions do more than a transfer and use more gas each.";
 
 // --------------------------------------------------- figures from the data
 export function makeFigures(data) {
@@ -81,6 +79,23 @@ const WHEN = {
   "I*": "Needs the second fork after Glamsterdam",
 };
 export const whenLabel = (when) => (WHEN[when] || when) + (when === "now" ? "" : ` (${when})`);
+
+// The picker: a short title and one short line per scenario id.
+const PICK = {
+  E0a: ["Today's EVM: ERC-4337", "A contract verifies. No fork."],
+  E0b: ["Today's EVM: Safe module", "A contract verifies. No fork."],
+  E0c: ["Today's EVM: EIP-7702", "A contract verifies. No fork."],
+  A: ["8141 full", "Account code verifies it."],
+  B: ["8141 light", "Nodes verify it natively."],
+  C1: ["8288 light, raw", "A dependency, no proof yet."],
+  C2: ["8288, builder proves", "One proof per block."],
+  D: ["Aggregation, gas binds", "Recursive proving in the mempool."],
+  E: ["Aggregation, mempool binds", "Recursive proving; provers limit it."],
+  F1: ["User-side proof", "Your computer proves it."],
+  F2: ["User-side proof, first node", "The first node proves it."],
+  F3: ["User-side proof, bundled", "A bundler proves many."],
+};
+export const pickLine = (id) => (PICK[id] ? PICK[id][1] : "");
 
 const ROUTES = {
   E0a: "ERC-4337 smart account", E0b: "Safe module", E0c: "EIP-7702 account",
@@ -226,14 +241,14 @@ export const GROUPS = [
   },
   {
     key: "D", ids: ["D"],
-    simple: "Nodes fold signatures into proofs every second. The block carries one proof. The gas charged per signature caps throughput.",
+    simple: "Recursive proving in the mempool: every second, each node proves the signatures it holds and merges its neighbours' proofs. The block carries one proof. The gas charged per signature caps throughput.",
     detail(f) {
       const g = f.gasRow("D"), g3 = f.gasRow("D-dep3000");
       const sim = f.cell("D", { pricing: "8288:3000+30000/dep", gas: CARD_GAS });
       const sim3 = f.cell("E", { pricing: "leanPCS-draft:3000/dep", gas: CARD_GAS });
       const today3 = f.cell("E", { pricing: "leanPCS-draft:3000/dep", gas: CARD_GAS, candidate: TODAY_SET });
       return [
-        ["Who verifies", "Mempool nodes aggregate recursively: they prove signatures and merge proofs, every second. The block's single STARK proof covers every signature."],
+        ["Who verifies", "Mempool nodes, by recursive proving. Every second each node proves all the signatures it holds in one proof (its own batch) and merges the proofs its neighbours send. The builder's last merge is the block's single STARK, which covers every signature. In the simulation every one of the 40 nodes aggregates, and each signature ends up proved by 23 to 30 of them."],
         ["Where the signature goes", "To the first aggregating nodes only, in a mempool wrapper. Never on chain. The transaction carries a 96-byte dependency instead: message hash, key and scheme."],
         ["What you pay, EIP-8288 as written", `${fmtInt(g3.parts.verification)} gas for the signature plus ${fmtInt(g.parts.verification - g3.parts.verification)} of recursive STARK gas, per dependency. Add the frame transaction itself (${fmtInt(g.parts.fixed)}) and the dependency's bytes (${fmtInt(g.parts.calldata)}): ${fmtInt(g.total)} gas. ` +
           `That allows ${fmtTps(gasBound(CARD_GAS, g.total))} tx/s at 60 M` + (sim ? ` (${fmtTps(sim.tps_tx)} simulated)` : "") + ", about a third of the plain-transfer bound. This is a price in a draft, not a physical limit."],
@@ -333,85 +348,92 @@ export function initScenarioHelp(app) {
   const f = makeFigures(data);
   const select = $("#ex-scenario");
 
-  // The reference point.
   const base = ecdsaBaseline(CARD_GAS);
-  const reference = clear($("#sc-reference"));
-  reference.dataset.baseline = String(base);
-  reference.append(
-    el("p", {}, el("strong", {}, "Reference point. "),
-      `A plain transfer signed with ECDSA, the signature scheme Ethereum uses today, costs ${fmtInt(ECDSA_TRANSFER_GAS)} gas. ` +
-      `A block of ${fmtGas(CARD_GAS)} (${CARD_GAS / 1e6} million) gas every ${SLOT_SECONDS} seconds then holds at most `,
-      el("strong", { id: "sc-baseline-60", "data-value": String(base) }, fmtTps(base) + " transactions per second (tx/s)"),
-      ". ", chip("modelled", "A gas bound: gas limit / 21,000 / 12 s"),
-      " This is a gas bound for plain transfers. " + MAINNET_SENTENCE),
-    el("p", {}, "Every throughput figure in this tool is of the same kind: a gas bound, or a simulated capacity, for a block filled with one kind of transaction. " +
-      `Compare it with ${Math.round(base)}, not with 15.`));
+  const about = $("#ab-baseline");
+  if (about) about.textContent = fmtTps(base);
 
-  // One card per row of the scenario list.
-  const list = clear($("#sc-cards"));
+  // The picker: one button per scenario id, a short title and a short line.
+  const picker = clear($("#sc-picker"));
   for (const group of GROUPS) {
-    const first = f.idById.get(group.ids[0]);
-    const onChain = f.cardFigures(group.ids[0]).gas.signature_on_chain;
-    const card = el("article", { class: "sc-card", "data-group": group.key, "data-ids": group.ids.join(" ") });
-    const routes = el("div", { class: "sc-routes" });
+    for (const id of group.ids) {
+      const [title, line] = PICK[id] || [f.idById.get(id).name, ""];
+      const button = el("button", { type: "button", class: "sc-pick", "data-id": id, "data-group": group.key, "aria-pressed": "false" },
+        el("span", { class: "sc-pick-title" }, title, " ", el("span", { class: "sc-id" }, id)),
+        el("span", { class: "sc-line" }, line));
+      button.addEventListener("click", () => choose(id));
+      picker.append(button);
+    }
+  }
+
+  // All scenarios side by side: the working set at 60 M gas (collapsed).
+  const compare = clear($("#sc-compare"));
+  compare.append(el("thead", {}, el("tr", {},
+    el("th", { scope: "col" }, "Scenario"),
+    el("th", { scope: "col" }, "When"),
+    el("th", { scope: "col" }, "Signature on chain"),
+    el("th", { scope: "col", class: "n" }, "Throughput", el("span", { class: "sub" }, "at 60 M gas")),
+    el("th", { scope: "col", class: "n" }, "Gas", el("span", { class: "sub" }, "per transaction")))));
+  const compareBody = el("tbody");
+  for (const group of GROUPS) {
     for (const id of group.ids) {
       const fig = f.cardFigures(id);
+      const entry = fig.entry;
       const sim = fig.simulated && fig.simulated.gas_limit === CARD_GAS ? fig.simulated : null;
-      const label = routeLabel(id);
-      const button = el("button", { type: "button", class: "sc-pick", "data-id": id, "aria-pressed": "false",
-        title: "Show this scenario in the tables below" },
-        label || "Show in the tables below", " ", el("span", { class: "sc-id" }, id));
-      button.addEventListener("click", () => choose(id));
-      const throughput = el("p", { class: "sc-fig", "data-fig": "throughput", "data-bound": String(fig.bound),
+      const onChain = fig.gas.signature_on_chain;
+      const throughput = el("td", { class: "n", "data-fig": "throughput", "data-bound": String(fig.bound),
         "data-simulated": sim ? String(fig.simulatedTps) : "", "data-unit": fig.unit });
       if (sim) {
         throughput.append(el("span", { class: "sc-num" }, fmtTps(fig.simulatedTps)), " " + fig.unit,
           chip("simulated", `${sim.status}. Source: ${sim.source}`),
-          el("span", { class: "sub" }, `at 60 M gas · gas bound ${fmtTps(fig.bound)}` +
-            (fig.gas.signatures > 1 ? " · signatures, not transactions" : ` · ${Math.round(fig.share * 100)}% of plain transfers`)));
+          el("span", { class: "sub" }, `gas bound ${fmtTps(fig.bound)}` +
+            (fig.gas.signatures > 1 ? "; signatures, not transactions" : ` · ${Math.round(fig.share * 100)}% of ECDSA`)));
       } else {
         throughput.append(el("span", { class: "sc-num" }, fmtTps(fig.bound)), " " + fig.unit,
           chip("modelled", "The gas bound: 60 M / gas per transaction / 12 s"),
-          el("span", { class: "sub" }, "gas bound at 60 M gas · " + `${Math.round(fig.share * 100)}% of plain transfers` +
-            (fig.simulated ? ` · simulated only at ${fmtGas(fig.simulated.gas_limit)}: ${fmtTps(fig.simulatedTps)}, ${fig.simulated.binding} binds` : " · no simulated cell")));
+          el("span", { class: "sub" }, `gas bound · ${Math.round(fig.share * 100)}% of ECDSA` +
+            (fig.simulated ? `; simulated only at ${fmtGas(fig.simulated.gas_limit)}: ${fmtTps(fig.simulatedTps)}` : "; no simulated cell")));
       }
       const perSig = fig.gas.signatures > 1;
-      const gas = el("p", { class: "sc-fig", "data-fig": "gas", "data-total": String(fig.gas.total), "data-signatures": String(fig.gas.signatures) },
-        el("span", { class: "sc-num" }, fmtInt(perSig ? fig.gas.gas_per_signature : fig.gas.total)), " gas",
+      const gas = el("td", { class: "n", "data-fig": "gas", "data-total": String(fig.gas.total), "data-signatures": String(fig.gas.signatures) },
+        el("span", { class: "sc-num" }, fmtInt(perSig ? fig.gas.gas_per_signature : fig.gas.total)),
         chip("modelled", data.gas.status_default),
-        el("span", { class: "sub" }, perSig ? `per signature · ${fmtInt(fig.gas.total)} per bundle of ${fig.gas.signatures}` : "per transaction, one signature"));
-      routes.append(el("div", { class: "sc-route", "data-id": id }, button, throughput, gas));
+        perSig ? el("span", { class: "sub" }, `per signature; ${fmtInt(fig.gas.total)} per bundle of ${fig.gas.signatures}`) : null);
+      const pick = el("button", { type: "button", class: "link", "data-id": id, title: entry.name + (routeLabel(id) ? ": " + routeLabel(id) : "") },
+        PICK[id] ? PICK[id][0] : entry.name);
+      pick.addEventListener("click", () => { choose(id); $("#ex-pick").scrollIntoView({ block: "start" }); });
+      compareBody.append(el("tr", { "data-id": id, "data-group": group.key },
+        el("th", { scope: "row" }, pick, " ", el("span", { class: "sc-id" }, id)),
+        el("td", { title: whenLabel(entry.when) }, entry.when === "now" ? "today" : entry.when),
+        el("td", { "data-onchain": String(onChain) }, onChain ? "yes" : "no"),
+        throughput, gas));
     }
-    const details = el("details", { class: "sc-details", "data-group": group.key },
-      el("summary", {}, "Details", el("span", { class: "sc-sr" }, " of " + first.name)), detailBlock(group, f));
-    details.addEventListener("toggle", () => { if (details.open && !group.ids.includes(select.value)) choose(group.ids[0]); });
-    card.append(
-      el("div", { class: "sc-head" },
-        el("h3", {}, first.name, " ", el("span", { class: "sc-id" }, group.ids.join(" · "))),
-        el("p", { class: "sc-when" }, whenLabel(first.when)),
-        el("p", { class: "sc-simple" }, group.simple),
-        el("p", { class: "sc-chain", "data-onchain": String(onChain) },
-          el("b", {}, "Signature on chain: "), onChain ? "yes, in every block" : "no")),
-      routes, details);
-    list.append(card);
   }
+  compare.append(compareBody);
 
+  // The selected scenario: its plain line and its full explanation.
+  function showSelected() {
+    const id = select.value;
+    const group = groupOf(id);
+    const entry = f.idById.get(id);
+    for (const button of picker.querySelectorAll(".sc-pick")) {
+      button.setAttribute("aria-pressed", String(button.dataset.id === id));
+    }
+    for (const tr of compareBody.querySelectorAll("tr")) tr.classList.toggle("pick", tr.dataset.id === id);
+    if (!group || !entry) return;
+    clear($("#ex-simple")).append(group.simple, entry.when === "now" ? "" : " " + whenLabel(entry.when) + ".");
+    const how = $("#ex-how");
+    if (how.dataset.group !== group.key) {
+      how.dataset.group = group.key;
+      clear($("#ex-how-body")).append(detailBlock(group, f));
+    }
+  }
   function choose(id) {
     if (select.value === id) return;
     select.value = id;
     select.dispatchEvent(new Event("change"));
   }
-  function markSelected() {
-    for (const card of list.querySelectorAll(".sc-card")) {
-      const mine = card.dataset.ids.split(" ").includes(select.value);
-      card.toggleAttribute("data-selected", mine);
-      for (const button of card.querySelectorAll(".sc-pick")) {
-        button.setAttribute("aria-pressed", String(button.dataset.id === select.value));
-      }
-    }
-  }
-  select.addEventListener("change", markSelected);
-  markSelected();
+  select.addEventListener("change", showSelected);
+  showSelected();
 
   // ------------------------------------- reading the aggregation numbers
   const dep = f.gasRow("D"), dep3 = f.gasRow("D-dep3000"), plain = f.gasRow("A"), plainToday = f.gasRow("A", TODAY_SET);
@@ -493,8 +515,7 @@ export function initScenarioHelp(app) {
     const group = groupOf(simScenario.value);
     const entry = f.idById.get(simScenario.value);
     if (!group || !entry) return;
-    clear($("#sim-scenario-simple")).append(el("strong", {}, entry.name + (routeLabel(entry.id) ? ": " + routeLabel(entry.id) : "") + ". "),
-      group.simple, entry.when === "now" ? "" : " " + whenLabel(entry.when) + ".");
+    clear($("#sim-scenario-simple")).append(pickLine(entry.id), " ", el("span", { class: "dim" }, whenLabel(entry.when) + "."));
     const details = $("#sim-scenario-details");
     if (details.dataset.group !== group.key) {
       details.dataset.group = group.key;
@@ -508,9 +529,9 @@ export function initScenarioHelp(app) {
     const baseline = ecdsaBaseline(gas);
     node.dataset.baseline = String(baseline);
     node.dataset.gas = String(gas);
-    clear(node).append(chip("modelled", "A gas bound: gas limit / 21,000 / 12 s"), " " + baselineSentence(gas) + " " + MAINNET_SENTENCE +
+    clear(node).append(baselineSentence(gas), " ", chip("modelled", "A gas bound: gas limit / 21,000 / 12 s"),
       (run && typeof run.tps_tx === "number" && run.tps_tx >= 0
-        ? ` This run sustained ${fmtTps(run.tps_tx)} tx/s, ${(run.tps_tx / baseline * 100).toFixed(0)}% of that bound.` : ""));
+        ? ` This run: ${fmtTps(run.tps_tx)} tx/s, ${(run.tps_tx / baseline * 100).toFixed(0)}% of it.` : ""));
   }
   simScenario.addEventListener("change", () => { simHelp(); simBaseline(); });
   simGas.addEventListener("change", () => simBaseline());

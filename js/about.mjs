@@ -70,5 +70,5 @@ export function initAbout(app) {
     }
   });
 
-  $("#foot-build").append(` This build: simulator commit ${sim.commit.slice(0, 12)} (${sim.commit_date.slice(0, 10)}), Pyodide ${build.pyodide.version}.`);
+  $("#foot-build").textContent = `This build: simulator commit ${sim.commit.slice(0, 12)} (${sim.commit_date.slice(0, 10)}), Pyodide ${build.pyodide.version}.`;
 }

@@ -14,16 +14,9 @@
 <div class="page">
 
 <header class="top">
-  <p class="eyebrow">Parameter campaign · tables and simulator</p>
   <h1>leanSPHINCS parameters, scenario by scenario</h1>
-  <p class="lede">How signature size and permutations per signature move Ethereum throughput in each deployment scenario. Browse the campaign's final tables, or run its network simulator in this browser.</p>
-  <p class="small">Nothing here was measured on a Ledger. The tables and the simulator are not network measurements; the only figures from real networks are the receipts under "Measured on chain" in Explore.</p>
-  <ul class="legend" aria-label="Evidence levels">
-    <li><span class="ev m">measured</span> gas from Forge tests on a real verifier, or from a transaction receipt</li>
-    <li><span class="ev c">counted</span> exact leanVM row counts from real runs</li>
-    <li><span class="ev">simulated</span> network simulator, on modelled inputs</li>
-    <li><span class="ev o">modelled</span> derived from EIP text or a timing model</li>
-  </ul>
+  <p class="lede">How a post-quantum signature's size moves Ethereum throughput, in twelve ways to deploy it.</p>
+  <p class="small" id="ev-line">Figures are modelled or simulated unless marked <span class="ev m">measured</span>. <a href="#about">About</a> explains.</p>
   <div class="bar">
     <nav class="tabs" aria-label="Views">
       <a href="#explore" data-view="explore">Explore</a>
@@ -40,153 +33,205 @@
 <!-- ================================================================== Explore -->
 <main id="view-explore" class="view" data-view="explore" hidden>
 
-  <section aria-labelledby="sc-overview-h" id="sc-overview">
-    <h2 id="sc-overview-h">The scenarios at a glance</h2>
-    <p class="note">A scenario is one way to put a leanSPHINCS signature into an Ethereum transaction. Each row says in one line how it works, then gives the figures for the working set (4,420 bytes, 289 permutations) with one signature per transaction and a block gas limit of 60 M gas. Open <strong>Details</strong> for the full explanation. The buttons choose the scenario for the tables further down.</p>
-    <div class="card" id="sc-reference"></div>
-    <p class="small">Words used: tx/s is transactions per second. Gas is Ethereum's unit of cost; a block may use at most its gas limit. An EIP is an Ethereum Improvement Proposal (8141, 8288, 7623 and 7976 are EIP numbers); an ERC is an application standard. A fork is a protocol upgrade; Glamsterdam is the next one planned. The mempool is where transactions wait before a block. A STARK is a proof that a computation, here checking signatures, was done correctly.</p>
-    <div id="sc-cards" class="sc-cards"></div>
+  <section aria-labelledby="ex-pick-h" id="ex-pick">
+    <h2 id="ex-pick-h" class="sr">Scenario</h2>
+    <label for="ex-scenario" class="sr">Scenario</label>
+    <select id="ex-scenario" class="sr" tabindex="-1" aria-hidden="true"></select>
+    <div id="sc-picker" class="sc-picker" role="group" aria-label="Scenario"></div>
   </section>
 
-  <section aria-labelledby="agg-h" id="agg-section">
-    <h2 id="agg-h">Reading the aggregation numbers</h2>
-    <p class="note">Aggregation replaces the signatures of many transactions with one proof, so no signature byte reaches the chain. It still looks slower than a plain transfer. The table shows why: the gas of one transaction with one signature, split, and the transactions per second that gas allows at 60 M. <span class="ev o">modelled</span> gas from the EIP texts; <span class="ev">simulated</span> 40-node runs.</p>
-    <div class="scroll" tabindex="0" role="region" aria-label="Gas of one transaction with and without aggregation">
-      <table class="mid" id="agg-table">
-        <thead><tr>
-          <th scope="col">One transaction</th>
-          <th scope="col" class="n">Fixed<span class="sub">transaction, frames</span></th>
-          <th scope="col" class="n">Data bytes</th>
-          <th scope="col" class="n">Charge<span class="sub">per signature</span></th>
-          <th scope="col" class="n">Total gas</th>
-          <th scope="col" class="n">Gas bound<span class="sub">tx/s at 60 M</span></th>
-          <th scope="col" class="n">Simulated<span class="sub">tx/s at 60 M</span></th>
-        </tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-    <ul class="plain" id="agg-points"></ul>
-  </section>
-
-  <section aria-labelledby="ex-scenario-h">
-    <h2 id="ex-scenario-h">Selected scenario and its tables</h2>
-    <div class="formgrid one">
-      <div class="field wide">
-        <label for="ex-scenario">Deployment scenario</label>
-        <select id="ex-scenario"></select>
+  <section aria-labelledby="ex-head-h" id="ex-headline-section" class="headline">
+    <div class="hl-top">
+      <div class="stack tight">
+        <h2 id="ex-head-h">Scenario</h2>
+        <p class="sc-simple" id="ex-simple"></p>
       </div>
+      <fieldset class="seg" id="hl-gas">
+        <legend>Block gas limit</legend>
+        <div class="seg-opts" id="hl-gas-opts"></div>
+      </fieldset>
     </div>
-    <div class="card" id="ex-scenario-card" aria-live="polite"></div>
+    <p class="note" id="ex-alias" hidden></p>
+    <div class="stats" id="ex-headline" aria-live="polite"></div>
+    <p class="small" id="sc-reference"></p>
   </section>
 
-  <section aria-labelledby="ex-table-h">
-    <h2 id="ex-table-h">Final table</h2>
-    <div class="formgrid one">
-      <div class="field wide">
-        <label for="ex-group">Cells (pricing, network profile, uplinks, network size, signatures per transaction)</label>
-        <select id="ex-group"></select>
+  <section aria-label="More on this scenario" class="more" id="ex-more">
+    <details id="ex-how">
+      <summary>How it works: who verifies, what you pay</summary>
+      <div class="stack">
+        <div id="ex-scenario-card" class="stack tight"></div>
+        <div id="ex-how-body"></div>
       </div>
-    </div>
-    <p class="small mono" id="ex-group-full"></p>
-    <p class="note" id="ex-table-lead"></p>
-    <div class="scroll" tabindex="0" role="region" aria-label="Throughput per candidate set" id="ex-table-wrap">
-      <table class="wide" id="ex-table"></table>
-    </div>
-    <p class="note" id="ex-table-note"></p>
-    <details id="ex-summary">
-      <summary>What the report's summary says about this scenario</summary>
-      <div id="ex-summary-body" class="stack"></div>
     </details>
-  </section>
 
-  <section aria-labelledby="ex-gas-h" id="ex-gas-section">
-    <h2 id="ex-gas-h">Gas and calldata per transaction</h2>
-    <p class="note" id="ex-gas-lead"></p>
-    <form id="gas-form" class="formgrid" novalidate>
-      <div class="field wide">
-        <label for="gas-config">Pricing variant</label>
-        <select id="gas-config" name="configuration"></select>
+    <details id="ex-full">
+      <summary>Full table: every set at every gas limit</summary>
+      <div class="stack">
+        <div class="formgrid one">
+          <div class="field wide">
+            <label for="ex-group">Cells (pricing, profile, uplinks, nodes, signatures per transaction)</label>
+            <select id="ex-group"></select>
+          </div>
+        </div>
+        <p class="small mono" id="ex-group-full"></p>
+        <p class="note" id="ex-table-lead"></p>
+        <div class="scroll" tabindex="0" role="region" aria-label="Throughput per candidate set" id="ex-table-wrap">
+          <table class="wide" id="ex-table"></table>
+        </div>
+        <p class="note" id="ex-table-note"></p>
+        <details id="ex-summary">
+          <summary>What the report's summary says about this scenario</summary>
+          <div id="ex-summary-body" class="stack"></div>
+        </details>
       </div>
-      <div class="field">
-        <label for="gas-k" id="gas-k-label">Signatures per transaction</label>
-        <select id="gas-k" name="k"></select>
-      </div>
-      <div class="field">
-        <label for="gas-basefee">Base fee, gwei <span class="tag">example</span></label>
-        <input id="gas-basefee" name="base_fee_gwei" type="number" inputmode="decimal" min="0" step="any" value="1">
-      </div>
-      <div class="field">
-        <label for="gas-ethusd">ETH price, USD <span class="tag">example</span></label>
-        <input id="gas-ethusd" name="eth_usd" type="number" inputmode="decimal" min="0" step="any" value="3000">
-      </div>
-    </form>
-    <p class="small" id="gas-example-note">The base fee and the ETH price are examples to type over, not data: this site has no price feed. The cost column is the total gas times the base fee, in ETH and in USD, without a priority fee.</p>
-    <div class="scroll" tabindex="0" role="region" aria-label="Gas per transaction, per candidate set">
-      <table class="wide" id="ex-gas"></table>
-    </div>
-    <p class="note" id="ex-gas-note"></p>
-
-    <h3 id="ex-measured-h">Measured on chain</h3>
-    <p class="note" id="ex-measured-lead"></p>
-    <div class="scroll" tabindex="0" role="region" aria-label="Gas measured in real transactions">
-      <table class="wide" id="ex-measured"></table>
-    </div>
-    <p class="note" id="ex-measured-note"></p>
-    <details id="ex-disagree">
-      <summary>Where two sources give different numbers</summary>
-      <div id="ex-disagree-body" class="stack"></div>
     </details>
-  </section>
 
-  <section aria-labelledby="ex-cand-h">
-    <h2 id="ex-cand-h">Candidate sets</h2>
-    <div class="scroll" tabindex="0" role="region" aria-label="Candidate parameter sets">
-      <table class="wide" id="ex-candidates"></table>
-    </div>
-    <p class="note">Bytes and permutations follow from the parameters. Ledger times are modelled at 5.8K permutations per second, a third-party benchmark rate; the budget is a p99 under 32 s and fewer than 1 signature in 1,000 over 35 s. Single-layer sets assume a Ledger key pruned to 2<sup>11</sup> leaves and rotated after 1,024 signatures. EVM gas is the mean over 52 test vectors of the Solidity verifier; no verifier was built for the layered sets. leanVM cycles are counts on proof runs, not timings.</p>
-    <p class="note">Reading the notation: <code>24|fors|a10|k17|w4|T127|b11</code> is one XMSS tree of height 24, FORS with 17 trees of height 10, WOTS+C chains of length 4 (2-bit digits) with target sum 127, and a Ledger that keeps 2<sup>11</sup> leaves. <code>10+8+8</code> is three layers.</p>
-  </section>
+    <details id="ex-gas-section">
+      <summary>Gas and calldata per transaction</summary>
+      <div class="stack">
+        <p class="note" id="ex-gas-lead"></p>
+        <form id="gas-form" class="formgrid" novalidate>
+          <div class="field wide">
+            <label for="gas-config">Pricing variant</label>
+            <select id="gas-config" name="configuration"></select>
+          </div>
+          <div class="field">
+            <label for="gas-k" id="gas-k-label">Signatures per transaction</label>
+            <select id="gas-k" name="k"></select>
+          </div>
+          <div class="field">
+            <label for="gas-basefee">Base fee, gwei <span class="tag">example</span></label>
+            <input id="gas-basefee" name="base_fee_gwei" type="number" inputmode="decimal" min="0" step="any" value="1">
+          </div>
+          <div class="field">
+            <label for="gas-ethusd">ETH price, USD <span class="tag">example</span></label>
+            <input id="gas-ethusd" name="eth_usd" type="number" inputmode="decimal" min="0" step="any" value="3000">
+          </div>
+        </form>
+        <p class="small" id="gas-example-note">Base fee and ETH price are examples to type over, not data. Cost is total gas times base fee, without a priority fee.</p>
+        <div class="scroll" tabindex="0" role="region" aria-label="Gas per transaction, per candidate set">
+          <table class="wide" id="ex-gas"></table>
+        </div>
+        <p class="note" id="ex-gas-note"></p>
+      </div>
+    </details>
 
-  <section aria-labelledby="ex-calc-h">
-    <h2 id="ex-calc-h">Calculator</h2>
-    <p class="note"><span class="ev o">modelled</span> This is the campaign's gas and prover model at one point, not a simulation. It assumes networking away: the bound is the lowest of the gas, byte and prover limits. To see what the network does to it, run the point in <a href="#simulate">Simulate</a>.</p>
-    <form id="calc-form" class="formgrid" novalidate>
-      <div class="field">
-        <label for="calc-base">Base set</label>
-        <select id="calc-base" name="candidate"></select>
+    <details id="ex-measured-section">
+      <summary>Measured on chain: real receipts</summary>
+      <div class="stack">
+        <p class="note" id="ex-measured-lead"></p>
+        <div class="scroll" tabindex="0" role="region" aria-label="Gas measured in real transactions">
+          <table class="wide" id="ex-measured"></table>
+        </div>
+        <p class="note" id="ex-measured-note"></p>
+        <details id="ex-disagree">
+          <summary>Where two sources give different numbers</summary>
+          <div id="ex-disagree-body" class="stack"></div>
+        </details>
       </div>
-      <div class="field">
-        <label for="calc-bytes">Signature size, bytes</label>
-        <input id="calc-bytes" name="sig_bytes" type="number" inputmode="numeric" min="1" step="1" required>
-      </div>
-      <div class="field">
-        <label for="calc-perms">Permutations per signature</label>
-        <input id="calc-perms" name="perms" type="number" inputmode="numeric" min="1" step="1" required>
-      </div>
-      <div class="field">
-        <label for="calc-gas">Block gas limit</label>
-        <select id="calc-gas" name="gas_limit"></select>
-      </div>
-    </form>
-    <p class="note" id="calc-context"></p>
-    <p class="note" id="calc-baseline"></p>
-    <p class="status" id="calc-status" role="status" aria-live="polite">Waiting for the simulator to load.</p>
-    <div class="scroll narrow" tabindex="0" role="region" aria-label="Model result">
-      <table id="calc-table">
-        <thead><tr><th scope="col">Figure</th><th scope="col" class="n">Model</th><th scope="col">Evidence</th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-    <p class="note" id="calc-note"></p>
-    <h3 id="calc-gas-h">Gas of this transaction, split</h3>
-    <div class="scroll narrow" tabindex="0" role="region" aria-label="Gas of the transaction, split">
-      <table id="calc-gas-table">
-        <thead><tr><th scope="col">Part</th><th scope="col" class="n">Gas</th><th scope="col">Evidence</th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-    <p class="note" id="calc-gas-note"></p>
+    </details>
 
+    <details id="ex-cand-section">
+      <summary>Candidate sets: size, permutations, Ledger</summary>
+      <div class="stack">
+        <div class="scroll" tabindex="0" role="region" aria-label="Candidate parameter sets">
+          <table class="wide" id="ex-candidates"></table>
+        </div>
+        <p class="note">Ledger times: modelled at 5.8K permutations per second (a third-party benchmark); budget p99 under 32 s, under 1 in 1,000 over 35 s. Single-layer sets assume a key pruned to 2<sup>11</sup> leaves, rotated after 1,024 signatures. EVM gas: mean over 52 test vectors; no verifier was built for the layered sets. leanVM cycles are counts, not timings.</p>
+        <p class="note">Notation: <code>24|fors|a10|k17|w4|T127|b11</code> is one XMSS tree of height 24, FORS with 17 trees of height 10, WOTS+C chains of length 4 (2-bit digits), target sum 127, and a Ledger that keeps 2<sup>11</sup> leaves. <code>10+8+8</code> is three layers.</p>
+      </div>
+    </details>
+
+    <details id="ex-calc-section">
+      <summary>Calculator: the model at your own size</summary>
+      <div class="stack">
+        <p class="note"><span class="ev o">modelled</span> The campaign's gas and prover model at one point, not a simulation: networking is assumed away. <a href="#simulate">Simulate</a> adds the network.</p>
+        <form id="calc-form" class="formgrid" novalidate>
+          <div class="field">
+            <label for="calc-base">Base set</label>
+            <select id="calc-base" name="candidate"></select>
+          </div>
+          <div class="field">
+            <label for="calc-bytes">Signature size, bytes</label>
+            <input id="calc-bytes" name="sig_bytes" type="number" inputmode="numeric" min="1" step="1" required>
+          </div>
+          <div class="field">
+            <label for="calc-perms">Permutations per signature</label>
+            <input id="calc-perms" name="perms" type="number" inputmode="numeric" min="1" step="1" required>
+          </div>
+          <div class="field">
+            <label for="calc-gas">Block gas limit</label>
+            <select id="calc-gas" name="gas_limit"></select>
+          </div>
+        </form>
+        <p class="note" id="calc-context"></p>
+        <p class="note" id="calc-baseline"></p>
+        <p class="status" id="calc-status" role="status" aria-live="polite">Waiting for the simulator to load.</p>
+        <div class="scroll narrow" tabindex="0" role="region" aria-label="Model result">
+          <table id="calc-table">
+            <thead><tr><th scope="col">Figure</th><th scope="col" class="n">Model</th><th scope="col">Evidence</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p class="note" id="calc-note"></p>
+        <h3 id="calc-gas-h">Gas of this transaction, split</h3>
+        <div class="scroll narrow" tabindex="0" role="region" aria-label="Gas of the transaction, split">
+          <table id="calc-gas-table">
+            <thead><tr><th scope="col">Part</th><th scope="col" class="n">Gas</th><th scope="col">Evidence</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p class="note" id="calc-gas-note"></p>
+      </div>
+    </details>
+
+    <h2 class="more-h" id="ex-across-h">Across scenarios</h2>
+
+    <details id="sc-overview">
+      <summary>All scenarios side by side at 60 M</summary>
+      <div class="stack">
+        <p class="note">Working set (4,420 bytes, 289 permutations), one signature per transaction.</p>
+        <div class="scroll" tabindex="0" role="region" aria-label="All scenarios at 60 M gas">
+          <table class="mid" id="sc-compare"></table>
+        </div>
+      </div>
+    </details>
+
+    <details id="agg-section">
+      <summary>Reading the aggregation numbers</summary>
+      <div class="stack">
+        <p class="note">One transaction with one signature, its gas split, and the tx/s that allows at 60 M. <span class="ev o">modelled</span> gas from the EIP texts; <span class="ev">simulated</span> 40-node runs.</p>
+        <div class="scroll" tabindex="0" role="region" aria-label="Gas of one transaction with and without aggregation">
+          <table class="mid" id="agg-table">
+            <thead><tr>
+              <th scope="col">One transaction</th>
+              <th scope="col" class="n">Fixed<span class="sub">transaction, frames</span></th>
+              <th scope="col" class="n">Data bytes</th>
+              <th scope="col" class="n">Charge<span class="sub">per signature</span></th>
+              <th scope="col" class="n">Total gas</th>
+              <th scope="col" class="n">Gas bound<span class="sub">tx/s at 60 M</span></th>
+              <th scope="col" class="n">Simulated<span class="sub">tx/s at 60 M</span></th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <ul class="plain" id="agg-points"></ul>
+      </div>
+    </details>
+
+    <details id="ex-words">
+      <summary>Words used</summary>
+      <dl class="kv">
+        <dt>tx/s</dt><dd>Transactions per second; sig/s, signatures per second.</dd>
+        <dt>Gas</dt><dd>Ethereum's unit of cost. A block may use at most its gas limit, one block every 12 s.</dd>
+        <dt>EIP, ERC</dt><dd>An Ethereum Improvement Proposal (8141, 8288, 7623 and 7976 are EIP numbers); an ERC is an application standard.</dd>
+        <dt>Fork</dt><dd>A protocol upgrade. Glamsterdam is the next one planned; H* is the fork after it, I* the one after that.</dd>
+        <dt>Mempool</dt><dd>Where transactions wait before a block.</dd>
+        <dt>STARK</dt><dd>A proof that a computation, here checking signatures, was done correctly.</dd>
+        <dt>Working set</dt><dd>P99r, the campaign's pick (4,420 bytes, 289 permutations). Today's set is B0.</dd>
+      </dl>
+    </details>
   </section>
 </main>
 
@@ -195,75 +240,75 @@
 
   <section aria-labelledby="sim-form-h">
     <h2 id="sim-form-h">Run the simulator</h2>
-    <p class="note">The campaign's network simulator runs in this browser, in a Web Worker, and returns the row the command line prints for the same settings and seed. Browser runs use a smaller network than the 40-node runs behind the campaign's tables, so their figures can differ from the tables.</p>
+    <p class="note">The campaign's network simulator, in this browser, on a smaller network than the tables' 40 nodes.</p>
     <form id="sim-form" novalidate>
       <div class="formgrid">
         <div class="field wide">
           <label for="sim-scenario">Scenario</label>
           <select id="sim-scenario" name="scenario"></select>
         </div>
-        <div class="field wide">
-          <label for="sim-config">Configuration</label>
-          <select id="sim-config" name="configuration"></select>
-        </div>
       </div>
       <p id="sim-scenario-simple" class="sc-simple"></p>
-      <details id="sim-scenario-details">
-        <summary>Details of this scenario</summary>
-        <div id="sim-scenario-details-body"></div>
-      </details>
-      <p class="note" id="sim-scenario-note"></p>
 
       <div id="sim-explore-only" class="card warn" hidden></div>
 
       <div id="sim-fields">
         <div class="formgrid">
-          <div class="field">
+          <div class="field wide">
             <label for="sim-candidate">Parameter set</label>
             <select id="sim-candidate" name="candidate"></select>
-          </div>
-          <div class="field check">
-            <input id="sim-custom" name="custom" type="checkbox">
-            <label for="sim-custom">Custom bytes and permutations</label>
-          </div>
-          <div class="field">
-            <label for="sim-bytes">Signature size, bytes</label>
-            <input id="sim-bytes" name="sig_bytes" type="number" inputmode="numeric" min="1" step="1" disabled>
-          </div>
-          <div class="field">
-            <label for="sim-perms">Permutations per signature</label>
-            <input id="sim-perms" name="perms" type="number" inputmode="numeric" min="1" step="1" disabled>
           </div>
           <div class="field">
             <label for="sim-gas">Block gas limit</label>
             <select id="sim-gas" name="gas_limit"></select>
           </div>
-          <div class="field">
-            <label for="sim-profile">Network profile</label>
-            <select id="sim-profile" name="profile"></select>
-          </div>
-          <div class="field">
-            <label for="sim-uplinks">Uplinks</label>
-            <select id="sim-uplinks" name="uplinks"></select>
-          </div>
-          <div class="field">
-            <label for="sim-nodes">Nodes</label>
-            <input id="sim-nodes" name="nodes" type="number" inputmode="numeric" step="1" required>
-          </div>
-          <div class="field">
-            <label for="sim-slots">Measured slots</label>
-            <input id="sim-slots" name="measured_slots" type="number" inputmode="numeric" step="1" required>
-          </div>
-          <div class="field">
-            <label for="sim-seed">Seed</label>
-            <input id="sim-seed" name="seed" type="number" inputmode="numeric" min="0" step="1" required>
-          </div>
-          <div class="field" id="sim-k-field">
-            <label for="sim-k" id="sim-k-label">Signatures per transaction</label>
-            <input id="sim-k" name="k" type="number" inputmode="numeric" min="1" step="1">
-          </div>
         </div>
-        <p class="note" id="sim-limits"></p>
+        <details id="sim-more">
+          <summary>More settings: pricing, network, nodes, seed, size</summary>
+          <div class="formgrid">
+            <div class="field wide">
+              <label for="sim-config">Configuration</label>
+              <select id="sim-config" name="configuration"></select>
+            </div>
+            <div class="field">
+              <label for="sim-profile">Network profile</label>
+              <select id="sim-profile" name="profile"></select>
+            </div>
+            <div class="field">
+              <label for="sim-uplinks">Uplinks</label>
+              <select id="sim-uplinks" name="uplinks"></select>
+            </div>
+            <div class="field">
+              <label for="sim-nodes">Nodes</label>
+              <input id="sim-nodes" name="nodes" type="number" inputmode="numeric" step="1" required>
+            </div>
+            <div class="field">
+              <label for="sim-slots">Measured slots</label>
+              <input id="sim-slots" name="measured_slots" type="number" inputmode="numeric" step="1" required>
+            </div>
+            <div class="field">
+              <label for="sim-seed">Seed</label>
+              <input id="sim-seed" name="seed" type="number" inputmode="numeric" min="0" step="1" required>
+            </div>
+            <div class="field" id="sim-k-field">
+              <label for="sim-k" id="sim-k-label">Signatures per transaction</label>
+              <input id="sim-k" name="k" type="number" inputmode="numeric" min="1" step="1">
+            </div>
+            <div class="field check">
+              <input id="sim-custom" name="custom" type="checkbox">
+              <label for="sim-custom">Custom bytes and permutations</label>
+            </div>
+            <div class="field">
+              <label for="sim-bytes">Signature size, bytes</label>
+              <input id="sim-bytes" name="sig_bytes" type="number" inputmode="numeric" min="1" step="1" disabled>
+            </div>
+            <div class="field">
+              <label for="sim-perms">Permutations per signature</label>
+              <input id="sim-perms" name="perms" type="number" inputmode="numeric" min="1" step="1" disabled>
+            </div>
+          </div>
+        </details>
+        <p class="small" id="sim-limits"></p>
         <div class="actions">
           <button type="submit" id="sim-run" class="primary" disabled>Run</button>
           <button type="button" id="sim-cancel" disabled>Cancel</button>
@@ -274,6 +319,13 @@
           <p class="small mono" id="sim-progress-text">No run yet.</p>
         </div>
       </div>
+      <details id="sim-scenario-details">
+        <summary>About this scenario</summary>
+        <div class="stack">
+          <p class="note" id="sim-scenario-note"></p>
+          <div id="sim-scenario-details-body"></div>
+        </div>
+      </details>
     </form>
   </section>
 
@@ -291,35 +343,59 @@
         <tbody></tbody>
       </table>
     </div>
-    <p class="note" id="sim-baseline"></p>
-    <p class="note" id="sim-result-lead">Run a configuration to fill this table. The right-hand column will show the campaign's table cell for the same settings, where one exists.</p>
-    <p class="note" id="sim-result-note"><span class="ev">simulated</span> Every figure of a run is a count from a simulation on <span class="ev o">modelled</span> gas, prover prices and uplinks. Nothing was measured on a network or on a device. The two gas rows are the gas model's figures for one transaction of the run, not simulated.</p>
-    <h3>Command line</h3>
-    <p class="note">Run from <code>sims/stark-mempool-sim-v2</code> in the campaign checkout, this prints the same row. Leave out <code>--nodes</code> for the campaign's 40-node figure.</p>
-    <pre class="cmd" id="sim-command" tabindex="0" aria-label="Command line that reproduces the run">No run yet.</pre>
-    <details id="sim-row-details">
-      <summary>Full row</summary>
-      <p class="note">The row of <code>--phase2-row</code>, then every column the command prints without it. <code>-1</code> and <code>NA</code> mean "does not apply".</p>
-      <pre class="json" id="sim-row-phase2" tabindex="0" aria-label="Phase 2 row">No run yet.</pre>
-      <pre class="json" id="sim-row-full" tabindex="0" aria-label="Full row">No run yet.</pre>
-    </details>
-  </section>
-
-  <section aria-labelledby="sim-history-h">
-    <h2 id="sim-history-h">Recent runs</h2>
-    <p class="note">The last six runs of this visit, newest first. They are kept on the page only and are gone after a reload.</p>
-    <div class="scroll" tabindex="0" role="region" aria-label="Recent runs">
-      <table class="wide" id="sim-history">
-        <thead>
-          <tr>
-            <th scope="col">Scenario</th><th scope="col">Set</th><th scope="col" class="n">Gas</th>
-            <th scope="col">Network</th><th scope="col" class="n">Nodes</th><th scope="col" class="n">Slots</th>
-            <th scope="col" class="n">Seed</th><th scope="col" class="n">Sustained</th><th scope="col" class="n">Timely</th>
-            <th scope="col">Binds</th><th scope="col" class="n">90% reach</th><th scope="col" class="n">Took</th>
-          </tr>
-        </thead>
-        <tbody><tr class="empty"><td colspan="12">No run yet.</td></tr></tbody>
-      </table>
+    <p class="small" id="sim-baseline"></p>
+    <div class="more">
+      <details id="sim-all">
+        <summary>All figures of the run</summary>
+        <div class="stack">
+          <p class="note" id="sim-result-lead">Run a configuration to fill this table. The right-hand column shows the campaign's cell for the same settings, where one exists.</p>
+          <div class="scroll" tabindex="0" role="region" aria-label="Other figures of the run">
+            <table class="mid" id="sim-result-more">
+              <thead>
+                <tr>
+                  <th scope="col">Figure</th>
+                  <th scope="col" class="n">This run</th>
+                  <th scope="col" class="n">Campaign table</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <p class="note" id="sim-result-note"><span class="ev">simulated</span> Every figure of a run is a count from a simulation on <span class="ev o">modelled</span> gas, prover prices and uplinks. The two gas rows are the gas model's, not simulated.</p>
+        </div>
+      </details>
+      <details id="sim-cmd-details">
+        <summary>Command line and full row</summary>
+        <div class="stack">
+          <p class="note">From <code>sims/stark-mempool-sim-v2</code>, this prints the same row. Leave out <code>--nodes</code> for the 40-node figure.</p>
+          <pre class="cmd" id="sim-command" tabindex="0" aria-label="Command line that reproduces the run">No run yet.</pre>
+          <details id="sim-row-details">
+            <summary>Full row</summary>
+            <p class="note">The row of <code>--phase2-row</code>, then every column the command prints. <code>-1</code> and <code>NA</code> mean "does not apply".</p>
+            <pre class="json" id="sim-row-phase2" tabindex="0" aria-label="Phase 2 row">No run yet.</pre>
+            <pre class="json" id="sim-row-full" tabindex="0" aria-label="Full row">No run yet.</pre>
+          </details>
+        </div>
+      </details>
+      <details id="sim-history-details">
+        <summary id="sim-history-h">Recent runs of this visit</summary>
+        <div class="stack">
+          <p class="note">The last six, newest first; gone after a reload.</p>
+          <div class="scroll" tabindex="0" role="region" aria-label="Recent runs">
+            <table class="wide" id="sim-history">
+              <thead>
+                <tr>
+                  <th scope="col">Scenario</th><th scope="col">Set</th><th scope="col" class="n">Gas</th>
+                  <th scope="col">Network</th><th scope="col" class="n">Nodes</th><th scope="col" class="n">Slots</th>
+                  <th scope="col" class="n">Seed</th><th scope="col" class="n">Sustained</th><th scope="col" class="n">Timely</th>
+                  <th scope="col">Binds</th><th scope="col" class="n">90% reach</th><th scope="col" class="n">Took</th>
+                </tr>
+              </thead>
+              <tbody><tr class="empty"><td colspan="12">No run yet.</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </details>
     </div>
   </section>
 </main>
@@ -328,78 +404,90 @@
 <main id="view-about" class="view" data-view="about" hidden>
 
   <section aria-labelledby="ab-what-h">
-    <h2 id="ab-what-h">What this is</h2>
+    <h2 id="ab-what-h">About this tool</h2>
     <div class="prose">
-      <p>A study of leanSPHINCS, a hash-based post-quantum signature scheme for Ethereum accounts. A parameter set fixes two costs: the size of a signature in bytes, and the Keccak permutations needed to verify it. The campaign asked how each cost moves throughput in twelve deployment scenarios, from a contract verifier on today's EVM to recursive aggregation in the mempool.</p>
-      <p>Explore shows the campaign's final tables. Simulate runs the campaign's network simulator in your browser. The calculator in Explore evaluates the campaign's gas and prover model at a point you choose.</p>
+      <p>A study of leanSPHINCS, a hash-based post-quantum signature for Ethereum accounts: how its size in bytes and the Keccak permutations to verify it move throughput in twelve deployment scenarios. Nothing here was measured on a Ledger or on a real network, except the receipts under "Measured on chain".</p>
     </div>
-  </section>
-
-  <section aria-labelledby="ab-ev-h">
-    <h2 id="ab-ev-h">What is measured, counted, simulated and modelled</h2>
-    <div class="scroll" tabindex="0" role="region" aria-label="Evidence levels">
-      <table class="mid">
-        <thead><tr><th scope="col">Level</th><th scope="col">What it covers</th><th scope="col">How it was obtained</th></tr></thead>
-        <tbody>
-          <tr><th scope="row"><span class="ev m">measured</span></th><td>EVM verification gas of the five single-layer sets. The receipts under "Measured on chain" in Explore.</td><td>Foundry tests on a real Solidity verifier, 52 test vectors per set. The worst-case figure is a model fitted on those measurements. The receipts are Safe-module and EIP-7702 transactions on a local anvil chain with that verifier, and transactions of other parameter sets of the family on Sepolia and on the ethrex EIP-8141 testnet, as the SPHINCs- repository records them.</td></tr>
-          <tr><th scope="row"><span class="ev c">counted</span></th><td>leanVM cycles and Keccak rows per signature.</td><td>Exact row counts from leanVM proof runs. They are counts, not timings.</td></tr>
-          <tr><th scope="row"><span class="ev">simulated</span></th><td>Throughput, what binds, block size, block reach times, bandwidth and duplicates in the tables and in browser runs.</td><td>Counts from the network simulator: 40 nodes and three seeds for most table cells. Its inputs (gas, prover prices, uplinks) are modelled.</td></tr>
-          <tr><th scope="row"><span class="ev o">modelled</span></th><td>Gas per transaction, prover prices, uplink rates, Ledger signing and key generation times, lifetimes, the calculator, and the percentage columns of the tables without aggregation.</td><td>Derived from EIP texts (several are drafts), from a prover model on the counted rows, and from a timing model at 5,800 permutations per second, a third-party benchmark rate.</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <ul class="plain">
-      <li><strong>Nothing was measured on a Ledger.</strong> Signing times are permutation counts divided by a benchmark rate. A run of the real signer on a Nano S+ is the first thing still to measure.</li>
-      <li><strong>Nothing in the tables or the simulator was measured on a real network.</strong> No client, devnet or testnet was involved in the campaign, and no EIP-8141 transaction has been run with the campaign's verifiers. The receipts under "Measured on chain" are the exception: they are real transactions, but of other parameter sets of the same family, deployed earlier and recorded in the SPHINCs- repository.</li>
-      <li>Gas per transaction in Explore, in the calculator and in Simulate is the gas model's figure, split into fixed cost, calldata, verification and overhead. The build stops if the model and a recorded receipt differ by more than 1%.</li>
-      <li>Where gas binds, the simulation returns whole transactions per block from the same gas figures as the model. Agreement there is not independent evidence. The simulator adds information where the network or the provers bind.</li>
-      <li>Gas figures follow EIP-7623, EIP-7976, EIP-8141, EIP-8288 and the leanPCS draft as read on 10 November 2026. Several are drafts and may change. The price of "8288 light, raw signatures" is the campaign's own assumption.</li>
-      <li>Rows with more than one signature per transaction: EIP-8141's public mempool accepts one VERIFY frame for the sender and caps the declared validation gas at 100,000. Two signatures fit only if signature bytes do not count toward that limit, as a draft pull request proposes. A Safe-style multisig can check its owners' signatures in the execution frame instead. Neither design was run on a client.</li>
+    <ul class="legend" aria-label="Evidence levels">
+      <li><span class="ev m">measured</span> Forge gas or a receipt</li>
+      <li><span class="ev c">counted</span> leanVM row counts</li>
+      <li><span class="ev">simulated</span> network simulator</li>
+      <li><span class="ev o">modelled</span> EIP text or a timing model</li>
     </ul>
   </section>
 
-  <section aria-labelledby="ab-sim-h">
-    <h2 id="ab-sim-h">Limits of the simulator</h2>
-    <ul class="plain">
-      <li>It is a discrete-event model of gossip, block propagation and proving, not a client. Most table cells are 40-node runs. Uplink rates inside each class are modelled.</li>
-      <li>It sends eight full copies of each block where current clients send three or four. The loss it shows at 300 M gas is therefore an upper bound.</li>
-      <li>The capacity search is not monotone near a prover bound and depends on its start point by about 5%. It also accepts a probe whose chain has collapsed, because it ignores orphaned blocks.</li>
-      <li>The label for what binds reads <code>propagation</code> for a slow uplink class, and flips on a CPU threshold of 0.9.</li>
-      <li>It has no IDONTWANT, no separate setting for relay copies, no cap of 256 dependencies per block, and it does not re-queue orphaned transactions.</li>
-      <li>The first hop of the user-side-proof variant (F2) is not simulated: F2 runs F1's mempool under another label.</li>
-      <li>A misspelt candidate name on the command line runs today's set under the typo's label. This page only offers the names the simulator knows.</li>
-    </ul>
-  </section>
+  <section class="more" aria-label="Details">
+    <details id="ab-ev">
+      <summary id="ab-ev-h">What is measured, counted, simulated and modelled</summary>
+      <div class="stack">
+        <div class="scroll" tabindex="0" role="region" aria-label="Evidence levels">
+          <table class="mid">
+            <thead><tr><th scope="col">Level</th><th scope="col">What it covers</th><th scope="col">How it was obtained</th></tr></thead>
+            <tbody>
+              <tr><th scope="row"><span class="ev m">measured</span></th><td>EVM verification gas of the five single-layer sets. The receipts under "Measured on chain" in Explore.</td><td>Foundry tests on a real Solidity verifier, 52 test vectors per set. The worst-case figure is a model fitted on those measurements. The receipts are Safe-module and EIP-7702 transactions on a local anvil chain with that verifier, and transactions of other parameter sets of the family on Sepolia and on the ethrex EIP-8141 testnet, as the SPHINCs- repository records them.</td></tr>
+              <tr><th scope="row"><span class="ev c">counted</span></th><td>leanVM cycles and Keccak rows per signature.</td><td>Exact row counts from leanVM proof runs. They are counts, not timings.</td></tr>
+              <tr><th scope="row"><span class="ev">simulated</span></th><td>Throughput, what binds, block size, block reach times, bandwidth and duplicates in the tables and in browser runs.</td><td>Counts from the network simulator: 40 nodes and three seeds for most table cells. Its inputs (gas, prover prices, uplinks) are modelled.</td></tr>
+              <tr><th scope="row"><span class="ev o">modelled</span></th><td>Gas per transaction, prover prices, uplink rates, Ledger signing and key generation times, lifetimes, the calculator, and the percentage columns of the tables without aggregation.</td><td>Derived from EIP texts (several are drafts), from a prover model on the counted rows, and from a timing model at 5,800 permutations per second, a third-party benchmark rate.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <ul class="plain">
+          <li><strong>Nothing was measured on a Ledger.</strong> Signing times are permutation counts divided by a benchmark rate. A run of the real signer on a Nano S+ is the first thing still to measure.</li>
+          <li><strong>Nothing in the tables or the simulator was measured on a real network.</strong> No client, devnet or testnet was involved in the campaign, and no EIP-8141 transaction has been run with the campaign's verifiers. The receipts under "Measured on chain" are the exception: they are real transactions, but of other parameter sets of the same family, deployed earlier and recorded in the SPHINCs- repository.</li>
+          <li><strong>Throughput is a ceiling for one kind of transaction.</strong> A block of plain ECDSA transfers (21,000 gas each) at 60 M gas every 12 s holds at most <span id="ab-baseline">238.10</span> tx/s; every throughput figure here is of that kind, a gas bound or a simulated capacity. Mainnet really carries about 15 to 20 tx/s, because real transactions do more than a transfer and use more gas each.</li>
+          <li>Gas per transaction in Explore, in the calculator and in Simulate is the gas model's figure, split into fixed cost, calldata, verification and overhead. The build stops if the model and a recorded receipt differ by more than 1%.</li>
+          <li>Where gas binds, the simulation returns whole transactions per block from the same gas figures as the model. Agreement there is not independent evidence. The simulator adds information where the network or the provers bind.</li>
+          <li>Gas figures follow EIP-7623, EIP-7976, EIP-8141, EIP-8288 and the leanPCS draft as read on 10 November 2026. Several are drafts and may change. The price of "8288 light, raw signatures" is the campaign's own assumption.</li>
+          <li>Rows with more than one signature per transaction: EIP-8141's public mempool accepts one VERIFY frame for the sender and caps the declared validation gas at 100,000. Two signatures fit only if signature bytes do not count toward that limit, as a draft pull request proposes. A Safe-style multisig can check its owners' signatures in the execution frame instead. Neither design was run on a client.</li>
+        </ul>
+      </div>
+    </details>
 
-  <section aria-labelledby="ab-browser-h">
-    <h2 id="ab-browser-h">Browser runs</h2>
-    <div class="prose">
-      <p>The simulator is a standard-library Python program. Here it runs unchanged in Pyodide, CPython compiled to WebAssembly, inside a Web Worker. A test compares the browser's row with the command line's for one configuration of each scenario and two custom points: 14 of 14 are equal, field by field.</p>
-      <p id="ab-limits-basis"></p>
-    </div>
-    <div class="scroll" tabindex="0" role="region" aria-label="Browser limits per scenario">
-      <table class="mid" id="ab-limits">
-        <thead><tr><th scope="col">Scenario</th><th scope="col" class="n">Nodes</th><th scope="col" class="n">Measured slots</th><th scope="col" class="n">Gas limit</th><th scope="col" class="n">Heaviest run</th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-    <p class="note" id="ab-limits-note"></p>
-  </section>
+    <details id="ab-sim">
+      <summary id="ab-sim-h">Limits of the simulator</summary>
+      <ul class="plain">
+        <li>It is a discrete-event model of gossip, block propagation and proving, not a client. Most table cells are 40-node runs. Uplink rates inside each class are modelled.</li>
+        <li>It sends eight full copies of each block where current clients send three or four. The loss it shows at 300 M gas is therefore an upper bound.</li>
+        <li>The capacity search is not monotone near a prover bound and depends on its start point by about 5%. It also accepts a probe whose chain has collapsed, because it ignores orphaned blocks.</li>
+        <li>The label for what binds reads <code>propagation</code> for a slow uplink class, and flips on a CPU threshold of 0.9.</li>
+        <li>It has no IDONTWANT, no separate setting for relay copies, no cap of 256 dependencies per block, and it does not re-queue orphaned transactions.</li>
+        <li>The first hop of the user-side-proof variant (F2) is not simulated: F2 runs F1's mempool under another label.</li>
+        <li>A misspelt candidate name on the command line runs today's set under the typo's label. This page only offers the names the simulator knows.</li>
+      </ul>
+    </details>
 
-  <section aria-labelledby="ab-build-h">
-    <h2 id="ab-build-h">This build</h2>
-    <div class="scroll" tabindex="0" role="region" aria-label="Build record">
-      <table id="ab-build"><tbody></tbody></table>
-    </div>
-    <p class="note">The site is static and self-contained. It loads nothing from another origin, sets no cookie and sends nothing anywhere. The Simulate form is remembered in this browser's local storage; nothing else is stored.</p>
-  </section>
+    <details id="ab-browser">
+      <summary id="ab-browser-h">Browser runs and their limits</summary>
+      <div class="stack">
+        <div class="prose">
+          <p>The simulator is a standard-library Python program. Here it runs unchanged in Pyodide, CPython compiled to WebAssembly, inside a Web Worker. A test compares the browser's row with the command line's for one configuration of each scenario and two custom points: 14 of 14 are equal, field by field.</p>
+          <p id="ab-limits-basis"></p>
+        </div>
+        <div class="scroll" tabindex="0" role="region" aria-label="Browser limits per scenario">
+          <table class="mid" id="ab-limits">
+            <thead><tr><th scope="col">Scenario</th><th scope="col" class="n">Nodes</th><th scope="col" class="n">Measured slots</th><th scope="col" class="n">Gas limit</th><th scope="col" class="n">Heaviest run</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p class="note" id="ab-limits-note"></p>
+      </div>
+    </details>
 
-  <section aria-labelledby="ab-cli-h">
-    <h2 id="ab-cli-h">The same thing from the command line</h2>
-    <div class="prose">
-      <p>The simulator needs Python 3 and nothing else. From the simulator checkout, on the <code>leansphincs</code> branch at the commit above:</p>
-    </div>
-    <pre class="cmd" tabindex="0" aria-label="Command line examples">cd sims/stark-mempool-sim-v2
+    <details id="ab-build-section">
+      <summary id="ab-build-h">This build, and privacy</summary>
+      <div class="stack">
+        <div class="scroll" tabindex="0" role="region" aria-label="Build record">
+          <table id="ab-build"><tbody></tbody></table>
+        </div>
+        <p class="note">The simulator is a fork of cskiraly/stark-mempool-sim (netsim/v2) with named scenarios, per-node uplinks, block priority and explicit queue policies. The site is static and self-contained: it loads nothing from another origin, sets no cookie and sends nothing anywhere. The Simulate form is remembered in this browser's local storage; nothing else is stored.</p>
+      </div>
+    </details>
+
+    <details id="ab-cli">
+      <summary id="ab-cli-h">The same thing from the command line</summary>
+      <div class="stack">
+        <p class="note">The simulator needs Python 3 and nothing else. From the simulator checkout, on the <code>leansphincs</code> branch at the commit of this build:</p>
+        <pre class="cmd" tabindex="0" aria-label="Command line examples">cd sims/stark-mempool-sim-v2
 NP=../../data/phase2b/network_params_v2.json
 
 # list the scenarios and their configurations
@@ -412,13 +500,14 @@ python3 -m bench.leansphincs run --scenario A --candidate P99r \
 # a custom point: 4,000 bytes and 300 permutations on the working set's verifier
 python3 -m bench.leansphincs run --scenario A --candidate P99r \
     --sig-bytes 4000 --perms 300 --network-params $NP --phase2-row</pre>
-    <p class="note">Every result in Simulate shows the exact line for that run. The table cells are means over three seeds (0, 1, 2) for most rows; a single run is one seed.</p>
+        <p class="note">Every result in Simulate shows the exact line for that run. The table cells are means over three seeds (0, 1, 2) for most rows; a single run is one seed.</p>
+      </div>
+    </details>
   </section>
 </main>
 
 <footer>
-  <p id="foot-build">Simulator: a fork of cskiraly/stark-mempool-sim (netsim/v2) with named scenarios, per-node uplinks, block priority and explicit queue policies.</p>
-  <p>Known limits: 40-node runs for most table cells, smaller networks in the browser, uplink rates inside each class are modelled, the 8288 light raw-signature price is an assumption, and the first hop of the user-side-proof variant was not simulated.</p>
+  <p id="foot-build"></p>
 </footer>
 
 </div>
