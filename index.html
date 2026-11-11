@@ -17,9 +17,9 @@
   <p class="eyebrow">Parameter campaign · tables and simulator</p>
   <h1>leanSPHINCS parameters, scenario by scenario</h1>
   <p class="lede">How signature size and permutations per signature move Ethereum throughput in each deployment scenario. Browse the campaign's final tables, or run its network simulator in this browser.</p>
-  <p class="small">Nothing on this site was measured on a Ledger or on a real network.</p>
+  <p class="small">Nothing here was measured on a Ledger. The tables and the simulator are not network measurements; the only figures from real networks are the receipts under "Measured on chain" in Explore.</p>
   <ul class="legend" aria-label="Evidence levels">
-    <li><span class="ev m">measured</span> gas from Forge tests on a real verifier</li>
+    <li><span class="ev m">measured</span> gas from Forge tests on a real verifier, or from a transaction receipt</li>
     <li><span class="ev c">counted</span> exact leanVM row counts from real runs</li>
     <li><span class="ev">simulated</span> network simulator, on modelled inputs</li>
     <li><span class="ev o">modelled</span> derived from EIP text or a timing model</li>
@@ -40,8 +40,36 @@
 <!-- ================================================================== Explore -->
 <main id="view-explore" class="view" data-view="explore" hidden>
 
+  <section aria-labelledby="sc-overview-h" id="sc-overview">
+    <h2 id="sc-overview-h">The scenarios at a glance</h2>
+    <p class="note">A scenario is one way to put a leanSPHINCS signature into an Ethereum transaction. Each row says in one line how it works, then gives the figures for the working set (4,420 bytes, 289 permutations) with one signature per transaction and a block gas limit of 60 M gas. Open <strong>Details</strong> for the full explanation. The buttons choose the scenario for the tables further down.</p>
+    <div class="card" id="sc-reference"></div>
+    <p class="small">Words used: tx/s is transactions per second. Gas is Ethereum's unit of cost; a block may use at most its gas limit. An EIP is an Ethereum Improvement Proposal (8141, 8288, 7623 and 7976 are EIP numbers); an ERC is an application standard. A fork is a protocol upgrade; Glamsterdam is the next one planned. The mempool is where transactions wait before a block. A STARK is a proof that a computation, here checking signatures, was done correctly.</p>
+    <div id="sc-cards" class="sc-cards"></div>
+  </section>
+
+  <section aria-labelledby="agg-h" id="agg-section">
+    <h2 id="agg-h">Reading the aggregation numbers</h2>
+    <p class="note">Aggregation replaces the signatures of many transactions with one proof, so no signature byte reaches the chain. It still looks slower than a plain transfer. The table shows why: the gas of one transaction with one signature, split, and the transactions per second that gas allows at 60 M. <span class="ev o">modelled</span> gas from the EIP texts; <span class="ev">simulated</span> 40-node runs.</p>
+    <div class="scroll" tabindex="0" role="region" aria-label="Gas of one transaction with and without aggregation">
+      <table class="mid" id="agg-table">
+        <thead><tr>
+          <th scope="col">One transaction</th>
+          <th scope="col" class="n">Fixed<span class="sub">transaction, frames</span></th>
+          <th scope="col" class="n">Data bytes</th>
+          <th scope="col" class="n">Charge<span class="sub">per signature</span></th>
+          <th scope="col" class="n">Total gas</th>
+          <th scope="col" class="n">Gas bound<span class="sub">tx/s at 60 M</span></th>
+          <th scope="col" class="n">Simulated<span class="sub">tx/s at 60 M</span></th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <ul class="plain" id="agg-points"></ul>
+  </section>
+
   <section aria-labelledby="ex-scenario-h">
-    <h2 id="ex-scenario-h">Scenario</h2>
+    <h2 id="ex-scenario-h">Selected scenario and its tables</h2>
     <div class="formgrid one">
       <div class="field wide">
         <label for="ex-scenario">Deployment scenario</label>
@@ -68,6 +96,45 @@
     <details id="ex-summary">
       <summary>What the report's summary says about this scenario</summary>
       <div id="ex-summary-body" class="stack"></div>
+    </details>
+  </section>
+
+  <section aria-labelledby="ex-gas-h" id="ex-gas-section">
+    <h2 id="ex-gas-h">Gas and calldata per transaction</h2>
+    <p class="note" id="ex-gas-lead"></p>
+    <form id="gas-form" class="formgrid" novalidate>
+      <div class="field wide">
+        <label for="gas-config">Pricing variant</label>
+        <select id="gas-config" name="configuration"></select>
+      </div>
+      <div class="field">
+        <label for="gas-k" id="gas-k-label">Signatures per transaction</label>
+        <select id="gas-k" name="k"></select>
+      </div>
+      <div class="field">
+        <label for="gas-basefee">Base fee, gwei <span class="tag">example</span></label>
+        <input id="gas-basefee" name="base_fee_gwei" type="number" inputmode="decimal" min="0" step="any" value="1">
+      </div>
+      <div class="field">
+        <label for="gas-ethusd">ETH price, USD <span class="tag">example</span></label>
+        <input id="gas-ethusd" name="eth_usd" type="number" inputmode="decimal" min="0" step="any" value="3000">
+      </div>
+    </form>
+    <p class="small" id="gas-example-note">The base fee and the ETH price are examples to type over, not data: this site has no price feed. The cost column is the total gas times the base fee, in ETH and in USD, without a priority fee.</p>
+    <div class="scroll" tabindex="0" role="region" aria-label="Gas per transaction, per candidate set">
+      <table class="wide" id="ex-gas"></table>
+    </div>
+    <p class="note" id="ex-gas-note"></p>
+
+    <h3 id="ex-measured-h">Measured on chain</h3>
+    <p class="note" id="ex-measured-lead"></p>
+    <div class="scroll" tabindex="0" role="region" aria-label="Gas measured in real transactions">
+      <table class="wide" id="ex-measured"></table>
+    </div>
+    <p class="note" id="ex-measured-note"></p>
+    <details id="ex-disagree">
+      <summary>Where two sources give different numbers</summary>
+      <div id="ex-disagree-body" class="stack"></div>
     </details>
   </section>
 
@@ -102,6 +169,7 @@
       </div>
     </form>
     <p class="note" id="calc-context"></p>
+    <p class="note" id="calc-baseline"></p>
     <p class="status" id="calc-status" role="status" aria-live="polite">Waiting for the simulator to load.</p>
     <div class="scroll narrow" tabindex="0" role="region" aria-label="Model result">
       <table id="calc-table">
@@ -110,6 +178,15 @@
       </table>
     </div>
     <p class="note" id="calc-note"></p>
+    <h3 id="calc-gas-h">Gas of this transaction, split</h3>
+    <div class="scroll narrow" tabindex="0" role="region" aria-label="Gas of the transaction, split">
+      <table id="calc-gas-table">
+        <thead><tr><th scope="col">Part</th><th scope="col" class="n">Gas</th><th scope="col">Evidence</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="note" id="calc-gas-note"></p>
+
   </section>
 </main>
 
@@ -130,6 +207,11 @@
           <select id="sim-config" name="configuration"></select>
         </div>
       </div>
+      <p id="sim-scenario-simple" class="sc-simple"></p>
+      <details id="sim-scenario-details">
+        <summary>Details of this scenario</summary>
+        <div id="sim-scenario-details-body"></div>
+      </details>
       <p class="note" id="sim-scenario-note"></p>
 
       <div id="sim-explore-only" class="card warn" hidden></div>
@@ -209,8 +291,9 @@
         <tbody></tbody>
       </table>
     </div>
+    <p class="note" id="sim-baseline"></p>
     <p class="note" id="sim-result-lead">Run a configuration to fill this table. The right-hand column will show the campaign's table cell for the same settings, where one exists.</p>
-    <p class="note" id="sim-result-note"><span class="ev">simulated</span> Every figure of a run is a count from a simulation on <span class="ev o">modelled</span> gas, prover prices and uplinks. Nothing was measured on a network or on a device.</p>
+    <p class="note" id="sim-result-note"><span class="ev">simulated</span> Every figure of a run is a count from a simulation on <span class="ev o">modelled</span> gas, prover prices and uplinks. Nothing was measured on a network or on a device. The two gas rows are the gas model's figures for one transaction of the run, not simulated.</p>
     <h3>Command line</h3>
     <p class="note">Run from <code>sims/stark-mempool-sim-v2</code> in the campaign checkout, this prints the same row. Leave out <code>--nodes</code> for the campaign's 40-node figure.</p>
     <pre class="cmd" id="sim-command" tabindex="0" aria-label="Command line that reproduces the run">No run yet.</pre>
@@ -258,7 +341,7 @@
       <table class="mid">
         <thead><tr><th scope="col">Level</th><th scope="col">What it covers</th><th scope="col">How it was obtained</th></tr></thead>
         <tbody>
-          <tr><th scope="row"><span class="ev m">measured</span></th><td>EVM verification gas of the five single-layer sets.</td><td>Foundry tests on a real Solidity verifier, 52 test vectors per set. The worst-case figure is a model fitted on those measurements.</td></tr>
+          <tr><th scope="row"><span class="ev m">measured</span></th><td>EVM verification gas of the five single-layer sets. The receipts under "Measured on chain" in Explore.</td><td>Foundry tests on a real Solidity verifier, 52 test vectors per set. The worst-case figure is a model fitted on those measurements. The receipts are Safe-module and EIP-7702 transactions on a local anvil chain with that verifier, and transactions of other parameter sets of the family on Sepolia and on the ethrex EIP-8141 testnet, as the SPHINCs- repository records them.</td></tr>
           <tr><th scope="row"><span class="ev c">counted</span></th><td>leanVM cycles and Keccak rows per signature.</td><td>Exact row counts from leanVM proof runs. They are counts, not timings.</td></tr>
           <tr><th scope="row"><span class="ev">simulated</span></th><td>Throughput, what binds, block size, block reach times, bandwidth and duplicates in the tables and in browser runs.</td><td>Counts from the network simulator: 40 nodes and three seeds for most table cells. Its inputs (gas, prover prices, uplinks) are modelled.</td></tr>
           <tr><th scope="row"><span class="ev o">modelled</span></th><td>Gas per transaction, prover prices, uplink rates, Ledger signing and key generation times, lifetimes, the calculator, and the percentage columns of the tables without aggregation.</td><td>Derived from EIP texts (several are drafts), from a prover model on the counted rows, and from a timing model at 5,800 permutations per second, a third-party benchmark rate.</td></tr>
@@ -267,7 +350,8 @@
     </div>
     <ul class="plain">
       <li><strong>Nothing was measured on a Ledger.</strong> Signing times are permutation counts divided by a benchmark rate. A run of the real signer on a Nano S+ is the first thing still to measure.</li>
-      <li><strong>Nothing was measured on a real network.</strong> No client, devnet or testnet was involved. No EIP-8141 transaction has been run with these verifiers.</li>
+      <li><strong>Nothing in the tables or the simulator was measured on a real network.</strong> No client, devnet or testnet was involved in the campaign, and no EIP-8141 transaction has been run with the campaign's verifiers. The receipts under "Measured on chain" are the exception: they are real transactions, but of other parameter sets of the same family, deployed earlier and recorded in the SPHINCs- repository.</li>
+      <li>Gas per transaction in Explore, in the calculator and in Simulate is the gas model's figure, split into fixed cost, calldata, verification and overhead. The build stops if the model and a recorded receipt differ by more than 1%.</li>
       <li>Where gas binds, the simulation returns whole transactions per block from the same gas figures as the model. Agreement there is not independent evidence. The simulator adds information where the network or the provers bind.</li>
       <li>Gas figures follow EIP-7623, EIP-7976, EIP-8141, EIP-8288 and the leanPCS draft as read on 10 November 2026. Several are drafts and may change. The price of "8288 light, raw signatures" is the campaign's own assumption.</li>
       <li>Rows with more than one signature per transaction: EIP-8141's public mempool accepts one VERIFY frame for the sender and caps the declared validation gas at 100,000. Two signatures fit only if signature bytes do not count toward that limit, as a draft pull request proposes. A Safe-style multisig can check its owners' signatures in the execution frame instead. Neither design was run on a client.</li>

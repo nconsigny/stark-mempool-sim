@@ -320,3 +320,80 @@ pre.json { max-height: 420px; white-space: pre-wrap; overflow-wrap: anywhere; }
   .scroll { overflow: visible; }
   .bar, .actions, .progress { display: none; }
 }
+
+/* gas and calldata per transaction */
+#ex-gas td .ev, #ex-measured td .ev { margin-left: 4px; }
+#ex-gas td .sub .ev { margin-left: 4px; }
+#ex-gas-section h3 { margin-top: 12px; }
+#ex-measured td.notes { min-width: 260px; max-width: 420px; font-size: 0.85rem; color: var(--ink-2); }
+#ex-measured td .sub.mono { font-family: var(--font-data); font-size: 0.72rem; overflow-wrap: anywhere; }
+#ex-measured th[scope="row"] { min-width: 150px; }
+#gas-form label .tag { margin-left: 4px; }
+#calc-gas-h { margin-top: 8px; }
+#ex-gas th, #ex-gas td { padding-inline: 9px; }
+#ex-gas thead th .sub { text-transform: none; letter-spacing: 0; }
+#ex-measured td:nth-child(4) { min-width: 190px; }
+#ex-measured thead th .sub { text-transform: none; letter-spacing: 0; }
+#ex-gas tbody th { max-width: 172px; }
+#ex-gas th, #ex-gas td { padding-inline: 7px; }
+#ex-measured td.notes { min-width: 220px; }
+
+/* the scenario overview: one row per scenario, details open in place */
+.sc-cards { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.sc-card {
+  background: var(--surface); border: 1px solid var(--rule); border-left: 4px solid var(--rule); border-radius: 6px;
+  padding: 14px 16px; min-width: 0;
+  display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 12px 28px; align-items: start;
+}
+.sc-card[data-selected] { border-color: var(--accent); }
+.sc-head { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.sc-head h3 { font-size: 1.1rem; }
+.sc-id { font-family: var(--font-data); font-size: 0.7rem; font-weight: 400; color: var(--muted); white-space: nowrap; }
+.sc-when { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--accent); }
+.sc-simple { font-size: 0.98rem; color: var(--ink); max-width: 62ch; }
+.sc-chain { font-size: 0.875rem; color: var(--ink-2); }
+.sc-chain b { font-weight: 600; }
+.sc-routes { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.sc-route {
+  display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1.5fr) minmax(0, 1fr); gap: 4px 14px; align-items: start;
+  padding-bottom: 8px; border-bottom: 1px solid var(--rule); min-width: 0;
+}
+.sc-route:last-child { border-bottom: 0; padding-bottom: 0; }
+button.sc-pick {
+  text-align: left; font-size: 0.85rem; line-height: 1.3; padding: 7px 10px; min-height: 42px; width: 100%;
+  border-color: var(--rule); color: var(--ink-2); white-space: normal;
+}
+button.sc-pick:hover { border-color: var(--accent); }
+button.sc-pick[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--ink); font-weight: 600; }
+button.sc-pick[aria-pressed="true"]::before { content: "\2713\00a0"; color: var(--accent); }
+.sc-fig { font-size: 0.875rem; color: var(--ink-2); min-width: 0; }
+.sc-fig .sc-num { font-family: var(--font-data); font-size: 1.02rem; font-weight: 500; color: var(--ink); }
+.sc-fig .ev { margin-left: 6px; }
+.sc-fig .sub { display: block; font-size: 0.76rem; color: var(--muted); line-height: 1.4; }
+.sc-details { grid-column: 1 / -1; }
+.sc-details > summary { font-size: 0.9rem; color: var(--accent); font-weight: 600; }
+.sc-details[open] > summary, #sim-scenario-details[open] > summary { background: var(--accent-soft); }
+.sc-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.sc-detail-body h4 { margin-top: 2px; }
+dl.kv.sc-detail dd { color: var(--ink); max-width: 76ch; }
+ol.sc-flow { margin: 0; padding-left: 1.4em; display: flex; flex-direction: column; gap: 6px; font-size: 0.875rem; max-width: 76ch; }
+ol.sc-flow li::marker { color: var(--accent); font-family: var(--font-data); font-weight: 500; }
+#sc-reference p { font-size: 0.95rem; }
+#sc-reference .ev { margin-right: 2px; }
+tr.group th .sub.baseline { font-family: var(--font-body); font-weight: 400; font-size: 0.8rem; }
+#agg-table thead th .sub { text-transform: none; letter-spacing: 0; }
+#agg-table tbody tr[data-row="ecdsa"] th, #agg-table tbody tr[data-row="ecdsa"] td { background: var(--accent-soft); }
+#sim-scenario-simple { font-size: 0.95rem; }
+#sim-baseline { min-height: 3.2em; }
+@media (max-width: 760px) {
+  .sc-card { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 520px) {
+  .sc-card { padding: 12px; }
+  .sc-route { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .sc-route button.sc-pick { grid-column: 1 / -1; }
+  #sim-baseline { min-height: 7.2em; }
+}
+/* the cells' own key is one long token: let it wrap (it widened the page at 400 px for the user-side-proof scenarios) */
+#ex-group-full { overflow-wrap: anywhere; }
+tr.group th .sub.baseline { max-width: min(86ch, calc(100vw - 64px)); }

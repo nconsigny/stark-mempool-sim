@@ -6,6 +6,7 @@ import { $, fetchJson } from "./util.mjs";
 import { initExplore } from "./explore.mjs";
 import { initSimulate } from "./simulate.mjs";
 import { initAbout } from "./about.mjs";
+import { initScenarioHelp } from "./scenarios.mjs";
 
 const VIEWS = ["explore", "simulate", "about"];
 
@@ -91,11 +92,11 @@ async function main() {
   bootEngine();
   let data;
   try {
-    const [scenarios, candidates, noagg, agg, summary, build] = await Promise.all([
+    const [scenarios, candidates, noagg, agg, summary, build, gas] = await Promise.all([
       fetchJson("data/scenarios.json"), fetchJson("data/candidates.json"),
       fetchJson("data/table_noagg.json"), fetchJson("data/table_agg.json"),
-      fetchJson("data/summary.json"), fetchJson("build.json")]);
-    data = { scenarios, candidates, noagg, agg, summary, build };
+      fetchJson("data/summary.json"), fetchJson("build.json"), fetchJson("data/gas.json")]);
+    data = { scenarios, candidates, noagg, agg, summary, build, gas };
   } catch (error) {
     const fatal = $("#fatal");
     fatal.hidden = false;
@@ -106,6 +107,7 @@ async function main() {
   app.data = data;
   initExplore(app);
   initSimulate(app);
+  initScenarioHelp(app);
   initAbout(app);
   document.documentElement.dataset.ready = "1";
 }

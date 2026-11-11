@@ -129,7 +129,7 @@ export function unitOf(cls) {
 }
 
 export function scenarioLabel(entry) {
-  return entry.id + " · " + entry.name + (entry.route ? " (" + entry.route + ")" : "");
+  return entry.name + (entry.route ? ": " + entry.route : "") + " (" + entry.id + ")";
 }
 
 export async function fetchJson(path) {

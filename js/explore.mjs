@@ -4,6 +4,7 @@
 import { EngineCancelled } from "../engine/engine.mjs";
 import { $, el, clear, chip, fmtInt, fmtTps, fmtPct, fmtGas, withExponent, taggedProse,
          unitOf, scenarioLabel, setLabel, CLASS_NAMES } from "./util.mjs";
+import { ecdsaBaseline } from "./scenarios.mjs";
 
 // F2 has no table rows of its own (web/SCHEMA.md): it equals F1 in this model.
 const TABLE_ALIAS = { F2: "F1" };
@@ -122,6 +123,8 @@ export function initExplore(app) {
     groups.forEach((group, index) => groupSelect.append(el("option", { value: String(index) }, groupLabel(group))));
     groupSelect.disabled = groups.length < 2;
     renderTable();
+    fillGasControls(entry);
+    renderGas();
     renderSummary(entry);
     updateCalcContext(entry, config);
     scheduleCalc(0);
@@ -202,7 +205,9 @@ export function initExplore(app) {
         return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || a.P - b.P;
       });
       const body = el("tbody", { "data-gas": String(gas) });
-      body.append(el("tr", { class: "group" }, el("th", { colspan: "7", scope: "colgroup" }, fmtGas(gas) + " gas limit")));
+      body.append(el("tr", { class: "group" }, el("th", { colspan: "7", scope: "colgroup", "data-baseline": String(ecdsaBaseline(gas)) },
+        fmtGas(gas) + " gas limit",
+        el("span", { class: "sub baseline" }, `Reference: plain ECDSA transfers, ${fmtTps(ecdsaBaseline(gas))} tx/s (a gas bound for plain transfers)`))));
       if (!rows.length) {
         body.append(el("tr", { class: "empty" }, el("td", { colspan: "7" },
           `Not simulated at ${fmtGas(gas)} in these cells. Where the report gives a model bound for it, it is in the summary below.`)));
@@ -267,6 +272,221 @@ export function initExplore(app) {
     }
   }
 
+  // ------------------------------------------- gas and calldata per transaction
+  const gasData = data.gas;
+  const gasConfig = $("#gas-config");
+  const gasK = $("#gas-k");
+  const gasFee = $("#gas-basefee");
+  const gasUsd = $("#gas-ethusd");
+  const BINDS = { floor: "calldata floor", standard: "standard path" };
+  const GAS_LEAD = {
+    noagg: "One transaction, with the signature in it. A transaction pays the larger of two prices: the standard path (its data bytes at the standard price, plus execution) or the calldata floor (its data bytes at the floor price, and nothing for execution). Where the floor binds, the verifier's execution is not charged on top; the verification column then shows what runs, marked \u201cinside the floor\u201d. \u201cBinds\u201d says which of the two prices the transaction pays.",
+    agg8288: "In this scenario the signature bytes are not on chain. The transaction names each signature as a dependency, a 96-byte triple of message hash, key and scheme, and the signatures are proved off chain. What is paid instead is a charge per dependency (33,000 gas in EIP-8288: 3,000 for verification and 30,000 of recursive STARK gas; 3,000 in the leanPCS draft) and the triple's calldata. The gas is the same for every parameter set.",
+    pcs: "In this scenario the signature bytes are not on chain. The transaction carries a proof (1,005 bytes of calldata and a 193-byte frame) and 64 bytes of claim, key and message, per signature it proves. The parameter set changes the gas only through the number of signatures that fit one proof.",
+  };
+
+  function gasRows() {
+    const k = gasK.disabled ? null : Number(gasK.value);
+    return gasData.rows.filter((row) => row.configuration === gasConfig.value && (k === null || row.k === k));
+  }
+
+  function fillGasControls(entry) {
+    clear(gasConfig);
+    for (const name of entry.configurations) {
+      const config = configs.get(name);
+      gasConfig.append(el("option", { value: name },
+        `${name} · pricing ${config.pricing}` + (name === entry.default_configuration ? " (the scenario's own)" : "")));
+    }
+    gasConfig.value = entry.default_configuration;
+    gasConfig.disabled = entry.configurations.length < 2;
+    const ks = gasData.ks[entry.class] || [];
+    clear(gasK);
+    if (ks.length) for (const k of ks) gasK.append(el("option", { value: String(k) }, String(k)));
+    else gasK.append(el("option", { value: "" }, entry.id === "F3" ? "as many as one proof holds" : "1"));
+    gasK.disabled = !ks.length;
+    $("#gas-k-label").textContent = entry.class === "agg8288" ? "Dependencies per transaction"
+      : entry.class === "pcs" ? "Signatures per proof" : "Signatures per transaction";
+  }
+
+  function fmtEth(value) {
+    if (!Number.isFinite(value)) return "n/a";
+    return value.toLocaleString("en-US", { minimumFractionDigits: 6, maximumFractionDigits: 6 });
+  }
+  function fmtUsd(value) {
+    if (!Number.isFinite(value)) return "n/a";
+    const digits = value >= 100 ? 0 : value >= 0.1 ? 2 : 4;
+    return "$" + value.toLocaleString("en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  }
+  const positive = (input) => (input.value !== "" && Number(input.value) >= 0 ? Number(input.value) : NaN);
+
+  // The figure a verification cell shows: what is charged, or, where the
+  // floor binds and nothing is charged on top, what the verifier executes.
+  const verificationShown = (row) => (row.binds === "floor" && row.parts.verification === 0
+    ? row.verification_executed : row.parts.verification);
+
+  function gasCell(field, value, text, kind, title, ...subs) {
+    // The evidence chip of these columns is in the column head; the cell
+    // carries the status sentence as its title.
+    const td = el("td", { class: "n", "data-field": field, "data-value": JSON.stringify(value), "data-evidence": kind, title: title || null }, text);
+    for (const sub of subs) if (sub) td.append(el("span", { class: "sub" }, sub));
+    return td;
+  }
+
+  function renderGas() {
+    const entry = idById.get(scenarioSelect.value);
+    const table = clear($("#ex-gas"));
+    const rows = gasRows();
+    const status = gasData.status[rows.length ? rows[0].status_key : entry.class] || {};
+    const onChain = rows.length ? rows[0].signature_on_chain : entry.class === "noagg";
+    table.dataset.scenario = entry.id;
+    table.dataset.configuration = gasConfig.value;
+    table.dataset.k = gasK.disabled ? "" : gasK.value;
+    clear($("#ex-gas-lead")).append(GAS_LEAD[entry.class] || "");
+    const fee = positive(gasFee), usd = positive(gasUsd);
+    table.dataset.baseFee = String(fee);
+    table.dataset.ethUsd = String(usd);
+    const verifyHead = entry.class === "agg8288" ? "Dependency charge" : entry.class === "pcs" ? "Proof check" : "Verification";
+    table.append(el("thead", {}, el("tr", {},
+      el("th", { scope: "col" }, "Set"),
+      el("th", { scope: "col", class: "n" }, "Total gas", el("span", { class: "sub" }, chip("modelled", status.total))),
+      el("th", { scope: "col", class: "n" }, "Calldata gas", el("span", { class: "sub" }, "share of total ", chip("modelled", status.calldata))),
+      el("th", { scope: "col", class: "n" }, "Signature bytes", el("span", { class: "sub" }, "bytes × price ", chip("modelled", status.calldata))),
+      el("th", { scope: "col", class: "n" }, verifyHead, el("span", { class: "sub" }, "gas ", chip("modelled", status.verification))),
+      el("th", { scope: "col", class: "n" }, "Fixed, overhead", el("span", { class: "sub" }, "gas ", chip("modelled", status.fixed))),
+      el("th", { scope: "col", class: "n" }, "On chain", el("span", { class: "sub" }, "bytes ", chip("modelled"))),
+      el("th", { scope: "col" }, "Binds"),
+      el("th", { scope: "col", class: "n" }, "Cost, ETH", el("span", { class: "sub" }, "and USD")))));
+    const body = el("tbody");
+    for (const row of rows) {
+      const set = setByName.get(row.candidate);
+      const many = row.signatures > 1;
+      const shown = verificationShown(row);
+      const inside = row.binds === "floor" && row.parts.verification === 0 && row.verification_executed > 0;
+      const verify = gasCell("verification", row.parts.verification, fmtInt(shown), "modelled", status.verification,
+        inside ? "inside the floor" : null);
+      verify.dataset.shown = JSON.stringify(shown);
+      if (row.verification_measured !== null && row.verification_measured !== undefined) {
+        verify.append(el("span", { class: "sub", "data-field": "verification_measured", "data-value": JSON.stringify(row.verification_measured) },
+          `Forge ${fmtInt(row.verification_measured)}`, chip("measured", "The campaign's Solidity verifier, mean over 52 test vectors (data/phase2b/evm_gas.json)")));
+      }
+      const eth = row.total * fee * 1e-9;
+      body.append(el("tr", { class: set && set.pick ? "pick" : null, "data-candidate": row.candidate, "data-k": String(row.k) },
+        el("th", { scope: "row" }, set ? setLabel(set.label) : row.candidate,
+          set && set.pick ? [" ", el("span", { class: "tag" }, "pick")] : null,
+          el("span", { class: "sub" }, `${row.candidate} · ${fmtInt(row.sig_bytes)} B · ${row.perms} perms` +
+            (many ? ` · ${fmtInt(row.signatures)} signatures` : ""))),
+        gasCell("total", row.total, fmtInt(row.total), "modelled", status.total,
+          many ? `${fmtInt(row.gas_per_signature)} per signature` : null),
+        gasCell("calldata", row.parts.calldata, fmtInt(row.parts.calldata), "modelled", status.calldata,
+          `${(row.calldata_share * 100).toFixed(1)}% of total`),
+        onChain
+          ? gasCell("signature_calldata", row.signature_calldata, fmtInt(row.signature_calldata), "modelled", status.calldata,
+            `${fmtInt(row.k * row.sig_bytes)} B × ${row.signature_byte_price}`)
+          : el("td", { class: "n", "data-field": "signature_calldata", "data-value": "0" }, el("span", { class: "dim" }, "not on chain")),
+        verify,
+        gasCell("other", row.parts.fixed + row.parts.overhead, fmtInt(row.parts.fixed + row.parts.overhead), "modelled",
+          `Fixed: ${status.fixed}. Overhead: ${status.overhead}`,
+          `${fmtInt(row.parts.fixed)} fixed + ${fmtInt(row.parts.overhead)}`),
+        gasCell("onchain_bytes", row.onchain_bytes, fmtInt(row.onchain_bytes), "modelled", "The model's estimate of the transaction's size in the block"),
+        el("td", { "data-field": "binds", "data-value": JSON.stringify(row.binds) }, row.binds === "floor" ? "floor" : "standard"),
+        gasCell("cost_eth", Number.isFinite(eth) ? eth : null, Number.isFinite(eth) ? fmtEth(eth) : "n/a", null, null,
+          Number.isFinite(eth * usd) ? fmtUsd(eth * usd) : "enter both prices")));
+    }
+    table.append(body);
+
+    const note = clear($("#ex-gas-note"));
+    note.append(chip("modelled"), " Every gas figure in this table is the campaign's gas model (",
+      el("span", { class: "mono" }, rows.length ? rows[0].model : ""), "), not a receipt. Total: ", taggedProse(status.total || ""),
+      ". Fixed: ", taggedProse(status.fixed || ""), ". Calldata: ", taggedProse(status.calldata || ""),
+      ". ", verifyHead, ": ", taggedProse(status.verification || ""), ". Overhead: ", taggedProse(status.overhead || ""), ". ");
+    if (rows.some((row) => row.verification_measured !== null && row.verification_measured !== undefined)) {
+      note.append(chip("measured"), " \u201cForge\u201d is the mean gas of the campaign's own verifier for that set over 52 test vectors. The model's fitted price per permutation is higher, by 3% for the 2-bit sets and by 11 to 12% for the 3-bit sets; where the floor binds this does not change the total. ");
+    }
+    if (rows.some((row) => row.k > 1) && entry.class === "noagg") {
+      note.append("Rows with more than one signature per transaction carry the multisig caveat in About. ");
+    }
+    if (entry.class === "pcs") note.append("On-chain bytes are the harness's figure for the whole transaction; the floor prices the proof calldata, the frame and the claims. ");
+  }
+
+  const KIND_GROUPS = [
+    ["frame_tx", "EIP-8141 frame transaction (the route of scenario A)"],
+    ["verify_tx", "Standalone verify transaction (calldata priced as in E0b and E0c, no account around it)"],
+    ["handleops", "ERC-4337 handleOps (the route of scenario E0a)"],
+    ["verify_call", "Verifier call alone, in Foundry (no transaction)"]];
+
+  function measuredRow(key, what, sub, bytes, gas, exact, where, when, model, diff, notes, source) {
+    return el("tr", { "data-measured": key },
+      el("th", { scope: "row" }, what, sub ? el("span", { class: "sub" }, sub) : null),
+      el("td", { class: "n", "data-field": "sig_bytes", "data-value": JSON.stringify(bytes) }, fmtInt(bytes)),
+      el("td", { class: "n", "data-field": "gas", "data-value": JSON.stringify(gas) }, (exact ? "" : "about ") + fmtInt(gas), chip("measured", source)),
+      el("td", {}, where, when ? el("span", { class: "sub" }, when) : null),
+      model === null || model === undefined
+        ? el("td", { class: "n", "data-field": "model_gas", "data-value": "null" }, el("span", { class: "dim" }, "none"))
+        : el("td", { class: "n", "data-field": "model_gas", "data-value": JSON.stringify(model) }, fmtInt(model), chip("modelled"),
+          el("span", { class: "sub" }, diff === 0 ? "equal to the gas" : fmtPct(diff) + " against the receipt")),
+      el("td", { class: "notes" }, notes || "", el("span", { class: "sub mono" }, source)));
+  }
+
+  function renderMeasured() {
+    const measured = gasData.measured;
+    const table = clear($("#ex-measured"));
+    table.append(el("thead", {}, el("tr", {},
+      el("th", { scope: "col" }, "What"),
+      el("th", { scope: "col", class: "n" }, "Signature", el("span", { class: "sub" }, "bytes")),
+      el("th", { scope: "col", class: "n" }, "Gas"),
+      el("th", { scope: "col" }, "Where and when"),
+      el("th", { scope: "col", class: "n" }, "Model", el("span", { class: "sub" }, "same shape")),
+      el("th", { scope: "col" }, "Caveats and source"))));
+    const campaign = el("tbody", { "data-group": "campaign" });
+    campaign.append(el("tr", { class: "group" }, el("th", { colspan: "6", scope: "colgroup" },
+      "The campaign's working set with its real verifier, on a local chain (the routes of E0b and E0c)")));
+    measured.campaign.forEach((row, index) => {
+      campaign.append(measuredRow(`campaign:${index}`, row.what,
+        `verifier ${fmtInt(row.verifier_gas)} gas, overhead ${fmtInt(row.overhead_gas)}, ${fmtInt(row.input_bytes)} B of calldata`,
+        row.sig_bytes, row.gas, true, row.network, row.date, row.model_gas, row.model_diff_pct,
+        [`The ${row.path === "floor" ? "calldata floor" : "standard path"} binds. Re-priced under EIP-7976 and EIP-2780 the receipt gives ${fmtInt(row.glamsterdam_total_recorded)}; the model gives ${fmtInt(row.glamsterdam_total_model)}.`,
+          row.caveat ? " " + row.caveat.replace(/^./, (c) => c.toUpperCase()) + "." : ""].join(""),
+        row.source));
+    });
+    table.append(campaign);
+    const deployments = measured.deployments;
+    for (const [kind, label] of KIND_GROUPS) {
+      const body = el("tbody", { "data-group": kind });
+      body.append(el("tr", { class: "group" }, el("th", { colspan: "6", scope: "colgroup" },
+        "Other parameter sets of the family, deployed: " + label)));
+      deployments.rows.forEach((row, index) => {
+        if (row.kind !== kind) return;
+        body.append(measuredRow(`deployments:${index}`, row.scheme,
+          (row.perms ? `${row.perms} permutations` : "") + (row.verify_frame_gas ? ` · VERIFY frame ${fmtInt(row.verify_frame_gas)} gas` : ""),
+          row.sig_bytes, row.gas, row.exact, row.network, row.date, row.model_gas, row.model_diff_pct,
+          row.caveat ? row.caveat.replace(/^./, (c) => c.toUpperCase()) + "." : "",
+          `SPHINCs- ${row.source.file}:${row.source.line}`));
+      });
+      table.append(body);
+    }
+    clear($("#ex-measured-lead")).append(
+      "Gas of real transactions, for comparison with the model above. None of these rows is one of the candidate sets on a public network: the first four are the working set on a local anvil chain, the rest are other parameter sets of the same family (C7, C12, C13, SLH-DSA-Keccak, leanSphincs and its -s, -f and -layered variants) that were deployed on Sepolia and on the ethrex EIP-8141 testnet. The model column is the campaign's gas model for the same shape, where it has one.");
+    const receipts = gasData.cross_checks.filter((item) => item.kind === "receipt");
+    const worst = Math.max(...receipts.map((item) => Math.abs(item.diff_pct)));
+    clear($("#ex-measured-note")).append(chip("measured"),
+      " Receipts on Sepolia and the ethrex testnet are quoted from the SPHINCs- repository (",
+      el("span", { class: "mono" }, `commit ${String(deployments.commit).slice(0, 7)}, ${String(deployments.commit_date).slice(0, 10)}`),
+      "); this site did not re-read them from the chain. Figures with “about” are rounded in the source. Rows dated June 2026 predate the 64-gas-per-byte calldata floor and the October verifier optimisations, and are not comparable with the later rows. ",
+      chip("modelled"), ` The build compares the model with ${receipts.length} recorded receipts and stops above ${gasData.tolerance_pct}%; the largest difference is ${worst.toFixed(2)}%. The frame and verify transactions are reproduced to the gas because the calldata floor binds and the model's layout was fitted on them.`);
+    const list = gasData.disagreements;
+    $("#ex-disagree > summary").textContent = `Where two sources give different numbers (${list.length})`;
+    const body = clear($("#ex-disagree-body"));
+    body.append(el("p", { class: "note" }, "Both figures are shown with their labels; neither is dropped."));
+    const dl = el("dl", { class: "kv" });
+    for (const item of list) {
+      dl.append(el("dt", {}, item.what),
+        el("dd", { "data-disagreement": item.what },
+          `${fmtInt(item.a.value)} `, taggedProse(item.a.label), ` against ${fmtInt(item.b.value)} `, taggedProse(item.b.label),
+          ` (${fmtPct(item.diff_pct)}). Effect: ${item.effect}.`));
+    }
+    body.append(dl);
+  }
+
   // ------------------------------------------------------- candidate sets
   function renderCandidates() {
     const table = clear($("#ex-candidates"));
@@ -323,6 +543,25 @@ export function initExplore(app) {
   ];
   for (const [field, label] of CALC_ROWS) {
     calcBody.append(el("tr", { "data-field": field },
+      el("th", { scope: "row" }, label), el("td", { class: "n value" }, "—"), el("td", {}, chip("modelled"))));
+  }
+  const calcGasBody = $("#calc-gas-table tbody");
+  const CALC_GAS_ROWS = [
+    ["total", "Total gas", (g) => g.total, (g) => fmtInt(g.total) + " gas"],
+    ["binds", "Price that binds", (g) => g.binds, (g) => BINDS[g.binds]],
+    ["fixed", "Fixed", (g) => g.parts.fixed, (g) => fmtInt(g.parts.fixed) + " gas"],
+    ["calldata", "Calldata", (g) => g.parts.calldata, (g) => `${fmtInt(g.parts.calldata)} gas, ${(g.calldata_share * 100).toFixed(1)}%`],
+    ["signature_calldata", "of which signature bytes", (g) => g.signature_calldata,
+      (g) => g.signature_on_chain ? `${fmtInt(g.signature_calldata)} gas (${fmtInt(g.k * g.sig_bytes)} B × ${g.signature_byte_price})` : "not on chain"],
+    ["verification", "Verification, charged", (g) => g.parts.verification, (g) => fmtInt(g.parts.verification) + " gas"],
+    ["verification_executed", "Verification, as it runs", (g) => g.verification_executed, (g) => fmtInt(g.verification_executed) + " gas"],
+    ["overhead", "Overhead", (g) => g.parts.overhead, (g) => fmtInt(g.parts.overhead) + " gas"],
+    ["standard_total", "Standard path", (g) => g.standard.total, (g) => fmtInt(g.standard.total) + " gas"],
+    ["floor_total", "Calldata floor", (g) => g.floor.total, (g) => fmtInt(g.floor.total) + " gas"],
+    ["gas_per_signature", "Gas per signature", (g) => g.gas_per_signature, (g) => fmtInt(g.gas_per_signature) + " gas"],
+  ];
+  for (const [field, label] of CALC_GAS_ROWS) {
+    calcGasBody.append(el("tr", { "data-field": field },
       el("th", { scope: "row" }, label), el("td", { class: "n value" }, "—"), el("td", {}, chip("modelled"))));
   }
   for (const set of sets) {
@@ -393,6 +632,22 @@ export function initExplore(app) {
         td.textContent = value === null || value === undefined ? "n/a" : format(result);
         td.dataset.value = JSON.stringify(value === undefined ? null : value);
       }
+      const split = result.gas_breakdown;
+      for (const [field, , pick, format] of CALC_GAS_ROWS) {
+        const td = calcGasBody.querySelector(`tr[data-field="${field}"] td.value`);
+        td.textContent = split ? format(split) : "n/a";
+        td.dataset.value = JSON.stringify(split ? pick(split) : null);
+      }
+      if (split) {
+        clear($("#calc-gas-note")).append(
+          `Fixed, calldata, verification charged and overhead sum to the total: the ${BINDS[split.binds]} binds (the transaction pays the larger of the two paths). `,
+          split.signature_on_chain
+            ? (split.binds === "floor" && split.parts.verification === 0
+              ? "Under the floor the verifier's execution is not charged on top; \u201cas it runs\u201d is what it would cost on the standard path. "
+              : "")
+            : "The signature bytes are not on chain here; the calldata is what stands in for them (dependency triples, or the proof and its claims). ",
+          "Model: ", el("span", { class: "mono" }, split.model), ".");
+      }
       $("#calc-table").dataset.config = JSON.stringify(config);
       $("#calc-table").dataset.seq = String(seq);
       setCalcStatus(`Model evaluated in ${Math.round(result.timing.worker_ms)} ms: ${result.candidate} in ${result.scenario} at ${fmtGas(result.gas_limit)} gas.`);
@@ -416,6 +671,11 @@ export function initExplore(app) {
   // --------------------------------------------------------------- wiring
   scenarioSelect.addEventListener("change", renderScenario);
   groupSelect.addEventListener("change", renderTable);
+  gasConfig.addEventListener("change", renderGas);
+  gasK.addEventListener("change", renderGas);
+  gasFee.addEventListener("input", renderGas);
+  gasUsd.addEventListener("input", renderGas);
+  $("#gas-form").addEventListener("submit", (event) => event.preventDefault());
   calc.base.addEventListener("change", () => { baseValues(); scheduleCalc(0); });
   calc.gas.addEventListener("change", () => scheduleCalc(0));
   calc.bytes.addEventListener("input", () => scheduleCalc());
@@ -423,6 +683,7 @@ export function initExplore(app) {
   $("#calc-form").addEventListener("submit", (event) => { event.preventDefault(); scheduleCalc(0); });
 
   renderCandidates();
+  renderMeasured();
   renderScenario();
   let lastState = null;
   app.onEngineState((state) => {

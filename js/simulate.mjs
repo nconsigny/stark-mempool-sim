@@ -21,6 +21,9 @@ export const HEADLINES = [
   { field: "t90_block_s", label: "Block reaches 90% of nodes", sub: "seconds after the slot starts", value: (v) => fmtFixed(v, 2), unit: "s" },
   { field: "bw_node_mbit", label: "Bandwidth per node", sub: "mean upload", value: (v) => fmtFixed(v, 2), unit: "Mbit/s" },
   { field: "dup_share", label: "Duplicates", sub: "share of bytes received more than once", value: (v) => fmtShare(v), unit: "of bytes" },
+  // Not simulated: the gas model's figures for one transaction of the run.
+  { field: "tx_gas", gas: true, label: "Gas per transaction", sub: "total, from the gas model (not simulated)", value: (v) => fmtInt(v), unit: "gas" },
+  { field: "tx_calldata_gas", gas: true, label: "Calldata gas per transaction", sub: "data bytes at the price that binds (gas model)", value: (v) => fmtInt(v), unit: "gas" },
 ];
 
 const NBSP = "\u00a0";
@@ -142,6 +145,7 @@ export function initSimulate(app) {
       entry.description, " When: ", entry.when, ". Class: ", CLASS_NAMES[config.class] || config.class,
       ". Pricing: ", el("code", {}, config.pricing), ". Mode: ", mode, ".");
 
+    if (app.scenarioHelp) { app.scenarioHelp.simHelp(); }
     const exploreOnly = $("#sim-explore-only");
     const fields = $("#sim-fields");
     if (config.explore_only) {
@@ -359,12 +363,22 @@ export function initSimulate(app) {
       setStatus("Running " + label + "…");
       form.dataset.state = "running";
       const result = await engine.run(config, { onProgress });
+      // The gas model's split of one transaction of this run (web/ENGINE.md,
+      // gas_breakdown). A failure leaves the two gas rows empty.
+      let gas = null;
+      try {
+        const point = { scenario: config.scenario, candidate: config.candidate, gas_limit: config.gas_limit };
+        for (const key of ["sig_bytes", "perms", "k"]) if (config[key] !== undefined && config[key] !== null) point[key] = config[key];
+        gas = await engine.call("gas_breakdown", { config: point });
+      } catch (error) {
+        console.warn("gas breakdown failed", error);
+      }
       progress.value = 1;
       const took = result.timing.wall_ms / 1000;
       const runs = result.timing.probes;
       progressText.textContent = `Finished: ${runs} simulation${runs === 1 ? "" : "s"} in ${took.toFixed(1)} s.`;
       setStatus(`Done in ${took.toFixed(1)} s.`);
-      showResult(result, config, cfg);
+      showResult(result, config, cfg, gas);
       form.dataset.state = "done";
     } catch (error) {
       if (error instanceof EngineCancelled) {
@@ -410,17 +424,36 @@ export function initSimulate(app) {
     $("#sim-col-table-sub").textContent = `${tableNodes} nodes`;
   }
 
-  function showResult(result, config, cfg) {
+  function showResult(result, config, cfg, gas) {
     const row = result.phase2_row;
     const knobs = result.row.knobs || {};
     const cell = findTableCell([data.noagg, data.agg], row, knobs, tableNodes);
+    // The gas rows: this run's transaction from the engine, and the same
+    // model at the named set from data/gas.json (none for a custom size).
+    const gasRun = gas ? { tx_gas: result.row.tx_gas ?? gas.total, tx_calldata_gas: gas.parts.calldata } : {};
+    const gasRow = config.sig_bytes ? null : data.gas.rows.find((item) =>
+      item.configuration === cfg.configuration && item.candidate === config.candidate && item.k === row.k);
+    const gasTable = gasRow ? { tx_gas: gasRow.total, tx_calldata_gas: gasRow.parts.calldata } : null;
     for (const spec of HEADLINES) {
       const tr = resultBody.querySelector(`tr[data-field="${spec.field}"]`);
       const runCell = tr.querySelector("td.run");
+      const tableCell = tr.querySelector("td.cell");
+      if (spec.gas) {
+        const value = gasRun[spec.field];
+        valueCell(runCell, missing(value) ? "n/a" : spec.value(value), spec.unit);
+        runCell.dataset.value = JSON.stringify(value ?? null);
+        delete tableCell.dataset.value;
+        if (!gasTable) {
+          valueCell(tableCell, "no cell", "", true);
+        } else {
+          valueCell(tableCell, spec.value(gasTable[spec.field]), spec.unit);
+          tableCell.dataset.value = JSON.stringify(gasTable[spec.field]);
+        }
+        continue;
+      }
       const value = row[spec.field];
       valueCell(runCell, missing(value) ? "n/a" : spec.value(value), spec.unit);
       runCell.dataset.value = JSON.stringify(value);
-      const tableCell = tr.querySelector("td.cell");
       delete tableCell.dataset.value;
       if (!cell) {
         valueCell(tableCell, "no cell", "", true);
@@ -459,6 +492,11 @@ export function initSimulate(app) {
       lead.append(`The campaign's tables have no cell for these settings (${why}). ` +
         (row.nodes === tableNodes ? "" : `A browser run is a smaller network than the tables' ${tableNodes} nodes. `));
     }
+    if (gas) {
+      lead.append(`One transaction costs ${fmtInt(gasRun.tx_gas)} gas in the gas model, ${fmtInt(gas.parts.calldata)} of it (${(gas.calldata_share * 100).toFixed(1)}%) calldata; the ` +
+        `${gas.binds === "floor" ? "calldata floor" : "standard path"} binds` +
+        (gas.signature_on_chain ? ". " : ", and the signature bytes are not on chain. "));
+    }
     lead.append(`Took ${(result.timing.wall_ms / 1000).toFixed(1)} s here (simulation ${result.timing.runtime_s.toFixed(1)} s, ` +
       `${result.timing.probes} simulation${result.timing.probes === 1 ? "" : "s"}).`);
     $("#sim-command").textContent = result.command;
@@ -469,7 +507,8 @@ export function initSimulate(app) {
     history.unshift({ row, config, cfg, timing: result.timing });
     if (history.length > HISTORY_MAX) history.pop();
     renderHistory();
-    app.lastRun = { config, result, cell };
+    app.lastRun = { config, result, cell, gas };
+    if (app.scenarioHelp) app.scenarioHelp.simBaseline(row);
   }
 
   function renderHistory() {
