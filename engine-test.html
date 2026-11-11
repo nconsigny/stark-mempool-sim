@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>leanSPHINCS engine test</title>
+<style>
+  body { font: 14px/1.4 system-ui, sans-serif; margin: 16px; max-width: 1000px; }
+  form { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; }
+  label { display: flex; flex-direction: column; font-size: 12px; }
+  input, select, button { font: inherit; padding: 4px; }
+  .buttons { margin: 12px 0; display: flex; flex-wrap: wrap; gap: 8px; }
+  pre { background: #f3f3f3; color: #111; padding: 8px; overflow: auto; max-height: 60vh; white-space: pre-wrap; word-break: break-word; }
+  #status { font-family: ui-monospace, monospace; font-size: 12px; min-height: 2.8em; }
+  @media (prefers-color-scheme: dark) { body { background: #111; color: #eee; } pre { background: #222; color: #eee; } }
+</style>
+</head>
+<body>
+<h1>leanSPHINCS engine test</h1>
+<p>A bare page for manual checks of <code>engine/worker.mjs</code> (API: <code>web/ENGINE.md</code>). Not the tool's interface.
+Empty fields keep the scenario's own value. Limits are enforced unless the box is ticked.</p>
+<form id="form">
+  <label>scenario <select name="scenario"></select></label>
+  <label>candidate <select name="candidate"><option value="">(scenario default)</option></select></label>
+  <label>sig_bytes (custom) <input name="sig_bytes" type="number" min="1"></label>
+  <label>perms (custom) <input name="perms" type="number" min="1"></label>
+  <label>k, signatures per transaction <input name="k" type="number" min="1"></label>
+  <label>gas_limit <input name="gas_limit" type="number" min="0" step="1000000"></label>
+  <label>profile <select name="profile"><option value="">(default)</option><option>optimistic</option><option>baseline</option><option>pessimistic</option></select></label>
+  <label>uplinks <select name="uplinks"><option value="">(default)</option><option>uniform</option><option>heterogeneous</option></select></label>
+  <label>nodes <input name="nodes" type="number" min="1"></label>
+  <label>measured_slots <input name="measured_slots" type="number" min="1"></label>
+  <label>seed <input name="seed" type="number" min="0"></label>
+  <label>mode <select name="mode"><option value="">(default)</option><option>run</option><option>capacity</option></select></label>
+  <label>network <select name="network"><option value="">(default: v2)</option><option>v2</option><option>v1</option></select></label>
+  <label>override_limits <input name="override_limits" type="checkbox"></label>
+</form>
+<div class="buttons">
+  <button id="run">Run</button>
+  <button id="model">Evaluate model</button>
+  <button id="cancel">Cancel</button>
+  <button id="scenarios">List scenarios</button>
+  <button id="candidates">List candidates</button>
+  <button id="info">Info</button>
+  <label><input id="full" type="checkbox"> show the full row</label>
+</div>
+<div id="status">starting…</div>
+<pre id="out"></pre>
+<script type="module">
+import { Engine } from "./engine/engine.mjs";
+
+const out = document.getElementById("out");
+const status = document.getElementById("status");
+const form = document.getElementById("form");
+const engine = new Engine({ onBoot: (event) => { status.textContent = `boot: ${event.stage} at ${event.ms} ms`; } });
+window.engine = engine;   // for the console and the tests
+
+function show(value) { out.textContent = typeof value === "string" ? value : JSON.stringify(value, null, 1); }
+function fail(error) { status.textContent = `${error.name}: ${error.message}`; if (error.traceback) show(error.traceback); }
+
+function config() {
+  const result = {};
+  for (const element of form.elements) {
+    if (!element.name) continue;
+    if (element.type === "checkbox") { if (element.checked) result[element.name] = true; continue; }
+    if (element.value === "") continue;
+    result[element.name] = element.type === "number" ? Number(element.value) : element.value;
+  }
+  return result;
+}
+
+async function boot() {
+  const report = await engine.start();
+  status.textContent = `ready in ${report.ready_ms} ms (Pyodide ${report.pyodide_version}, Python ${report.info.python}, simulator ${String(report.info.simulator_commit).slice(0, 7)})`;
+  const { scenarios } = await engine.scenarios();
+  const select = form.elements.scenario;
+  if (!select.options.length) {
+    const byValue = new Map();
+    for (const entry of scenarios) {
+      const option = document.createElement("option");
+      option.value = entry.default ? entry.id : entry.configuration;
+      option.textContent = `${entry.id}: ${entry.configuration}${entry.default ? " *" : ""}${entry.explore_only ? " (explore-only)" : ""} [nodes ${entry.settings.nodes.min}-${entry.settings.nodes.max}, slots ≤ ${entry.settings.measured_slots.max}, gas ≤ ${entry.settings.gas_limit.max / 1e6} M]`;
+      select.append(option);
+      byValue.set(option.value, entry);
+    }
+    // The configuration's own node count is the campaign's 40; a browser
+    // run starts from browser_defaults.
+    const prefill = () => {
+      const entry = byValue.get(select.value);
+      form.elements.nodes.value = entry.browser_defaults.nodes ?? entry.settings.nodes.default;
+    };
+    select.onchange = prefill;
+    prefill();
+    const { candidates } = await engine.candidates();
+    for (const entry of candidates) {
+      const option = document.createElement("option");
+      option.value = entry.name;
+      option.textContent = `${entry.name} (${entry.sig_bytes} B, ${entry.perms} perms)`;
+      form.elements.candidate.append(option);
+    }
+  }
+}
+boot().catch(fail);
+
+document.getElementById("run").onclick = async () => {
+  const started = performance.now();
+  status.textContent = "running…";
+  try {
+    const result = await engine.run(config(), { onProgress: (event) => {
+      status.textContent = `running: ${JSON.stringify(event)} (${((performance.now() - started) / 1000).toFixed(1)} s)`;
+    } });
+    status.textContent = `done in ${(result.timing.wall_ms / 1000).toFixed(2)} s (simulation ${result.timing.runtime_s.toFixed(2)} s, ${result.timing.probes} run(s)); ${result.command}`;
+    show(document.getElementById("full").checked ? result : result.phase2_row);
+  } catch (error) { fail(error); }
+};
+document.getElementById("model").onclick = async () => {
+  try { const result = await engine.evaluateModel(config()); status.textContent = `model in ${(result.timing.worker_ms).toFixed(0)} ms`; show(result); } catch (error) { fail(error); }
+};
+document.getElementById("cancel").onclick = () => { engine.cancel(); status.textContent = "cancelled: the worker was terminated; restarting…"; boot().catch(fail); };
+document.getElementById("scenarios").onclick = async () => { try { show(await engine.scenarios()); } catch (error) { fail(error); } };
+document.getElementById("candidates").onclick = async () => { try { show(await engine.candidates()); } catch (error) { fail(error); } };
+document.getElementById("info").onclick = async () => { try { show({ info: await engine.info(), boot: engine.boot }); } catch (error) { fail(error); } };
+</script>
+</body>
+</html>

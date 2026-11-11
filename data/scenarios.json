@@ -1,0 +1,4883 @@
+{
+ "source": [
+  "share/leansphincs-scenarios.html (section 'The scenarios')",
+  "python3 -m bench.leansphincs scenarios --json",
+  "web/limits.json"
+ ],
+ "budget_s": 30,
+ "time_limit_s": 90,
+ "table_nodes": 40,
+ "limits_basis": "The heaviest allowed run of each scenario takes at most about 12 s in headless Chromium on the build machine (a fast 2025 laptop CPU), which leaves a factor of two and more for a slower laptop: under about 30 s. Heaviest means the smallest signature (S22-minB-5K, most transactions per block) at the highest allowed gas limit, 4 measured slots, the scenario's own mode. A run over time_limit_s is stopped by the engine. The campaign's tables are 40-node runs; only F3 reaches that size inside the limits.",
+ "limits_measured": {
+  "machine": "AMD Ryzen 9 9955HX3D, headless Chromium 131, Pyodide 314.0.7 (Python 3.14.2); native Python 3.14.9",
+  "date": "2026-11-11",
+  "browser_over_native": "1.3 to 1.6 on the same run (web/test/results.json, timings)",
+  "browser_s_default_candidate": {
+   "A": {
+    "12": 1.1,
+    "40": 9.5,
+    "100": 27.1
+   },
+   "D": {
+    "12": 4.1,
+    "40": 14.7,
+    "100": 40.5
+   },
+   "F1": {
+    "12": 5.0,
+    "40": 17.6,
+    "100": 46.1
+   },
+   "source": "web/test/limits-measurements/full-run-1029.json (4 measured slots, the scenario's own mode, candidate B0, 60 M gas)"
+  },
+  "native_s_default_candidate": {
+   "A": {
+    "12": 0.7,
+    "40": 5.9,
+    "100": 17.3
+   },
+   "D": {
+    "12": 2.7,
+    "40": 10.2,
+    "100": 30.2
+   },
+   "F1": {
+    "12": 3.3,
+    "40": 11.9,
+    "100": 32.8
+   },
+   "E": {
+    "12": 3.6,
+    "40": 9.5,
+    "100": 24.6
+   },
+   "F3": {
+    "12": 0.5,
+    "40": 1.5,
+    "100": 3.7
+   },
+   "C2": {
+    "40": 36.3
+   }
+  },
+  "browser_s_heaviest_at_the_limit": {
+   "E0a, E0b, E0c at 20 nodes, S22-minB-5K, 300 M": "8.4, 11.6, 10.8",
+   "A, B, C1 at 20 nodes, S22-minB-5K, 300 M": "10.9, 8.4, 9.2",
+   "B_pr12616_16, B_flat_16, C1_flat_16 at 16 nodes, S22-minB-5K, 300 M": "6.8, 5.8, 5.7",
+   "B_pr12616_16 at 20 nodes, S22-minB-5K, 300 M": "17.3 (8 MB blocks stop propagating in time; hence the 16-node cap of the 16-gas-per-byte configurations)",
+   "D at 24 nodes, 60 M: S22-minB-5K, B0; D-dep3000": "10.7, 9.5; 8.3",
+   "E at 24 nodes: S22-minB-5K at 300 M, B0 at 60 M; E-dep3000 at 300 M": "9.2, 8.3; 9.9",
+   "F1 at 24 nodes: B0, S22-minB-5K": "11.0, 10.7",
+   "F3 at 40 nodes: S22-minB-5K at 300 M, B0 at 60 M": "5.4, 2.1",
+   "defaults: A at 20 nodes, E0a at 12 nodes (B0, 60 M)": "5.0, 2.2",
+   "source": "web/test/limits-measurements/browser-worst-case.log"
+  },
+  "over_the_limit": {
+   "no aggregation at 40 nodes, S22-minB-5K": "23 to 38 s (scaled from native CPU seconds, native_matrix.log)",
+   "D at 200 M, 12 nodes, B0": "26 s (the prover binds: a 6-run search; scaled from native_matrix2.log)",
+   "D at 300 M, 24 nodes": "60 s (scaled)",
+   "C2 at 40 nodes": "56 s (36.3 s natively x 1.55)"
+  }
+ },
+ "ids": [
+  {
+   "name": "Today's EVM",
+   "when": "now",
+   "description": "A contract checks the signature (Safe module, ERC-4337 or an EIP-7702 account), so no fork is needed and you pay calldata plus the hashing.",
+   "route": "ERC-4337 userOp",
+   "id": "E0a",
+   "default_configuration": "E0a_7623",
+   "configurations": [
+    "E0a_7623",
+    "E0a_7976"
+   ],
+   "class": "noagg",
+   "mode": "run",
+   "pricing": "7623",
+   "variant": "E0a_7623",
+   "explore_only": false,
+   "limits": {
+    "min_nodes": 12,
+    "max_nodes": 20,
+    "max_measured_slots": 4,
+    "max_gas_limit": 300000000,
+    "est_s": 12,
+    "browser_defaults": {
+     "nodes": 12
+    }
+   },
+   "browser_defaults": {
+    "nodes": 12
+   }
+  },
+  {
+   "name": "Today's EVM",
+   "when": "now",
+   "description": "A contract checks the signature (Safe module, ERC-4337 or an EIP-7702 account), so no fork is needed and you pay calldata plus the hashing.",
+   "route": "Safe module transaction",
+   "id": "E0b",
+   "default_configuration": "E0b_7623",
+   "configurations": [
+    "E0b_7623",
+    "E0b_7976"
+   ],
+   "class": "noagg",
+   "mode": "run",
+   "pricing": "7623",
+   "variant": "E0b_7623",
+   "explore_only": false,
+   "limits": {
+    "min_nodes": 12,
+    "max_nodes": 20,
+    "max_measured_slots": 4,
+    "max_gas_limit": 300000000,
+    "est_s": 12,
+    "browser_defaults": {
+     "nodes": 12
+    }
+   },
+   "browser_defaults": {
+    "nodes": 12
+   }
+  },
+  {
+   "name": "Today's EVM",
+   "when": "now",
+   "description": "A contract checks the signature (Safe module, ERC-4337 or an EIP-7702 account), so no fork is needed and you pay calldata plus the hashing.",
+   "route": "EIP-7702 delegate",
+   "id": "E0c",
+   "default_configuration": "E0c_7623",
+   "configurations": [
+    "E0c_7623",
+    "E0c_7976"
+   ],
+   "class": "noagg",
+   "mode": "run",
+   "pricing": "7623",
+   "variant": "E0c_7623",
+   "explore_only": false,
+   "limits": {
+    "min_nodes": 12,
+    "max_nodes": 20,
+    "max_measured_slots": 4,
+    "max_gas_limit": 300000000,
+    "est_s": 12,
+    "browser_defaults": {
+     "nodes": 12
+    }
+   },
+   "browser_defaults": {
+    "nodes": 12
+   }
+  },
+  {
+   "name": "8141 full",
+   "when": "H*",
+   "description": "The signature rides in a frame transaction as opaque bytes and the account's own EVM code verifies it; signatures verified that way cannot be aggregated later.",
+   "route": null,
+   "id": "A",
+   "default_configuration": "A",
+   "configurations": [
+    "A"
+   ],
+   "class": "noagg",
+   "mode": "run",
+   "pricing": "8141+7976",
+   "variant": "A",
+   "explore_only": false,
+   "limits": {
+    "min_nodes": 12,
+    "max_nodes": 20,
+    "max_measured_slots": 4,
+    "max_gas_limit": 300000000,
+    "est_s": 12,
+    "browser_defaults": {
+     "nodes": 12
+    }
+   },
+   "browser_defaults": {
+    "nodes": 12
+   }
+  },
+  {
+   "name": "8141 light",
+   "when": "H*",
+   "description": "leanSPHINCS joins EIP-8141's built-in signature list next to secp256k1 and P256, clients verify it natively, and the same accounts can be aggregated later.",
+   "route": null,
+   "id": "B",
+   "default_configuration": "B_pr12616_64",
+   "configurations": [
+    "B_pr12616_64",
+    "B_flat_16",
+    "B_flat_64",
+    "B_pr12616_16",
+    "B_pr12616_64_fl12559",
+    "B_prop_k1_16",
+    "B_prop_k1_64",
+    "B_prop_p256_16",
+    "B_prop_p256_64"
+   ],
+   "class": "noagg",
+   "mode": "run",
+   "pricing": "8141+7976",
+   "variant": "B_pr12616_64",
+   "explore_only": false,
+   "limits": {
+    "min_nodes": 12,
+    "max_nodes": 20,
+    "max_measured_slots": 4,
+    "max_gas_limit": 300000000,
+    "est_s": 12,
+    "browser_defaults": {
+     "nodes": 12
+    }
+   },
+   "browser_defaults": {
+    "nodes": 12
+   }
+  },
+  {
+   "name": "8288 light, raw signatures",
+   "when": "H* to I*",
+   "description": "The transaction declares its signature as an EIP-8288 dependency but there is no proof yet: raw signatures go in the block and every node checks them.",
+   "route": null,
+   "id": "C1",
+   "default_configuration": "C1_flat_64",
+   "configurations": [
+    "C1_flat_64",
+    "C1_flat_16",
+    "C1_pr12616_16",
+    "C1_pr12616_64",
+    "C1_prop_k1_16",
+    "C1_prop_k1_64",
+    "C1_prop_p256_16",
+    "C1_prop_p256_64"
+   ],
+   "class": "noagg",
+   "mode": "run",
+   "pricing": "8141+7976",
+   "variant": "C1_flat_64",
+   "explore_only": false,
+   "limits": {
+    "min_nodes": 12,
+    "max_nodes": 20,
+    "max_measured_slots": 4,
+    "max_gas_limit": 300000000,
+    "est_s": 12,
+    "browser_defaults": {
+     "nodes": 12
+    }
+   },
+   "browser_defaults": {
+    "nodes": 12
+   }
+  },
+  {
+   "name": "8288 light, builder proves",
+   "when": "H* to I*",
+   "description": "Raw signatures gossip in the mempool with no recursion, and only the builder proves them, with one STARK per block.",
+   "route": null,
+   "id": "C2",
+   "default_configuration": "C2",
+   "configurations": [
+    "C2",
+    "C2-dep3000"
+   ],
+   "class": "agg8288",
+   "mode": "capacity",
+   "pricing": "8288:3000+30000/dep",
+   "variant": "builder=1xepyc9355p;queue=supersede",
+   "explore_only": true,
+   "limits": {
+    "min_nodes": 40,
+    "max_nodes": 40,
+    "max_measured_slots": 4,
+    "max_gas_limit": 300000000,
+    "est_s": 56,
+    "browser_defaults": {
+     "nodes": 40
+    },
+    "explore_only": true,
+    "reason": "the configuration fixes 40 nodes (one uplink per node, degree 32) and one run takes about a minute in the browser (36 s natively); with override_limits, measured_slots 1 and mode run it takes about 16 s"
+   },
+   "browser_defaults": {
+    "nodes": 40
+   }
+  },
+  {
+   "name": "8288 or leanPCS, gas binds",
+   "when": "I*",
+   "description": "Mempool nodes aggregate recursively every second and the block carries one STARK. The signature is an EIP-8288 dependency in both designs; throughput is capped by the flat gas charged for it, 33,000 in EIP-8288 and 3,000 in the leanPCS draft.",
+   "route": null,
+   "id": "D",
+   "default_configuration": "D",
+   "configurations": [
+    "D",
+    "D-dep3000"
+   ],
+   "class": "agg8288",
+   "mode": "capacity",
+   "pricing": "8288:3000+30000/dep",
+   "variant": "queue=supersede;rate=1/2;agg=all",
+   "explore_only": false,
+   "limits": {
+    "min_nodes": 12,
+    "max_nodes": 24,
+    "max_measured_slots": 4,
+    "max_gas_limit": 60000000,
+    "est_s": 11,
+    "browser_defaults": {
+     "nodes": 12
+    },
+    "reason": "above 60 M gas the prover binds and the capacity search needs 6 to 8 runs: 26 s at 12 nodes and 200 M, a minute at 24 nodes and 300 M"
+   },
+   "browser_defaults": {
+    "nodes": 12
+   }
+  },
+  {
+   "name": "8288 or leanPCS, mempool binds",
+   "when": "I*",
+   "description": "Same design, but the limit is provers or node uplinks, because peers keep exchanging proofs of about 300 KB.",
+   "route": null,
+   "id": "E",
+   "default_configuration": "E",
+   "configurations": [
+    "E",
+    "E-dep3000"
+   ],
+   "class": "agg8288",
+   "mode": "capacity",
+   "pricing": "8288:3000+30000/dep",
+   "variant": "queue=unbounded;rate=1/2;agg=all",
+   "explore_only": false,
+   "limits": {
+    "min_nodes": 12,
+    "max_nodes": 24,
+    "max_measured_slots": 4,
+    "max_gas_limit": 300000000,
+    "est_s": 10,
+    "browser_defaults": {
+     "nodes": 12
+    }
+   },
+   "browser_defaults": {
+    "nodes": 12
+   }
+  },
+  {
+   "name": "Signature inside a user-side proof",
+   "when": "I*",
+   "description": "No signature scheme is enshrined: the user's laptop, the first hop or a bundler proves the signature inside a STARK and a contract checks it through leanPCS claims. The leanPCS draft does not handle plain signatures this way.",
+   "route": "one signature per transaction, proved on the user's host",
+   "id": "F1",
+   "default_configuration": "F1",
+   "configurations": [
+    "F1"
+   ],
+   "class": "pcs",
+   "mode": "capacity",
+   "pricing": "leanPCS-4905424d/7976",
+   "variant": "bundle=1;queue=supersede;rate=1/2;node=eip7870",
+   "explore_only": false,
+   "limits": {
+    "min_nodes": 12,
+    "max_nodes": 24,
+    "max_measured_slots": 4,
+    "max_gas_limit": 300000000,
+    "est_s": 11,
+    "browser_defaults": {
+     "nodes": 12
+    }
+   },
+   "browser_defaults": {
+    "nodes": 12
+   }
+  },
+  {
+   "name": "Signature inside a user-side proof",
+   "when": "I*",
+   "description": "No signature scheme is enshrined: the user's laptop, the first hop or a bundler proves the signature inside a STARK and a contract checks it through leanPCS claims. The leanPCS draft does not handle plain signatures this way.",
+   "route": "first-hop wrap: F1's mempool run, relabelled",
+   "id": "F2",
+   "default_configuration": "F2",
+   "configurations": [
+    "F2"
+   ],
+   "class": "pcs",
+   "mode": "capacity",
+   "pricing": "leanPCS-4905424d/7976",
+   "variant": "bundle=1;queue=supersede;rate=1/2;node=eip7870",
+   "explore_only": false,
+   "limits": {
+    "min_nodes": 12,
+    "max_nodes": 24,
+    "max_measured_slots": 4,
+    "max_gas_limit": 300000000,
+    "est_s": 11,
+    "browser_defaults": {
+     "nodes": 12
+    }
+   },
+   "browser_defaults": {
+    "nodes": 12
+   }
+  },
+  {
+   "name": "Signature inside a user-side proof",
+   "when": "I*",
+   "description": "No signature scheme is enshrined: the user's laptop, the first hop or a bundler proves the signature inside a STARK and a contract checks it through leanPCS claims. The leanPCS draft does not handle plain signatures this way.",
+   "route": "a bundle filled to 65,536 claim slots",
+   "id": "F3",
+   "default_configuration": "F3",
+   "configurations": [
+    "F3"
+   ],
+   "class": "pcs",
+   "mode": "capacity",
+   "pricing": "leanPCS-4905424d/7976",
+   "variant": "bundle=124;queue=supersede;rate=1/2;node=eip7870",
+   "explore_only": false,
+   "limits": {
+    "min_nodes": 12,
+    "max_nodes": 40,
+    "max_measured_slots": 4,
+    "max_gas_limit": 300000000,
+    "est_s": 6,
+    "browser_defaults": {
+     "nodes": 40
+    }
+   },
+   "browser_defaults": {
+    "nodes": 40
+   }
+  }
+ ],
+ "configurations": [
+  {
+   "id": "E0a",
+   "configuration": "E0a_7623",
+   "default": true,
+   "class": "noagg",
+   "mode": "run",
+   "pricing": "7623",
+   "variant": "E0a_7623",
+   "gas_limit": 60000000,
+   "profile": "baseline",
+   "uplinks": "heterogeneous",
+   "models": [
+    "models_noagg:gas_E0a_7623"
+   ],
+   "settings": {
+    "candidate": {
+     "type": "choice",
+     "default": "B0",
+     "values": [
+      "B0",
+      "P99r",
+      "P99a",
+      "S24-minB",
+      "S22-minP-5K",
+      "S22-minB-5K",
+      "N2",
+      "N3r"
+     ],
+     "more_values": 94
+    },
+    "sig_bytes": {
+     "type": "int",
+     "default": 7740,
+     "min": 1,
+     "swept": [
+      2000,
+      10000
+     ],
+     "follows": "candidate"
+    },
+    "perms": {
+     "type": "int",
+     "default": 515,
+     "min": 1,
+     "swept": [
+      150,
+      1000
+     ],
+     "follows": "candidate"
+    },
+    "k": {
+     "type": "int",
+     "default": 1,
+     "min": 1
+    },
+    "gas_limit": {
+     "type": "int",
+     "default": 60000000,
+     "min": 0,
+     "values": [
+      60000000,
+      200000000,
+      300000000
+     ],
+     "max": 300000000
+    },
+    "profile": {
+     "type": "choice",
+     "default": "baseline",
+     "values": [
+      "optimistic",
+      "baseline",
+      "pessimistic"
+     ]
+    },
+    "uplinks": {
+     "type": "choice",
+     "default": "heterogeneous",
+     "values": [
+      "uniform",
+      "heterogeneous"
+     ]
+    },
+    "nodes": {
+     "type": "int",
+     "default": 40,
+     "min": 12,
+     "max": 20
+    },
+    "measured_slots": {
+     "type": "int",
+     "default": 4,
+     "min": 1,
+     "max": 4
+    },
+    "seed": {
+     "type": "int",
+     "default": 0,
+     "min": 0
+    },
+    "mode": {
+     "type": "choice",
+     "default": "run",
+     "values": [
+      "run",
+      "capacity"
+     ]
+    },
+    "network": {
+     "type": "choice",
+     "default": "v2",
+     "values": [
+      "v2",
+      "v1"
+     ]
+    }
+   },
+   "limits": {
+    "min_nodes": 12,
+    "max_nodes": 20,
+    "max_measured_slots": 4,
+    "max_gas_limit": 300000000,
+    "est_s": 12,
+    "browser_defaults": {
+     "nodes": 12
+    }
+   },
+   "explore_only": false,
+   "browser_defaults": {
+    "nodes": 12
+   }
+  },
+  {
+   "id": "E0a",
+   "configuration": "E0a_7976",
+   "default": false,
+   "class": "noagg",
+   "mode": "run",
+   "pricing": "7976",
+   "variant": "E0a_7976",
+   "gas_limit": 60000000,
+   "profile": "baseline",
+   "uplinks": "heterogeneous",
+   "models": [
+    "models_noagg:gas_E0a_7976"
+   ],
+   "settings": {
+    "candidate": {
+     "type": "choice",
+     "default": "B0",
+     "values": [
+      "B0",
+      "P99r",
+      "P99a",
+      "S24-minB",
+      "S22-minP-5K",
+      "S22-minB-5K",
+      "N2",
+      "N3r"
+     ],
+     "more_values": 94
+    },
+    "sig_bytes": {
+     "type": "int",
+     "default": 7740,
+     "min": 1,
+     "swept": [
+      2000,
+      10000
+     ],
+     "follows": "candidate"
+    },
+    "perms": {
+     "type": "int",
+     "default": 515,
+     "min": 1,
+     "swept": [
+      150,
+      1000
+     ],
+     "follows": "candidate"
+    },
+    "k": {
+     "type": "int",
+     "default": 1,
+     "min": 1
+    },
+    "gas_limit": {
+     "type": "int",
+     "default": 60000000,
+     "min": 0,
+     "values": [
+      60000000,
+      200000000,
+      300000000
+     ],
+     "max": 300000000
+    },
+    "profile": {
+     "type": "choice",
+     "default": "baseline",
+     "values": [
+      "optimistic",
+      "baseline",
+      "pessimistic"
+     ]
+    },
+    "uplinks": {
+     "type": "choice",
+     "default": "heterogeneous",
+     "values": [
+      "uniform",
+      "heterogeneous"
+     ]
+    },
+    "nodes": {
+     "type": "int",
+     "default": 40,
+     "min": 12,
+     "max": 20
+    },
+    "measured_slots": {
+     "type": "int",
+     "default": 4,
+     "min": 1,
+     "max": 4
+    },
+    "seed": {
+     "type": "int",
+     "default": 0,
+     "min": 0
+    },
+    "mode": {
+     "type": "choice",
+     "default": "run",
+     "values": [
+      "run",
+      "capacity"
+     ]
+    },
+    "network": {
+     "type": "choice",
+     "default": "v2",
+     "values": [
+      "v2",
+      "v1"
+     ]
+    }
+   },
+   "limits": {
+    "min_nodes": 12,
+    "max_nodes": 20,
+    "max_measured_slots": 4,
+    "max_gas_limit": 300000000,
+    "est_s": 12,
+    "browser_defaults": {
+     "nodes": 12
+    }
+   },
+   "explore_only": false,
+   "browser_defaults": {
+    "nodes": 12
+   }
+  },
+  {
+   "id": "E0b",
+   "configuration": "E0b_7623",
+   "default": true,
+   "class": "noagg",
+   "mode": "run",
+   "pricing": "7623",
+   "variant": "E0b_7623",
+   "gas_limit": 60000000,
+   "profile": "baseline",
+   "uplinks": "heterogeneous",
+   "models": [
+    "models_noagg:gas_E0b_7623"
+   ],
+   "settings": {
+    "candidate": {
+     "type": "choice",
+     "default": "B0",
+     "values": [
+      "B0",
+      "P99r",
+      "P99a",
+      "S24-minB",
+      "S22-minP-5K",
+      "S22-minB-5K",
+      "N2",
+      "N3r"
+     ],
+     "more_values": 94
+    },
+    "sig_bytes": {
+     "type": "int",
+     "default": 7740,
+     "min": 1,
+     "swept": [
+      2000,
+      10000
+     ],
+     "follows": "candidate"
+    },
+    "perms": {
+     "type": "int",
+     "default": 515,
+     "min": 1,
+     "swept": [
+      150,
+      1000
+     ],
+     "follows": "candidate"
+    },
+    "k": {
+     "type": "int",
+     "default": 1,
+     "min": 1
+    },
+    "gas_limit": {
+     "type": "int",
+     "default": 60000000,
+     "min": 0,
+     "values": [
+      60000000,
+      200000000,
+      300000000
+     ],
+     "max": 300000000
+    },
+    "profile": {
+     "type": "choice",
+     "default": "baseline",
+     "values": [
+      "optimistic",
+      "baseline",
+      "pessimistic"
+     ]
+    },
+    "uplinks": {
+     "type": "choice",
+     "default": "heterogeneous",
+     "values": [
+      "uniform",
+      "heterogeneous"
+     ]
+    },
+    "nodes": {
+     "type": "int",
+     "default": 40,
+     "min": 12,
+     "max": 20
+    },
+    "measured_slots": {
+     "type": "int",
+     "default": 4,
+     "min": 1,
+     "max": 4
+    },
+    "seed": {
+     "type": "int",
+     "default": 0,
+     "min": 0
+    },
+    "mode": {
+     "type": "choice",
+     "default": "run",
+     "values": [
+      "run",
+      "capacity"
+     ]
+    },
+    "network": {
+     "type": "choice",
+     "default": "v2",
+     "values": [
+      "v2",
+      "v1"
+     ]
+    }
+   },
+   "limits": {
+    "min_nodes": 12,
+    "max_nodes": 20,
+    "max_measured_slots": 4,
+    "max_gas_limit": 300000000,
+    "est_s": 12,
+    "browser_defaults": {
+     "nodes": 12
+    }
+   },
+   "explore_only": false,
+   "browser_defaults": {
+    "nodes": 12
+   }
+  },
+  {
+   "id": "E0b",
+   "configuration": "E0b_7976",
+   "default": false,
+   "class": "noagg",
+   "mode": "run",
+   "pricing": "7976",
+   "variant": "E0b_7976",
+   "gas_limit": 60000000,
+   "profile": "baseline",
+   "uplinks": "heterogeneous",
+   "models": [
+    "models_noagg:gas_E0b_7976"
+   ],
+   "settings": {
+    "candidate": {
+     "type": "choice",
+     "default": "B0",
+     "values": [
+      "B0",
+      "P99r",
+      "P99a",
+      "S24-minB",
+      "S22-minP-5K",
+      "S22-minB-5K",
+      "N2",
+      "N3r"
+     ],
+     "more_values": 94
+    },
+    "sig_bytes": {
+     "type": "int",
+     "default": 7740,
+     "min": 1,
+     "swept": [
+      2000,
+      10000
+     ],
+     "follows": "candidate"
+    },
+    "perms": {
+     "type": "int",
+     "default": 515,
+     "min": 1,
+     "swept": [
+      150,
+      1000
+     ],
+     "follows": "candidate"
+    },
+    "k": {
+     "type": "int",
+     "default": 1,
+     "min": 1
+    },
+    "gas_limit": {
+     "type": "int",
+     "default": 60000000,
+     "min": 0,
+     "values": [
+      60000000,
+      200000000,
+      300000000
+     ],
+     "max": 300000000
+    },
+    "profile": {
+     "type": "choice",
+     "default": "baseline",
+     "values": [
+      "optimistic",
+      "baseline",
+      "pessimistic"
+     ]
+    },
+    "uplinks": {
+     "type": "choice",
+     "default": "heterogeneous",
+     "values": [
+      "uniform",
+      "heterogeneous"
+     ]
+    },
+    "nodes": {
+     "type": "int",
+     "default": 40,
+     "min": 12,
+     "max": 20
+    },
+    "measured_slots": {
+     "type": "int",
+     "default": 4,
+     "min": 1,
+     "max": 4
+    },
+    "seed": {
+     "type": "int",
+     "default": 0,
+     "min": 0
+    },
+    "mode": {
+     "type": "choice",
+     "default": "run",
+     "values": [
+      "run",
+      "capacity"
+     ]
+    },
+    "network": {
+     "type": "choice",
+     "default": "v2",
+     "values": [
+      "v2",
+      "v1"
+     ]
+    }
+   },
+   "limits": {
+    "min_nodes": 12,
+    "max_nodes": 20,
+    "max_measured_slots": 4,
+    "max_gas_limit": 300000000,
+    "est_s": 12,
+    "browser_defaults": {
+     "nodes": 12
+    }
+   },
+   "explore_only": false,
+   "browser_defaults": {
+    "nodes": 12
+   }
+  },
+  {
+   "id": "E0c",
+   "configuration": "E0c_7623",
+   "default": true,
+   "class": "noagg",
+   "mode": "run",
+   "pricing": "7623",
+   "variant": "E0c_7623",
+   "gas_limit": 60000000,
+   "profile": "baseline",
+   "uplinks": "heterogeneous",
+   "models": [
+    "models_noagg:gas_E0c_7623"
+   ],
+   "settings": {
+    "candidate": {
+     "type": "choice",
+     "default": "B0",
+     "values": [
+      "B0",
+      "P99r",
+      "P99a",
+      "S24-minB",
+      "S22-minP-5K",
+      "S22-minB-5K",
+      "N2",
+      "N3r"
+     ],
+     "more_values": 94
+    },
+    "sig_bytes": {
+     "type": "int",
+     "default": 7740,
+     "min": 1,
+     "swept": [
+      2000,
+      10000
+     ],
+     "follows": "candidate"
+    },
+    "perms": {
+     "type": "int",
+     "default": 515,
+     "min": 1,
+     "swept": [
+      150,
+      1000
+     ],
+     "follows": "candidate"
+    },
+    "k": {
+     "type": "int",
+     "default": 1,
+     "min": 1
+    },
+    "gas_limit": {
+     "type": "int",
+     "default": 60000000,
+     "min": 0,
+     "values": [
+      60000000,
+      200000000,
+      300000000
+     ],
+     "max": 300000000
+    },
+    "profile": {
+     "type": "choice",
+     "default": "baseline",
+     "values": [
+      "optimistic",
+      "baseline",
+      "pessimistic"
+     ]
+    },
+    "uplinks": {
+     "type": "choice",
+     "default": "heterogeneous",
+     "values": [
+      "uniform",
+      "heterogeneous"
+     ]
+    },
+    "nodes": {
+     "type": "int",
+     "default": 40,
+     "min": 12,
+     "max": 20
+    },
+    "measured_slots": {
+     "type": "int",
+     "default": 4,
+     "min": 1,
+     "max": 4
+    },
+    "seed": {
+     "type": "int",
+     "default": 0,
+     "min": 0
+    },
+    "mode": {
+     "type": "choice",
+     "default": "run",
+     "values": [
+      "run",
+      "capacity"
+     ]
+    },
+    "network": {
+     "type": "choice",
+     "default": "v2",
+     "values": [
+      "v2",
+      "v1"
+     ]
+    }
+   },
+   "limits": {
+    "min_nodes": 12,
+    "max_nodes": 20,
+    "max_measured_slots": 4,
+    "max_gas_limit": 300000000,
+    "est_s": 12,
+    "browser_defaults": {
+     "nodes": 12
+    }
+   },
+   "explore_only": false,
+   "browser_defaults": {
+    "nodes": 12
+   }
+  },
+  {
+   "id": "E0c",
+   "configuration": "E0c_7976",
+   "default": false,
+   "class": "noagg",
+   "mode": "run",
+   "pricing": "7976",
+   "variant": "E0c_7976",
+   "gas_limit": 60000000,
+   "profile": "baseline",
+   "uplinks": "heterogeneous",
+   "models": [
+    "models_noagg:gas_E0c_7976"
+   ],
+   "settings": {
+    "candidate": {
+     "type": "choice",
+     "default": "B0",
+     "values": [
+      "B0",
+      "P99r",
+      "P99a",
+      "S24-minB",
+      "S22-minP-5K",
+      "S22-minB-5K",
+      "N2",
+      "N3r"
+     ],
+     "more_values": 94
+    },
+    "sig_bytes": {
+     "type": "int",
+     "default": 7740,
+     "min": 1,
+     "swept": [
+      2000,
+      10000
+     ],
+     "follows": "candidate"
+    },
+    "perms": {
+     "type": "int",
+     "default": 515,
+     "min": 1,
+     "swept": [
+      150,
+      1000
+     ],
+     "follows": "candidate"
+    },
+    "k": {
+     "type": "int",
+     "default": 1,
+     "min": 1
+    },
+    "gas_limit": {
+     "type": "int",
+     "default": 60000000,
+     "min": 0,
+     "values": [
+      60000000,
+      200000000,
+      300000000
+     ],
+     "max": 300000000
+    },
+    "profile": {
+     "type": "choice",
+     "default": "baseline",
+     "values": [
+      "optimistic",
+      "baseline",
+      "pessimistic"
+     ]
+    },
+    "uplinks": {
+     "type": "choice",
+     "default": "heterogeneous",
+     "values": [
+      "uniform",
+      "heterogeneous"
+     ]
+    },
+    "nodes": {
+     "type": "int",
+     "default": 40,
+     "min": 12,
+     "max": 20
+    },
+    "measured_slots": {
+     "type": "int",
+     "default": 4,
+     "min": 1,
+     "max": 4
+    },
+    "seed": {
+     "type": "int",
+     "default": 0,
+     "min": 0
+    },
+    "mode": {
+     "type": "choice",
+     "default": "run",
+     "values": [
+      "run",
+      "capacity"
+     ]
+    },
+    "network": {
+     "type": "choice",
+     "default": "v2",
+     "values": [
+      "v2",
+      "v1"
+     ]
+    }
+   },
+   "limits": {
+    "min_nodes": 12,
+    "max_nodes": 20,
+    "max_measured_slots": 4,
+    "max_gas_limit": 300000000,
+    "est_s": 12,
+    "browser_defaults": {
+     "nodes": 12
+    }
+   },
+   "explore_only": false,
+   "browser_defaults": {
+    "nodes": 12
+   }
+  },
+  {
+   "id": "A",
+   "configuration": "A",
+   "default": true,
+   "class": "noagg",
+   "mode": "run",
+   "pricing": "8141+7976",
+   "variant": "A",
+   "gas_limit": 60000000,
+   "profile": "baseline",
+   "uplinks": "heterogeneous",
+   "models": [
+    "models_noagg:gas_A"
+   ],
+   "settings": {
+    "candidate": {
+     "type": "choice",
+     "default": "B0",
+     "values": [
+      "B0",
+      "P99r",
+      "P99a",
+      "S24-minB",
+      "S22-minP-5K",
+      "S22-minB-5K",
+      "N2",
+      "N3r"
+     ],
+     "more_values": 94
+    },
+    "sig_bytes": {
+     "type": "int",
+     "default": 7740,
+     "min": 1,
+     "swept": [
+      2000,
+      10000
+     ],
+     "follows": "candidate"
+    },
+    "perms": {
+     "type": "int",
+     "default": 515,
+     "min": 1,
+     "swept": [
+      150,
+      1000
+     ],
+     "follows": "candidate"
+    },
+    "k": {
+     "type": "int",
+     "default": 1,
+     "min": 1
+    },
+    "gas_limit": {
+     "type": "int",
+     "default": 60000000,
+     "min": 0,
+     "values": [
+      60000000,
+      200000000,
+      300000000
+     ],
+     "max": 300000000
+    },
+    "profile": {
+     "type": "choice",
+     "default": "baseline",
+     "values": [
+      "optimistic",
+      "baseline",
+      "pessimistic"
+     ]
+    },
+    "uplinks": {
+     "type": "choice",
+     "default": "heterogeneous",
+     "values": [
+      "uniform",
+      "heterogeneous"
+     ]
+    },
+    "nodes": {
+     "type": "int",
+     "default": 40,
+     "min": 12,
+     "max": 20
+    },
+    "measured_slots": {
+     "type": "int",
+     "default": 4,
+     "min": 1,
+     "max": 4
+    },
+    "seed": {
+     "type": "int",
+     "default": 0,
+     "min": 0
+    },
+    "mode": {
+     "type": "choice",
+     "default": "run",
+     "values": [
+      "run",
+      "capacity"
+     ]
+    },
+    "network": {
+     "type": "choice",
+     "default": "v2",
+     "values": [
+      "v2",
+      "v1"
+     ]
+    }
+   },
+   "limits": {
+    "min_nodes": 12,
+    "max_nodes": 20,
+    "max_measured_slots": 4,
+    "max_gas_limit": 300000000,
+    "est_s": 12,
+    "browser_defaults": {
+     "nodes": 12
+    }
+   },
+   "explore_only": false,
+   "browser_defaults": {
+    "nodes": 12
+   }
+  },
+  {
+   "id": "B",
+   "configuration": "B_pr12616_64",
+   "default": true,
+   "class": "noagg",
+   "mode": "run",
+   "pricing": "8141+7976",
+   "variant": "B_pr12616_64",
+   "gas_limit": 60000000,
+   "profile": "baseline",
+   "uplinks": "heterogeneous",
+   "models": [
+    "models_noagg:gas_B_pr12616_64",
+    "models_noagg:native_verify_B"
+   ],
+   "settings": {
+    "candidate": {
+     "type": "choice",
+     "default": "B0",
+     "values": [
+      "B0",
+      "P99r",
+      "P99a",
+      "S24-minB",
+      "S22-minP-5K",
+      "S22-minB-5K",
+      "N2",
+      "N3r"
+     ],
+     "more_values": 94
+    },
+    "sig_bytes": {
+     "type": "int",
+     "default": 7740,
+     "min": 1,
+     "swept": [
+      2000,
+      10000
+     ],
+     "follows": "candidate"
+    },
+    "perms": {
+     "type": "int",
+     "default": 515,
+     "min": 1,
+     "swept": [
+      150,
+      1000
+     ],
+     "follows": "candidate"
+    },
+    "k": {
+     "type": "int",
+     "default": 1,
+     "min": 1
+    },
+    "gas_limit": {
+     "type": "int",
+     "default": 60000000,
+     "min": 0,
+     "values": [
+      60000000,
+      200000000,
+      300000000
+     ],
+     "max": 300000000
+    },
+    "profile": {
+     "type": "choice",
+     "default": "baseline",
+     "values": [
+      "optimistic",
+      "baseline",
+      "pessimistic"
+     ]
+    },
+    "uplinks": {
+     "type": "choice",
+     "default": "heterogeneous",
+     "values": [
+      "uniform",
+      "heterogeneous"
+     ]
+    },
+    "nodes": {
+     "type": "int",
+     "default": 40,
+     "min": 12,
+     "max": 20
+    },
+    "measured_slots": {
+     "type": "int",
+     "default": 4,
+     "min": 1,
+     "max": 4
+    },
+    "seed": {
+     "type": "int",
+     "default": 0,
+     "min": 0
+    },
+    "mode": {
+     "type": "choice",
+     "default": "run",
+     "values": [
+      "run",
+      "capacity"
+     ]
+    },
+    "network": {
+     "type": "choice",
+     "default": "v2",
+     "values": [
+      "v2",
+      "v1"
+     ]
+    }
+   },
+   "limits": {
+    "min_nodes": 12,
+    "max_nodes": 20,
+    "max_measured_slots": 4,
+    "max_gas_limit": 300000000,
+    "est_s": 12,
+    "browser_defaults": {
+     "nodes": 12
+    }
+   },
+   "explore_only": false,
+   "browser_defaults": {
+    "nodes": 12
+   }
+  },
+  {
+   "id": "B",
+   "configuration": "B_flat_16",
+   "default": false,
+   "class": "noagg",
+   "mode": "run",
+   "pricing": "8141+sig16",
+   "variant": "B_flat_16",
+   "gas_limit": 60000000,
+   "profile": "baseline",
+   "uplinks": "heterogeneous",
+   "models": [
+    "models_noagg:gas_B_flat_16",
+    "models_noagg:native_verify_B"
+   ],
+   "settings": {
+    "candidate": {
+     "type": "choice",
+     "default": "B0",
+     "values": [
+      "B0",
+      "P99r",
+      "P99a",
+      "S24-minB",
+      "S22-minP-5K",
+      "S22-minB-5K",
+      "N2",
+      "N3r"
+     ],
+     "more_values": 94
+    },
+    "sig_bytes": {
+     "type": "int",
+     "default": 7740,
+     "min": 1,
+     "swept": [
+      2000,
+      10000
+     ],
+     "follows": "candidate"
+    },
+    "perms": {
+     "type": "int",
+     "default": 515,
+     "min": 1,
+     "swept": [
+      150,
+      1000
+     ],
+     "follows": "candidate"
+    },
+    "k": {
+     "type": "int",
+     "default": 1,
+     "min": 1
+    },
+    "gas_limit": {
+     "type": "int",
+     "default": 60000000,
+     "min": 0,
+     "values": [
+      60000000,
+      200000000,
+      300000000
+     ],
+     "max": 300000000
+    },
+    "profile": {
+     "type": "choice",
+     "default": "baseline",
+     "values": [
+      "optimistic",
+      "baseline",
+      "pessimistic"
+     ]
+    },
+    "uplinks": {
+     "type": "choice",
+     "default": "heterogeneous",
+     "values": [
+      "uniform",
+      "heterogeneous"
+     ]
+    },
+    "nodes": {
+     "type": "int",
+     "default": 40,
+     "min": 12,
+     "max": 16
+    },
+    "measured_slots": {
+     "type": "int",
+     "default": 4,
+     "min": 1,
+     "max": 4
+    },
+    "seed": {
+     "type": "int",
+     "default": 0,
+     "min": 0
+    },
+    "mode": {
+     "type": "choice",
+     "default": "run",
+     "values": [
+      "run",
+      "capacity"
+     ]
+    },
+    "network": {
+     "type": "choice",
+     "default": "v2",
+     "values": [
+      "v2",
+      "v1"
+     ]
+    }
+   },
+   "limits": {
+    "min_nodes": 12,
+    "max_nodes": 16,
+    "max_measured_slots": 4,
+    "max_gas_limit": 300000000,
+    "est_s": 7,
+    "browser_defaults": {
+     "nodes": 12
+    }
+   },
+   "explore_only": false,
+   "browser_defaults": {
+    "nodes": 12
+   }
+  },
+  {
+   "id": "B",
+   "configuration": "B_flat_64",
+   "default": false,
+   "class": "noagg",
+   "mode": "run",
+   "pricing": "8141+7976",
+   "variant": "B_flat_64",
+   "gas_limit": 60000000,
+   "profile": "baseline",
+   "uplinks": "heterogeneous",
+   "models": [
+    "models_noagg:gas_B_flat_64",
+    "models_noagg:native_verify_B"
+   ],
+   "settings": {
+    "candidate": {
+     "type": "choice",
+     "default": "B0",
+     "values": [
+      "B0",
+      "P99r",
+      "P99a",
+      "S24-minB",
+      "S22-minP-5K",
+      "S22-minB-5K",
+      "N2",
+      "N3r"
+     ],
+     "more_values": 94
+    },
+    "sig_bytes": {
+     "type": "int",
+     "default": 7740,
+     "min": 1,
+     "swept": [
+      2000,
+      10000
+     ],
+     "follows": "candidate"
+    },
+    "perms": {
+     "type": "int",
+     "default": 515,
+     "min": 1,
+     "swept": [
+      150,
+      1000
+     ],
+     "follows": "candidate"
+    },
+    "k": {
+     "type": "int",
+     "default": 1,
+     "min": 1
+    },
+    "gas_limit": {
+     "type": "int",
+     "default": 60000000,
+     "min": 0,
+     "values": [
+      60000000,
+      200000000,
+      300000000
+     ],
+     "max": 300000000
+    },
+    "profile": {
+     "type": "choice",
+     "default": "baseline",
+     "values": [
+      "optimistic",
+      "baseline",
+      "pessimistic"
+     ]
+    },
+    "uplinks": {
+     "type": "choice",
+     "default": "heterogeneous",
+     "values": [
+      "uniform",
+      "heterogeneous"
+     ]
+    },
+    "nodes": {
+     "type": "int",
+     "default": 40,
+     "min": 12,
+     "max": 20
+    },
+    "measured_slots": {
+     "type": "int",
+     "default": 4,
+     "min": 1,
+     "max": 4
+    },
+    "seed": {
+     "type": "int",
+     "default": 0,
+     "min": 0
+    },
+    "mode": {
+     "type": "choice",
+     "default": "run",
+     "values": [
+      "run",
+      "capacity"
+     ]
+    },
+    "network": {
+     "type": "choice",
+     "default": "v2",
+     "values": [
+      "v2",
+      "v1"
+     ]
+    }
+   },
+   "limits": {
+    "min_nodes": 12,
+    "max_nodes": 20,
+    "max_measured_slots": 4,
+    "max_gas_limit": 300000000,
+    "est_s": 12,
+    "browser_defaults": {
+     "nodes": 12
+    }
+   },
+   "explore_only": false,
+   "browser_defaults": {
+    "nodes": 12
+   }
+  },
+  {
+   "id": "B",
+   "configuration": "B_pr12616_16",
+   "default": false,
+   "class": "noagg",
+   "mode": "run",
+   "pricing": "8141+sig16",
+   "variant": "B_pr12616_16",
+   "gas_limit": 60000000,
+   "profile": "baseline",
+   "uplinks": "heterogeneous",
+   "models": [
+    "models_noagg:gas_B_pr12616_16",
+    "models_noagg:native_verify_B"
+   ],
+   "settings": {
+    "candidate": {
+     "type": "choice",
+     "default": "B0",
+     "values": [
+      "B0",
+      "P99r",
+      "P99a",
+      "S24-minB",
+      "S22-minP-5K",
+      "S22-minB-5K",
+      "N2",
+      "N3r"
+     ],
+     "more_values": 94
+    },
+    "sig_bytes": {
+     "type": "int",
+     "default": 7740,
+     "min": 1,
+     "swept": [
+      2000,
+      10000
+     ],
+     "follows": "candidate"
+    },
+    "perms": {
+     "type": "int",
+     "default": 515,
+     "min": 1,
+     "swept": [
+      150,
+      1000
+     ],
+     "follows": "candidate"
+    },
+    "k": {
+     "type": "int",
+     "default": 1,
+     "min": 1
+    },
+    "gas_limit": {
+     "type": "int",
+     "default": 60000000,
+     "min": 0,
+     "values": [
+      60000000,
+      200000000,
+      300000000
+     ],
+     "max": 300000000
+    },
+    "profile": {
+     "type": "choice",
+     "default": "baseline",
+     "values": [
+      "optimistic",
+      "baseline",
+      "pessimistic"
+     ]
+    },
+    "uplinks": {
+     "type": "choice",
+     "default": "heterogeneous",
+     "values": [
+      "uniform",
+      "heterogeneous"
+     ]
+    },
+    "nodes": {
+     "type": "int",
+     "default": 40,
+     "min": 12,
+     "max": 16
+    },
+    "measured_slots": {
+     "type": "int",
+     "default": 4,
+     "min": 1,
+     "max": 4
+    },
+    "seed": {
+     "type": "int",
+     "default": 0,
+     "min": 0
+    },
+    "mode": {
+     "type": "choice",
+     "default": "run",
+     "values": [
+      "run",
+      "capacity"
+     ]
+    },
+    "network": {
+     "type": "choice",
+     "default": "v2",
+     "values": [
+      "v2",
+      "v1"
+     ]
+    }
+   },
+   "limits": {
+    "min_nodes": 12,
+    "max_nodes": 16,
+    "max_measured_slots": 4,
+    "max_gas_limit": 300000000,
+    "est_s": 7,
+    "browser_defaults": {
+     "nodes": 12
+    }
+   },
+   "explore_only": false,
+   "browser_defaults": {
+    "nodes": 12
+   }
+  },
+  {
+   "id": "B",
+   "configuration": "B_pr12616_64_fl12559",
+   "default": false,
+   "class": "noagg",
+   "mode": "run",
+   "pricing": "8141(PR12559 floor)+7976",
+   "variant": "B_pr12616_64_fl12559",
+   "gas_limit": 60000000,
+   "profile": "baseline",
+   "uplinks": "heterogeneous",
+   "models": [
+    "models_noagg:gas_B_pr12616_64_fl12559",
+    "models_noagg:native_verify_B"
+   ],
+   "settings": {
+    "candidate": {
+     "type": "choice",
+     "default": "B0",
+     "values": [
+      "B0",
+      "P99r",
+      "P99a",
+      "S24-minB",
+      "S22-minP-5K",
+      "S22-minB-5K",
+      "N2",
+      "N3r"
+     ],
+     "more_values": 94
+    },
+    "sig_bytes": {
+     "type": "int",
+     "default": 7740,
+     "min": 1,
+     "swept": [
+      2000,
+      10000
+     ],
+     "follows": "candidate"
+    },
+    "perms": {
+     "type": "int",
+     "default": 515,
+     "min": 1,
+     "swept": [
+      150,
+      1000
+     ],
+     "follows": "candidate"
+    },
+    "k": {
+     "type": "int",
+     "default": 1,
+     "min": 1
+    },
+    "gas_limit": {
+     "type": "int",
+     "default": 60000000,
+     "min": 0,
+     "values": [
+      60000000,
+      200000000,
+      300000000
+     ],
+     "max": 300000000
+    },
+    "profile": {
+     "type": "choice",
+     "default": "baseline",
+     "values": [
+      "optimistic",
+      "baseline",
+      "pessimistic"
+     ]
+    },
+    "uplinks": {
+     "type": "choice",
+     "default": "heterogeneous",
+     "values": [
+      "uniform",
+      "heterogeneous"
+     ]
+    },
+    "nodes": {
+     "type": "int",
+     "default": 40,
+     "min": 12,
+     "max": 20
+    },
+    "measured_slots": {
+     "type": "int",
+     "default": 4,
+     "min": 1,
+     "max": 4
+    },
+    "seed": {
+     "type": "int",
+     "default": 0,
+     "min": 0
+    },
+    "mode": {
+     "type": "choice",
+     "default": "run",
+     "values": [
+      "run",
+      "capacity"
+     ]
+    },
+    "network": {
+     "type": "choice",
+     "default": "v2",
+     "values": [
+      "v2",
+      "v1"
+     ]
+    }
+   },
+   "limits": {
+    "min_nodes": 12,
+    "max_nodes": 20,
+    "max_measured_slots": 4,
+    "max_gas_limit": 300000000,
+    "est_s": 12,
+    "browser_defaults": {
+     "nodes": 12
+    }
+   },
+   "explore_only": false,
+   "browser_defaults": {
+    "nodes": 12
+   }
+  },
+  {
+   "id": "B",
+   "configuration": "B_prop_k1_16",
+   "default": false,
+   "class": "noagg",
+   "mode": "run",
+   "pricing": "8141+sig16",
+   "variant": "B_prop_k1_16",
+   "gas_limit": 60000000,
+   "profile": "baseline",
+   "uplinks": "heterogeneous",
+   "models": [
+    "models_noagg:gas_B_prop_k1_16",
+    "models_noagg:native_verify_B"
+   ],
+   "settings": {
+    "candidate": {
+     "type": "choice",
+     "default": "B0",
+     "values": [
+      "B0",
+      "P99r",
+      "P99a",
+      "S24-minB",
+      "S22-minP-5K",
+      "S22-minB-5K",
+      "N2",
+      "N3r"
+     ],
+     "more_values": 94
+    },
+    "sig_bytes": {
+     "type": "int",
+     "default": 7740,
+     "min": 1,
+     "swept": [
+      2000,
+      10000
+     ],
+     "follows": "candidate"
+    },
+    "perms": {
+     "type": "int",
+     "default": 515,
+     "min": 1,
+     "swept": [
+      150,
+      1000
+     ],
+     "follows": "candidate"
+    },
+    "k": {
+     "type": "int",
+     "default": 1,
+     "min": 1
+    },
+    "gas_limit": {
+     "type": "int",
+     "default": 60000000,
+     "min": 0,
+     "values": [
+      60000000,
+      200000000,
+      300000000
+     ],
+     "max": 300000000
+    },
+    "profile": {
+     "type": "choice",
+     "default": "baseline",
+     "values": [
+      "optimistic",
+      "baseline",
+      "pessimistic"
+     ]
+    },
+    "uplinks": {
+     "type": "choice",
+     "default": "heterogeneous",
+     "values": [
+      "uniform",
+      "heterogeneous"
+     ]
+    },
+    "nodes": {
+     "type": "int",
+     "default": 40,
+     "min": 12,
+     "max": 16
+    },
+    "measured_slots": {
+     "type": "int",
+     "default": 4,
+     "min": 1,
+     "max": 4
+    },
+    "seed": {
+     "type": "int",
+     "default": 0,
+     "min": 0
+    },
+    "mode": {
+     "type": "choice",
+     "default": "run",
+     "values": [
+      "run",
+      "capacity"
+     ]
+    },
+    "network": {
+     "type": "choice",
+     "default": "v2",
+     "values": [
+      "v2",
+      "v1"
+     ]
+    }
+   },
+   "limits": {
+    "min_nodes": 12,
+    "max_nodes": 16,
+    "max_measured_slots": 4,
+    "max_gas_limit": 300000000,
+    "est_s": 7,
+    "browser_defaults": {
+     "nodes": 12
+    }
+   },
+   "explore_only": false,
+   "browser_defaults": {
+    "nodes": 12
+   }
+  },
+  {
+   "id": "B",
+   "configuration": "B_prop_k1_64",
+   "default": false,
+   "class": "noagg",
+   "mode": "run",
+   "pricing": "8141+7976",
+   "variant": "B_prop_k1_64",
+   "gas_limit": 60000000,
+   "profile": "baseline",
+   "uplinks": "heterogeneous",
+   "models": [
+    "models_noagg:gas_B_prop_k1_64",
+    "models_noagg:native_verify_B"
+   ],
+   "settings": {
+    "candidate": {
+     "type": "choice",
+     "default": "B0",
+     "values": [
+      "B0",
+      "P99r",
+      "P99a",
+      "S24-minB",
+      "S22-minP-5K",
+      "S22-minB-5K",
+      "N2",
+      "N3r"
+     ],
+     "more_values": 94
+    },
+    "sig_bytes": {
+     "type": "int",
+     "default": 7740,
+     "min": 1,
+     "swept": [
+      2000,
+      10000
+     ],
+     "follows": "candidate"
+    },
+    "perms": {
+     "type": "int",
+     "default": 515,
+     "min": 1,
+     "swept": [
+      150,
+      1000
+     ],
+     "follows": "candidate"
+    },
+    "k": {
+     "type": "int",
+     "default": 1,
+     "min": 1
+    },
+    "gas_limit": {
+     "type": "int",
+     "default": 60000000,
+     "min": 0,
+     "values": [
+      60000000,
+      200000000,
+      300000000
+     ],
+     "max": 300000000
+    },
+    "profile": {
+     "type": "choice",
+     "default": "baseline",
+     "values": [
+      "optimistic",
+      "baseline",
+      "pessimistic"
+     ]
+    },
+    "uplinks": {
+     "type": "choice",
+     "default": "heterogeneous",
+     "values": [
+      "uniform",
+      "heterogeneous"
+     ]
+    },
+    "nodes": {
+     "type": "int",
+     "default": 40,
+     "min": 12,
+     "max": 20
+    },
+    "measured_slots": {
+     "type": "int",
+     "default": 4,
+     "min": 1,
+     "max": 4
+    },
+    "seed": {
+     "type": "int",
+     "default": 0,
+     "min": 0
+    },
+    "mode": {
+     "type": "choice",
+     "default": "run",
+     "values": [
+      "run",
+      "capacity"
+     ]
+    },
+    "network": {
+     "type": "choice",
+     "default": "v2",
+     "values": [
+      "v2",
+      "v1"
+     ]
+    }
+   },
+   "limits": {
+    "min_nodes": 12,
+    "max_nodes": 20,
+    "max_measured_slots": 4,
+    "max_gas_limit": 300000000,
+    "est_s": 12,
+    "browser_defaults": {
+     "nodes": 12
+    }
+   },
+   "explore_only": false,
+   "browser_defaults": {
+    "nodes": 12
+   }
+  },
+  {
+   "id": "B",
+   "configuration": "B_prop_p256_16",
+   "default": false,
+   "class": "noagg",
+   "mode": "run",
+   "pricing": "8141+sig16",
+   "variant": "B_prop_p256_16",
+   "gas_limit": 60000000,
+   "profile": "baseline",
+   "uplinks": "heterogeneous",
+   "models": [
+    "models_noagg:gas_B_prop_p256_16",
+    "models_noagg:native_verify_B"
+   ],
+   "settings": {
+    "candidate": {
+     "type": "choice",
+     "default": "B0",
+     "values": [
+      "B0",
+      "P99r",
+      "P99a",
+      "S24-minB",
+      "S22-minP-5K",
+      "S22-minB-5K",
+      "N2",
+      "N3r"
+     ],
+     "more_values": 94
+    },
+    "sig_bytes": {
+     "type": "int",
+     "default": 7740,
+     "min": 1,
+     "swept": [
+      2000,
+      10000
+     ],
+     "follows": "candidate"
+    },
+    "perms": {
+     "type": "int",
+     "default": 515,
+     "min": 1,
+     "swept": [
+      150,
+      1000
+     ],
+     "follows": "candidate"
+    },
+    "k": {
+     "type": "int",
+     "default": 1,
+     "min": 1
+    },
+    "gas_limit": {
+     "type": "int",
+     "default": 60000000,
+     "min": 0,
+     "values": [
+      60000000,
+      200000000,
+      300000000
+     ],
+     "max": 300000000
+    },
+    "profile": {
+     "type": "choice",
+     "default": "baseline",
+     "values": [
+      "optimistic",
+      "baseline",
+      "pessimistic"
+     ]
+    },
+    "uplinks": {
+     "type": "choice",
+     "default": "heterogeneous",
+     "values": [
+      "uniform",
+      "heterogeneous"
+     ]
+    },
+    "nodes": {
+     "type": "int",
+     "default": 40,
+     "min": 12,
+     "max": 16
+    },
+    "measured_slots": {
+     "type": "int",
+     "default": 4,
+     "min": 1,
+     "max": 4
+    },
+    "seed": {
+     "type": "int",
+     "default": 0,
+     "min": 0
+    },
+    "mode": {
+     "type": "choice",
+     "default": "run",
+     "values": [
+      "run",
+      "capacity"
+     ]
+    },
+    "network": {
+     "type": "choice",
+     "default": "v2",
+     "values": [
+      "v2",
+      "v1"
+     ]
+    }
+   },
+   "limits": {
+    "min_nodes": 12,
+    "max_nodes": 16,
+    "max_measured_slots": 4,
+    "max_gas_limit": 300000000,
+    "est_s": 7,
+    "browser_defaults": {
+     "nodes": 12
+    }
+   },
+   "explore_only": false,
+   "browser_defaults": {
+    "nodes": 12
+   }
+  },
+  {
+   "id": "B",
+   "configuration": "B_prop_p256_64",
+   "default": false,
+   "class": "noagg",
+   "mode": "run",
+   "pricing": "8141+7976",
+   "variant": "B_prop_p256_64",
+   "gas_limit": 60000000,
+   "profile": "baseline",
+   "uplinks": "heterogeneous",
+   "models": [
+    "models_noagg:gas_B_prop_p256_64",
+    "models_noagg:native_verify_B"
+   ],
+   "settings": {
+    "candidate": {
+     "type": "choice",
+     "default": "B0",
+     "values": [
+      "B0",
+      "P99r",
+      "P99a",
+      "S24-minB",
+      "S22-minP-5K",
+      "S22-minB-5K",
+      "N2",
+      "N3r"
+     ],
+     "more_values": 94
+    },
+    "sig_bytes": {
+     "type": "int",
+     "default": 7740,
+     "min": 1,
+     "swept": [
+      2000,
+      10000
+     ],
+     "follows": "candidate"
+    },
+    "perms": {
+     "type": "int",
+     "default": 515,
+     "min": 1,
+     "swept": [
+      150,
+      1000
+     ],
+     "follows": "candidate"
+    },
+    "k": {
+     "type": "int",
+     "default": 1,
+     "min": 1
+    },
+    "gas_limit": {
+     "type": "int",
+     "default": 60000000,
+     "min": 0,
+     "values": [
+      60000000,
+      200000000,
+      300000000
+     ],
+     "max": 300000000
+    },
+    "profile": {
+     "type": "choice",
+     "default": "baseline",
+     "values": [
+      "optimistic",
+      "baseline",
+      "pessimistic"
+     ]
+    },
+    "uplinks": {
+     "type": "choice",
+     "default": "heterogeneous",
+     "values": [
+      "uniform",
+      "heterogeneous"
+     ]
+    },
+    "nodes": {
+     "type": "int",
+     "default": 40,
+     "min": 12,
+     "max": 20
+    },
+    "measured_slots": {
+     "type": "int",
+     "default": 4,
+     "min": 1,
+     "max": 4
+    },
+    "seed": {
+     "type": "int",
+     "default": 0,
+     "min": 0
+    },
+    "mode": {
+     "type": "choice",
+     "default": "run",
+     "values": [
+      "run",
+      "capacity"
+     ]
+    },
+    "network": {
+     "type": "choice",
+     "default": "v2",
+     "values": [
+      "v2",
+      "v1"
+     ]
+    }
+   },
+   "limits": {
+    "min_nodes": 12,
+    "max_nodes": 20,
+    "max_measured_slots": 4,
+    "max_gas_limit": 300000000,
+    "est_s": 12,
+    "browser_defaults": {
+     "nodes": 12
+    }
+   },
+   "explore_only": false,
+   "browser_defaults": {
+    "nodes": 12
+   }
+  },
+  {
+   "id": "C1",
+   "configuration": "C1_flat_64",
+   "default": true,
+   "class": "noagg",
+   "mode": "run",
+   "pricing": "8141+7976",
+   "variant": "C1_flat_64",
+   "gas_limit": 60000000,
+   "profile": "baseline",
+   "uplinks": "heterogeneous",
+   "models": [
+    "models_noagg:gas_C1_flat_64",
+    "models_noagg:native_verify_B"
+   ],
+   "settings": {
+    "candidate": {
+     "type": "choice",
+     "default": "B0",
+     "values": [
+      "B0",
+      "P99r",
+      "P99a",
+      "S24-minB",
+      "S22-minP-5K",
+      "S22-minB-5K",
+      "N2",
+      "N3r"
+     ],
+     "more_values": 94
+    },
+    "sig_bytes": {
+     "type": "int",
+     "default": 7740,
+     "min": 1,
+     "swept": [
+      2000,
+      10000
+     ],
+     "follows": "candidate"
+    },
+    "perms": {
+     "type": "int",
+     "default": 515,
+     "min": 1,
+     "swept": [
+      150,
+      1000
+     ],
+     "follows": "candidate"
+    },
+    "k": {
+     "type": "int",
+     "default": 1,
+     "min": 1
+    },
+    "gas_limit": {
+     "type": "int",
+     "default": 60000000,
+     "min": 0,
+     "values": [
+      60000000,
+      200000000,
+      300000000
+     ],
+     "max": 300000000
+    },
+    "profile": {
+     "type": "choice",
+     "default": "baseline",
+     "values": [
+      "optimistic",
+      "baseline",
+      "pessimistic"
+     ]
+    },
+    "uplinks": {
+     "type": "choice",
+     "default": "heterogeneous",
+     "values": [
+      "uniform",
+      "heterogeneous"
+     ]
+    },
+    "nodes": {
+     "type": "int",
+     "default": 40,
+     "min": 12,
+     "max": 20
+    },
+    "measured_slots": {
+     "type": "int",
+     "default": 4,
+     "min": 1,
+     "max": 4
+    },
+    "seed": {
+     "type": "int",
+     "default": 0,
+     "min": 0
+    },
+    "mode": {
+     "type": "choice",
+     "default": "run",
+     "values": [
+      "run",
+      "capacity"
+     ]
+    },
+    "network": {
+     "type": "choice",
+     "default": "v2",
+     "values": [
+      "v2",
+      "v1"
+     ]
+    }
+   },
+   "limits": {
+    "min_nodes": 12,
+    "max_nodes": 20,
+    "max_measured_slots": 4,
+    "max_gas_limit": 300000000,
+    "est_s": 12,
+    "browser_defaults": {
+     "nodes": 12
+    }
+   },
+   "explore_only": false,
+   "browser_defaults": {
+    "nodes": 12
+   }
+  },
+  {
+   "id": "C1",
+   "configuration": "C1_flat_16",
+   "default": false,
+   "class": "noagg",
+   "mode": "run",
+   "pricing": "8141+sig16",
+   "variant": "C1_flat_16",
+   "gas_limit": 60000000,
+   "profile": "baseline",
+   "uplinks": "heterogeneous",
+   "models": [
+    "models_noagg:gas_C1_flat_16",
+    "models_noagg:native_verify_B"
+   ],
+   "settings": {
+    "candidate": {
+     "type": "choice",
+     "default": "B0",
+     "values": [
+      "B0",
+      "P99r",
+      "P99a",
+      "S24-minB",
+      "S22-minP-5K",
+      "S22-minB-5K",
+      "N2",
+      "N3r"
+     ],
+     "more_values": 94
+    },
+    "sig_bytes": {
+     "type": "int",
+     "default": 7740,
+     "min": 1,
+     "swept": [
+      2000,
+      10000
+     ],
+     "follows": "candidate"
+    },
+    "perms": {
+     "type": "int",
+     "default": 515,
+     "min": 1,
+     "swept": [
+      150,
+      1000
+     ],
+     "follows": "candidate"
+    },
+    "k": {
+     "type": "int",
+     "default": 1,
+     "min": 1
+    },
+    "gas_limit": {
+     "type": "int",
+     "default": 60000000,
+     "min": 0,
+     "values": [
+      60000000,
+      200000000,
+      300000000
+     ],
+     "max": 300000000
+    },
+    "profile": {
+     "type": "choice",
+     "default": "baseline",
+     "values": [
+      "optimistic",
+      "baseline",
+      "pessimistic"
+     ]
+    },
+    "uplinks": {
+     "type": "choice",
+     "default": "heterogeneous",
+     "values": [
+      "uniform",
+      "heterogeneous"
+     ]
+    },
+    "nodes": {
+     "type": "int",
+     "default": 40,
+     "min": 12,
+     "max": 16
+    },
+    "measured_slots": {
+     "type": "int",
+     "default": 4,
+     "min": 1,
+     "max": 4
+    },
+    "seed": {
+     "type": "int",
+     "default": 0,
+     "min": 0
+    },
+    "mode": {
+     "type": "choice",
+     "default": "run",
+     "values": [
+      "run",
+      "capacity"
+     ]
+    },
+    "network": {
+     "type": "choice",
+     "default": "v2",
+     "values": [
+      "v2",
+      "v1"
+     ]
+    }
+   },
+   "limits": {
+    "min_nodes": 12,
+    "max_nodes": 16,
+    "max_measured_slots": 4,
+    "max_gas_limit": 300000000,
+    "est_s": 7,
+    "browser_defaults": {
+     "nodes": 12
+    }
+   },
+   "explore_only": false,
+   "browser_defaults": {
+    "nodes": 12
+   }
+  },
+  {
+   "id": "C1",
+   "configuration": "C1_pr12616_16",
+   "default": false,
+   "class": "noagg",
+   "mode": "run",
+   "pricing": "8141+sig16",
+   "variant": "C1_pr12616_16",
+   "gas_limit": 60000000,
+   "profile": "baseline",
+   "uplinks": "heterogeneous",
+   "models": [
+    "models_noagg:gas_C1_pr12616_16",
+    "models_noagg:native_verify_B"
+   ],
+   "settings": {
+    "candidate": {
+     "type": "choice",
+     "default": "B0",
+     "values": [
+      "B0",
+      "P99r",
+      "P99a",
+      "S24-minB",
+      "S22-minP-5K",
+      "S22-minB-5K",
+      "N2",
+      "N3r"
+     ],
+     "more_values": 94
+    },
+    "sig_bytes": {
+     "type": "int",
+     "default": 7740,
+     "min": 1,
+     "swept": [
+      2000,
+      10000
+     ],
+     "follows": "candidate"
+    },
+    "perms": {
+     "type": "int",
+     "default": 515,
+     "min": 1,
+     "swept": [
+      150,
+      1000
+     ],
+     "follows": "candidate"
+    },
+    "k": {
+     "type": "int",
+     "default": 1,
+     "min": 1
+    },
+    "gas_limit": {
+     "type": "int",
+     "default": 60000000,
+     "min": 0,
+     "values": [
+      60000000,
+      200000000,
+      300000000
+     ],
+     "max": 300000000
+    },
+    "profile": {
+     "type": "choice",
+     "default": "baseline",
+     "values": [
+      "optimistic",
+      "baseline",
+      "pessimistic"
+     ]
+    },
+    "uplinks": {
+     "type": "choice",
+     "default": "heterogeneous",
+     "values": [
+      "uniform",
+      "heterogeneous"
+     ]
+    },
+    "nodes": {
+     "type": "int",
+     "default": 40,
+     "min": 12,
+     "max": 16
+    },
+    "measured_slots": {
+     "type": "int",
+     "default": 4,
+     "min": 1,
+     "max": 4
+    },
+    "seed": {
+     "type": "int",
+     "default": 0,
+     "min": 0
+    },
+    "mode": {
+     "type": "choice",
+     "default": "run",
+     "values": [
+      "run",
+      "capacity"
+     ]
+    },
+    "network": {
+     "type": "choice",
+     "default": "v2",
+     "values": [
+      "v2",
+      "v1"
+     ]
+    }
+   },
+   "limits": {
+    "min_nodes": 12,
+    "max_nodes": 16,
+    "max_measured_slots": 4,
+    "max_gas_limit": 300000000,
+    "est_s": 7,
+    "browser_defaults": {
+     "nodes": 12
+    }
+   },
+   "explore_only": false,
+   "browser_defaults": {
+    "nodes": 12
+   }
+  },
+  {
+   "id": "C1",
+   "configuration": "C1_pr12616_64",
+   "default": false,
+   "class": "noagg",
+   "mode": "run",
+   "pricing": "8141+7976",
+   "variant": "C1_pr12616_64",
+   "gas_limit": 60000000,
+   "profile": "baseline",
+   "uplinks": "heterogeneous",
+   "models": [
+    "models_noagg:gas_C1_pr12616_64",
+    "models_noagg:native_verify_B"
+   ],
+   "settings": {
+    "candidate": {
+     "type": "choice",
+     "default": "B0",
+     "values": [
+      "B0",
+      "P99r",
+      "P99a",
+      "S24-minB",
+      "S22-minP-5K",
+      "S22-minB-5K",
+      "N2",
+      "N3r"
+     ],
+     "more_values": 94
+    },
+    "sig_bytes": {
+     "type": "int",
+     "default": 7740,
+     "min": 1,
+     "swept": [
+      2000,
+      10000
+     ],
+     "follows": "candidate"
+    },
+    "perms": {
+     "type": "int",
+     "default": 515,
+     "min": 1,
+     "swept": [
+      150,
+      1000
+     ],
+     "follows": "candidate"
+    },
+    "k": {
+     "type": "int",
+     "default": 1,
+     "min": 1
+    },
+    "gas_limit": {
+     "type": "int",
+     "default": 60000000,
+     "min": 0,
+     "values": [
+      60000000,
+      200000000,
+      300000000
+     ],
+     "max": 300000000
+    },
+    "profile": {
+     "type": "choice",
+     "default": "baseline",
+     "values": [
+      "optimistic",
+      "baseline",
+      "pessimistic"
+     ]
+    },
+    "uplinks": {
+     "type": "choice",
+     "default": "heterogeneous",
+     "values": [
+      "uniform",
+      "heterogeneous"
+     ]
+    },
+    "nodes": {
+     "type": "int",
+     "default": 40,
+     "min": 12,
+     "max": 20
+    },
+    "measured_slots": {
+     "type": "int",
+     "default": 4,
+     "min": 1,
+     "max": 4
+    },
+    "seed": {
+     "type": "int",
+     "default": 0,
+     "min": 0
+    },
+    "mode": {
+     "type": "choice",
+     "default": "run",
+     "values": [
+      "run",
+      "capacity"
+     ]
+    },
+    "network": {
+     "type": "choice",
+     "default": "v2",
+     "values": [
+      "v2",
+      "v1"
+     ]
+    }
+   },
+   "limits": {
+    "min_nodes": 12,
+    "max_nodes": 20,
+    "max_measured_slots": 4,
+    "max_gas_limit": 300000000,
+    "est_s": 12,
+    "browser_defaults": {
+     "nodes": 12
+    }
+   },
+   "explore_only": false,
+   "browser_defaults": {
+    "nodes": 12
+   }
+  },
+  {
+   "id": "C1",
+   "configuration": "C1_prop_k1_16",
+   "default": false,
+   "class": "noagg",
+   "mode": "run",
+   "pricing": "8141+sig16",
+   "variant": "C1_prop_k1_16",
+   "gas_limit": 60000000,
+   "profile": "baseline",
+   "uplinks": "heterogeneous",
+   "models": [
+    "models_noagg:gas_C1_prop_k1_16",
+    "models_noagg:native_verify_B"
+   ],
+   "settings": {
+    "candidate": {
+     "type": "choice",
+     "default": "B0",
+     "values": [
+      "B0",
+      "P99r",
+      "P99a",
+      "S24-minB",
+      "S22-minP-5K",
+      "S22-minB-5K",
+      "N2",
+      "N3r"
+     ],
+     "more_values": 94
+    },
+    "sig_bytes": {
+     "type": "int",
+     "default": 7740,
+     "min": 1,
+     "swept": [
+      2000,
+      10000
+     ],
+     "follows": "candidate"
+    },
+    "perms": {
+     "type": "int",
+     "default": 515,
+     "min": 1,
+     "swept": [
+      150,
+      1000
+     ],
+     "follows": "candidate"
+    },
+    "k": {
+     "type": "int",
+     "default": 1,
+     "min": 1
+    },
+    "gas_limit": {
+     "type": "int",
+     "default": 60000000,
+     "min": 0,
+     "values": [
+      60000000,
+      200000000,
+      300000000
+     ],
+     "max": 300000000
+    },
+    "profile": {
+     "type": "choice",
+     "default": "baseline",
+     "values": [
+      "optimistic",
+      "baseline",
+      "pessimistic"
+     ]
+    },
+    "uplinks": {
+     "type": "choice",
+     "default": "heterogeneous",
+     "values": [
+      "uniform",
+      "heterogeneous"
+     ]
+    },
+    "nodes": {
+     "type": "int",
+     "default": 40,
+     "min": 12,
+     "max": 16
+    },
+    "measured_slots": {
+     "type": "int",
+     "default": 4,
+     "min": 1,
+     "max": 4
+    },
+    "seed": {
+     "type": "int",
+     "default": 0,
+     "min": 0
+    },
+    "mode": {
+     "type": "choice",
+     "default": "run",
+     "values": [
+      "run",
+      "capacity"
+     ]
+    },
+    "network": {
+     "type": "choice",
+     "default": "v2",
+     "values": [
+      "v2",
+      "v1"
+     ]
+    }
+   },
+   "limits": {
+    "min_nodes": 12,
+    "max_nodes": 16,
+    "max_measured_slots": 4,
+    "max_gas_limit": 300000000,
+    "est_s": 7,
+    "browser_defaults": {
+     "nodes": 12
+    }
+   },
+   "explore_only": false,
+   "browser_defaults": {
+    "nodes": 12
+   }
+  },
+  {
+   "id": "C1",
+   "configuration": "C1_prop_k1_64",
+   "default": false,
+   "class": "noagg",
+   "mode": "run",
+   "pricing": "8141+7976",
+   "variant": "C1_prop_k1_64",
+   "gas_limit": 60000000,
+   "profile": "baseline",
+   "uplinks": "heterogeneous",
+   "models": [
+    "models_noagg:gas_C1_prop_k1_64",
+    "models_noagg:native_verify_B"
+   ],
+   "settings": {
+    "candidate": {
+     "type": "choice",
+     "default": "B0",
+     "values": [
+      "B0",
+      "P99r",
+      "P99a",
+      "S24-minB",
+      "S22-minP-5K",
+      "S22-minB-5K",
+      "N2",
+      "N3r"
+     ],
+     "more_values": 94
+    },
+    "sig_bytes": {
+     "type": "int",
+     "default": 7740,
+     "min": 1,
+     "swept": [
+      2000,
+      10000
+     ],
+     "follows": "candidate"
+    },
+    "perms": {
+     "type": "int",
+     "default": 515,
+     "min": 1,
+     "swept": [
+      150,
+      1000
+     ],
+     "follows": "candidate"
+    },
+    "k": {
+     "type": "int",
+     "default": 1,
+     "min": 1
+    },
+    "gas_limit": {
+     "type": "int",
+     "default": 60000000,
+     "min": 0,
+     "values": [
+      60000000,
+      200000000,
+      300000000
+     ],
+     "max": 300000000
+    },
+    "profile": {
+     "type": "choice",
+     "default": "baseline",
+     "values": [
+      "optimistic",
+      "baseline",
+      "pessimistic"
+     ]
+    },
+    "uplinks": {
+     "type": "choice",
+     "default": "heterogeneous",
+     "values": [
+      "uniform",
+      "heterogeneous"
+     ]
+    },
+    "nodes": {
+     "type": "int",
+     "default": 40,
+     "min": 12,
+     "max": 20
+    },
+    "measured_slots": {
+     "type": "int",
+     "default": 4,
+     "min": 1,
+     "max": 4
+    },
+    "seed": {
+     "type": "int",
+     "default": 0,
+     "min": 0
+    },
+    "mode": {
+     "type": "choice",
+     "default": "run",
+     "values": [
+      "run",
+      "capacity"
+     ]
+    },
+    "network": {
+     "type": "choice",
+     "default": "v2",
+     "values": [
+      "v2",
+      "v1"
+     ]
+    }
+   },
+   "limits": {
+    "min_nodes": 12,
+    "max_nodes": 20,
+    "max_measured_slots": 4,
+    "max_gas_limit": 300000000,
+    "est_s": 12,
+    "browser_defaults": {
+     "nodes": 12
+    }
+   },
+   "explore_only": false,
+   "browser_defaults": {
+    "nodes": 12
+   }
+  },
+  {
+   "id": "C1",
+   "configuration": "C1_prop_p256_16",
+   "default": false,
+   "class": "noagg",
+   "mode": "run",
+   "pricing": "8141+sig16",
+   "variant": "C1_prop_p256_16",
+   "gas_limit": 60000000,
+   "profile": "baseline",
+   "uplinks": "heterogeneous",
+   "models": [
+    "models_noagg:gas_C1_prop_p256_16",
+    "models_noagg:native_verify_B"
+   ],
+   "settings": {
+    "candidate": {
+     "type": "choice",
+     "default": "B0",
+     "values": [
+      "B0",
+      "P99r",
+      "P99a",
+      "S24-minB",
+      "S22-minP-5K",
+      "S22-minB-5K",
+      "N2",
+      "N3r"
+     ],
+     "more_values": 94
+    },
+    "sig_bytes": {
+     "type": "int",
+     "default": 7740,
+     "min": 1,
+     "swept": [
+      2000,
+      10000
+     ],
+     "follows": "candidate"
+    },
+    "perms": {
+     "type": "int",
+     "default": 515,
+     "min": 1,
+     "swept": [
+      150,
+      1000
+     ],
+     "follows": "candidate"
+    },
+    "k": {
+     "type": "int",
+     "default": 1,
+     "min": 1
+    },
+    "gas_limit": {
+     "type": "int",
+     "default": 60000000,
+     "min": 0,
+     "values": [
+      60000000,
+      200000000,
+      300000000
+     ],
+     "max": 300000000
+    },
+    "profile": {
+     "type": "choice",
+     "default": "baseline",
+     "values": [
+      "optimistic",
+      "baseline",
+      "pessimistic"
+     ]
+    },
+    "uplinks": {
+     "type": "choice",
+     "default": "heterogeneous",
+     "values": [
+      "uniform",
+      "heterogeneous"
+     ]
+    },
+    "nodes": {
+     "type": "int",
+     "default": 40,
+     "min": 12,
+     "max": 16
+    },
+    "measured_slots": {
+     "type": "int",
+     "default": 4,
+     "min": 1,
+     "max": 4
+    },
+    "seed": {
+     "type": "int",
+     "default": 0,
+     "min": 0
+    },
+    "mode": {
+     "type": "choice",
+     "default": "run",
+     "values": [
+      "run",
+      "capacity"
+     ]
+    },
+    "network": {
+     "type": "choice",
+     "default": "v2",
+     "values": [
+      "v2",
+      "v1"
+     ]
+    }
+   },
+   "limits": {
+    "min_nodes": 12,
+    "max_nodes": 16,
+    "max_measured_slots": 4,
+    "max_gas_limit": 300000000,
+    "est_s": 7,
+    "browser_defaults": {
+     "nodes": 12
+    }
+   },
+   "explore_only": false,
+   "browser_defaults": {
+    "nodes": 12
+   }
+  },
+  {
+   "id": "C1",
+   "configuration": "C1_prop_p256_64",
+   "default": false,
+   "class": "noagg",
+   "mode": "run",
+   "pricing": "8141+7976",
+   "variant": "C1_prop_p256_64",
+   "gas_limit": 60000000,
+   "profile": "baseline",
+   "uplinks": "heterogeneous",
+   "models": [
+    "models_noagg:gas_C1_prop_p256_64",
+    "models_noagg:native_verify_B"
+   ],
+   "settings": {
+    "candidate": {
+     "type": "choice",
+     "default": "B0",
+     "values": [
+      "B0",
+      "P99r",
+      "P99a",
+      "S24-minB",
+      "S22-minP-5K",
+      "S22-minB-5K",
+      "N2",
+      "N3r"
+     ],
+     "more_values": 94
+    },
+    "sig_bytes": {
+     "type": "int",
+     "default": 7740,
+     "min": 1,
+     "swept": [
+      2000,
+      10000
+     ],
+     "follows": "candidate"
+    },
+    "perms": {
+     "type": "int",
+     "default": 515,
+     "min": 1,
+     "swept": [
+      150,
+      1000
+     ],
+     "follows": "candidate"
+    },
+    "k": {
+     "type": "int",
+     "default": 1,
+     "min": 1
+    },
+    "gas_limit": {
+     "type": "int",
+     "default": 60000000,
+     "min": 0,
+     "values": [
+      60000000,
+      200000000,
+      300000000
+     ],
+     "max": 300000000
+    },
+    "profile": {
+     "type": "choice",
+     "default": "baseline",
+     "values": [
+      "optimistic",
+      "baseline",
+      "pessimistic"
+     ]
+    },
+    "uplinks": {
+     "type": "choice",
+     "default": "heterogeneous",
+     "values": [
+      "uniform",
+      "heterogeneous"
+     ]
+    },
+    "nodes": {
+     "type": "int",
+     "default": 40,
+     "min": 12,
+     "max": 20
+    },
+    "measured_slots": {
+     "type": "int",
+     "default": 4,
+     "min": 1,
+     "max": 4
+    },
+    "seed": {
+     "type": "int",
+     "default": 0,
+     "min": 0
+    },
+    "mode": {
+     "type": "choice",
+     "default": "run",
+     "values": [
+      "run",
+      "capacity"
+     ]
+    },
+    "network": {
+     "type": "choice",
+     "default": "v2",
+     "values": [
+      "v2",
+      "v1"
+     ]
+    }
+   },
+   "limits": {
+    "min_nodes": 12,
+    "max_nodes": 20,
+    "max_measured_slots": 4,
+    "max_gas_limit": 300000000,
+    "est_s": 12,
+    "browser_defaults": {
+     "nodes": 12
+    }
+   },
+   "explore_only": false,
+   "browser_defaults": {
+    "nodes": 12
+   }
+  },
+  {
+   "id": "C2",
+   "configuration": "C2",
+   "default": true,
+   "class": "agg8288",
+   "mode": "capacity",
+   "pricing": "8288:3000+30000/dep",
+   "variant": "builder=1xepyc9355p;queue=supersede",
+   "gas_limit": 60000000,
+   "profile": "baseline",
+   "uplinks": "uniform",
+   "models": [
+    "bench.leansphincs.models:leanvm_limited",
+    "models_agg:agg_gas_per_tx",
+    "models_agg:verify_cost"
+   ],
+   "settings": {
+    "candidate": {
+     "type": "choice",
+     "default": "B0",
+     "values": [
+      "B0",
+      "P99r",
+      "P99a",
+      "S24-minB",
+      "S22-minP-5K",
+      "S22-minB-5K",
+      "N2",
+      "N3r"
+     ],
+     "more_values": 94
+    },
+    "sig_bytes": {
+     "type": "int",
+     "default": 7740,
+     "min": 1,
+     "swept": [
+      2000,
+      10000
+     ],
+     "follows": "candidate"
+    },
+    "perms": {
+     "type": "int",
+     "default": 515,
+     "min": 1,
+     "swept": [
+      150,
+      1000
+     ],
+     "follows": "candidate"
+    },
+    "k": {
+     "type": "int",
+     "default": 1,
+     "min": 1
+    },
+    "gas_limit": {
+     "type": "int",
+     "default": 60000000,
+     "min": 0,
+     "values": [
+      60000000,
+      200000000,
+      300000000
+     ],
+     "max": 300000000
+    },
+    "profile": {
+     "type": "choice",
+     "default": "baseline",
+     "values": [
+      "optimistic",
+      "baseline",
+      "pessimistic"
+     ]
+    },
+    "uplinks": {
+     "type": "choice",
+     "default": "uniform",
+     "values": [
+      "uniform"
+     ]
+    },
+    "nodes": {
+     "type": "int",
+     "default": 40,
+     "min": 40,
+     "max": 40,
+     "values": [
+      40
+     ]
+    },
+    "measured_slots": {
+     "type": "int",
+     "default": 4,
+     "min": 1,
+     "max": 4
+    },
+    "seed": {
+     "type": "int",
+     "default": 0,
+     "min": 0
+    },
+    "mode": {
+     "type": "choice",
+     "default": "capacity",
+     "values": [
+      "run",
+      "capacity"
+     ]
+    },
+    "network": {
+     "type": "choice",
+     "default": "v2",
+     "values": [
+      "v2",
+      "v1"
+     ]
+    }
+   },
+   "limits": {
+    "min_nodes": 40,
+    "max_nodes": 40,
+    "max_measured_slots": 4,
+    "max_gas_limit": 300000000,
+    "est_s": 56,
+    "browser_defaults": {
+     "nodes": 40
+    },
+    "explore_only": true,
+    "reason": "the configuration fixes 40 nodes (one uplink per node, degree 32) and one run takes about a minute in the browser (36 s natively); with override_limits, measured_slots 1 and mode run it takes about 16 s"
+   },
+   "explore_only": true,
+   "browser_defaults": {
+    "nodes": 40
+   }
+  },
+  {
+   "id": "C2",
+   "configuration": "C2-dep3000",
+   "default": false,
+   "class": "agg8288",
+   "mode": "capacity",
+   "pricing": "leanPCS-draft:3000/dep",
+   "variant": "builder=1xepyc9355p;queue=supersede",
+   "gas_limit": 300000000,
+   "profile": "baseline",
+   "uplinks": "uniform",
+   "models": [
+    "bench.leansphincs.models:leanvm_limited",
+    "models_agg:agg_gas_per_tx",
+    "models_agg:verify_cost"
+   ],
+   "settings": {
+    "candidate": {
+     "type": "choice",
+     "default": "B0",
+     "values": [
+      "B0",
+      "P99r",
+      "P99a",
+      "S24-minB",
+      "S22-minP-5K",
+      "S22-minB-5K",
+      "N2",
+      "N3r"
+     ],
+     "more_values": 94
+    },
+    "sig_bytes": {
+     "type": "int",
+     "default": 7740,
+     "min": 1,
+     "swept": [
+      2000,
+      10000
+     ],
+     "follows": "candidate"
+    },
+    "perms": {
+     "type": "int",
+     "default": 515,
+     "min": 1,
+     "swept": [
+      150,
+      1000
+     ],
+     "follows": "candidate"
+    },
+    "k": {
+     "type": "int",
+     "default": 1,
+     "min": 1
+    },
+    "gas_limit": {
+     "type": "int",
+     "default": 300000000,
+     "min": 0,
+     "values": [
+      60000000,
+      200000000,
+      300000000
+     ],
+     "max": 300000000
+    },
+    "profile": {
+     "type": "choice",
+     "default": "baseline",
+     "values": [
+      "optimistic",
+      "baseline",
+      "pessimistic"
+     ]
+    },
+    "uplinks": {
+     "type": "choice",
+     "default": "uniform",
+     "values": [
+      "uniform"
+     ]
+    },
+    "nodes": {
+     "type": "int",
+     "default": 40,
+     "min": 40,
+     "max": 40,
+     "values": [
+      40
+     ]
+    },
+    "measured_slots": {
+     "type": "int",
+     "default": 4,
+     "min": 1,
+     "max": 4
+    },
+    "seed": {
+     "type": "int",
+     "default": 0,
+     "min": 0
+    },
+    "mode": {
+     "type": "choice",
+     "default": "capacity",
+     "values": [
+      "run",
+      "capacity"
+     ]
+    },
+    "network": {
+     "type": "choice",
+     "default": "v2",
+     "values": [
+      "v2",
+      "v1"
+     ]
+    }
+   },
+   "limits": {
+    "min_nodes": 40,
+    "max_nodes": 40,
+    "max_measured_slots": 4,
+    "max_gas_limit": 300000000,
+    "est_s": 56,
+    "browser_defaults": {
+     "nodes": 40
+    },
+    "explore_only": true,
+    "reason": "the configuration fixes 40 nodes (one uplink per node, degree 32) and one run takes about a minute in the browser (36 s natively); with override_limits, measured_slots 1 and mode run it takes about 16 s"
+   },
+   "explore_only": true,
+   "browser_defaults": {
+    "nodes": 40
+   }
+  },
+  {
+   "id": "D",
+   "configuration": "D",
+   "default": true,
+   "class": "agg8288",
+   "mode": "capacity",
+   "pricing": "8288:3000+30000/dep",
+   "variant": "queue=supersede;rate=1/2;agg=all",
+   "gas_limit": 60000000,
+   "profile": "baseline",
+   "uplinks": "heterogeneous",
+   "models": [
+    "bench.leansphincs.models:leanvm_limited",
+    "models_agg:agg_gas_per_tx",
+    "models_agg:verify_cost"
+   ],
+   "settings": {
+    "candidate": {
+     "type": "choice",
+     "default": "B0",
+     "values": [
+      "B0",
+      "P99r",
+      "P99a",
+      "S24-minB",
+      "S22-minP-5K",
+      "S22-minB-5K",
+      "N2",
+      "N3r"
+     ],
+     "more_values": 94
+    },
+    "sig_bytes": {
+     "type": "int",
+     "default": 7740,
+     "min": 1,
+     "swept": [
+      2000,
+      10000
+     ],
+     "follows": "candidate"
+    },
+    "perms": {
+     "type": "int",
+     "default": 515,
+     "min": 1,
+     "swept": [
+      150,
+      1000
+     ],
+     "follows": "candidate"
+    },
+    "k": {
+     "type": "int",
+     "default": 1,
+     "min": 1
+    },
+    "gas_limit": {
+     "type": "int",
+     "default": 60000000,
+     "min": 0,
+     "values": [
+      60000000
+     ],
+     "max": 60000000
+    },
+    "profile": {
+     "type": "choice",
+     "default": "baseline",
+     "values": [
+      "optimistic",
+      "baseline",
+      "pessimistic"
+     ]
+    },
+    "uplinks": {
+     "type": "choice",
+     "default": "heterogeneous",
+     "values": [
+      "uniform",
+      "heterogeneous"
+     ]
+    },
+    "nodes": {
+     "type": "int",
+     "default": 40,
+     "min": 12,
+     "max": 24
+    },
+    "measured_slots": {
+     "type": "int",
+     "default": 4,
+     "min": 1,
+     "max": 4
+    },
+    "seed": {
+     "type": "int",
+     "default": 0,
+     "min": 0
+    },
+    "mode": {
+     "type": "choice",
+     "default": "capacity",
+     "values": [
+      "run",
+      "capacity"
+     ]
+    },
+    "network": {
+     "type": "choice",
+     "default": "v2",
+     "values": [
+      "v2",
+      "v1"
+     ]
+    }
+   },
+   "limits": {
+    "min_nodes": 12,
+    "max_nodes": 24,
+    "max_measured_slots": 4,
+    "max_gas_limit": 60000000,
+    "est_s": 11,
+    "browser_defaults": {
+     "nodes": 12
+    },
+    "reason": "above 60 M gas the prover binds and the capacity search needs 6 to 8 runs: 26 s at 12 nodes and 200 M, a minute at 24 nodes and 300 M"
+   },
+   "explore_only": false,
+   "browser_defaults": {
+    "nodes": 12
+   }
+  },
+  {
+   "id": "D",
+   "configuration": "D-dep3000",
+   "default": false,
+   "class": "agg8288",
+   "mode": "capacity",
+   "pricing": "leanPCS-draft:3000/dep",
+   "variant": "queue=supersede;rate=1/2;agg=all",
+   "gas_limit": 60000000,
+   "profile": "optimistic",
+   "uplinks": "heterogeneous",
+   "models": [
+    "bench.leansphincs.models:leanvm_limited",
+    "models_agg:agg_gas_per_tx",
+    "models_agg:verify_cost"
+   ],
+   "settings": {
+    "candidate": {
+     "type": "choice",
+     "default": "B0",
+     "values": [
+      "B0",
+      "P99r",
+      "P99a",
+      "S24-minB",
+      "S22-minP-5K",
+      "S22-minB-5K",
+      "N2",
+      "N3r"
+     ],
+     "more_values": 94
+    },
+    "sig_bytes": {
+     "type": "int",
+     "default": 7740,
+     "min": 1,
+     "swept": [
+      2000,
+      10000
+     ],
+     "follows": "candidate"
+    },
+    "perms": {
+     "type": "int",
+     "default": 515,
+     "min": 1,
+     "swept": [
+      150,
+      1000
+     ],
+     "follows": "candidate"
+    },
+    "k": {
+     "type": "int",
+     "default": 1,
+     "min": 1
+    },
+    "gas_limit": {
+     "type": "int",
+     "default": 60000000,
+     "min": 0,
+     "values": [
+      60000000
+     ],
+     "max": 60000000
+    },
+    "profile": {
+     "type": "choice",
+     "default": "optimistic",
+     "values": [
+      "optimistic",
+      "baseline",
+      "pessimistic"
+     ]
+    },
+    "uplinks": {
+     "type": "choice",
+     "default": "heterogeneous",
+     "values": [
+      "uniform",
+      "heterogeneous"
+     ]
+    },
+    "nodes": {
+     "type": "int",
+     "default": 40,
+     "min": 12,
+     "max": 24
+    },
+    "measured_slots": {
+     "type": "int",
+     "default": 4,
+     "min": 1,
+     "max": 4
+    },
+    "seed": {
+     "type": "int",
+     "default": 0,
+     "min": 0
+    },
+    "mode": {
+     "type": "choice",
+     "default": "capacity",
+     "values": [
+      "run",
+      "capacity"
+     ]
+    },
+    "network": {
+     "type": "choice",
+     "default": "v2",
+     "values": [
+      "v2",
+      "v1"
+     ]
+    }
+   },
+   "limits": {
+    "min_nodes": 12,
+    "max_nodes": 24,
+    "max_measured_slots": 4,
+    "max_gas_limit": 60000000,
+    "est_s": 11,
+    "browser_defaults": {
+     "nodes": 12
+    },
+    "reason": "above 60 M gas the prover binds and the capacity search needs 6 to 8 runs: 26 s at 12 nodes and 200 M, a minute at 24 nodes and 300 M"
+   },
+   "explore_only": false,
+   "browser_defaults": {
+    "nodes": 12
+   }
+  },
+  {
+   "id": "E",
+   "configuration": "E",
+   "default": true,
+   "class": "agg8288",
+   "mode": "capacity",
+   "pricing": "8288:3000+30000/dep",
+   "variant": "queue=unbounded;rate=1/2;agg=all",
+   "gas_limit": 60000000,
+   "profile": "baseline",
+   "uplinks": "uniform",
+   "models": [
+    "bench.leansphincs.models:leanvm_limited",
+    "models_agg:agg_gas_per_tx",
+    "models_agg:verify_cost"
+   ],
+   "settings": {
+    "candidate": {
+     "type": "choice",
+     "default": "B0",
+     "values": [
+      "B0",
+      "P99r",
+      "P99a",
+      "S24-minB",
+      "S22-minP-5K",
+      "S22-minB-5K",
+      "N2",
+      "N3r"
+     ],
+     "more_values": 94
+    },
+    "sig_bytes": {
+     "type": "int",
+     "default": 7740,
+     "min": 1,
+     "swept": [
+      2000,
+      10000
+     ],
+     "follows": "candidate"
+    },
+    "perms": {
+     "type": "int",
+     "default": 515,
+     "min": 1,
+     "swept": [
+      150,
+      1000
+     ],
+     "follows": "candidate"
+    },
+    "k": {
+     "type": "int",
+     "default": 1,
+     "min": 1
+    },
+    "gas_limit": {
+     "type": "int",
+     "default": 60000000,
+     "min": 0,
+     "values": [
+      60000000,
+      200000000,
+      300000000
+     ],
+     "max": 300000000
+    },
+    "profile": {
+     "type": "choice",
+     "default": "baseline",
+     "values": [
+      "optimistic",
+      "baseline",
+      "pessimistic"
+     ]
+    },
+    "uplinks": {
+     "type": "choice",
+     "default": "uniform",
+     "values": [
+      "uniform",
+      "heterogeneous"
+     ]
+    },
+    "nodes": {
+     "type": "int",
+     "default": 40,
+     "min": 12,
+     "max": 24
+    },
+    "measured_slots": {
+     "type": "int",
+     "default": 4,
+     "min": 1,
+     "max": 4
+    },
+    "seed": {
+     "type": "int",
+     "default": 0,
+     "min": 0
+    },
+    "mode": {
+     "type": "choice",
+     "default": "capacity",
+     "values": [
+      "run",
+      "capacity"
+     ]
+    },
+    "network": {
+     "type": "choice",
+     "default": "v2",
+     "values": [
+      "v2",
+      "v1"
+     ]
+    }
+   },
+   "limits": {
+    "min_nodes": 12,
+    "max_nodes": 24,
+    "max_measured_slots": 4,
+    "max_gas_limit": 300000000,
+    "est_s": 10,
+    "browser_defaults": {
+     "nodes": 12
+    }
+   },
+   "explore_only": false,
+   "browser_defaults": {
+    "nodes": 12
+   }
+  },
+  {
+   "id": "E",
+   "configuration": "E-dep3000",
+   "default": false,
+   "class": "agg8288",
+   "mode": "capacity",
+   "pricing": "leanPCS-draft:3000/dep",
+   "variant": "queue=supersede;rate=1/2;agg=all",
+   "gas_limit": 60000000,
+   "profile": "baseline",
+   "uplinks": "uniform",
+   "models": [
+    "bench.leansphincs.models:leanvm_limited",
+    "models_agg:agg_gas_per_tx",
+    "models_agg:verify_cost"
+   ],
+   "settings": {
+    "candidate": {
+     "type": "choice",
+     "default": "B0",
+     "values": [
+      "B0",
+      "P99r",
+      "P99a",
+      "S24-minB",
+      "S22-minP-5K",
+      "S22-minB-5K",
+      "N2",
+      "N3r"
+     ],
+     "more_values": 94
+    },
+    "sig_bytes": {
+     "type": "int",
+     "default": 7740,
+     "min": 1,
+     "swept": [
+      2000,
+      10000
+     ],
+     "follows": "candidate"
+    },
+    "perms": {
+     "type": "int",
+     "default": 515,
+     "min": 1,
+     "swept": [
+      150,
+      1000
+     ],
+     "follows": "candidate"
+    },
+    "k": {
+     "type": "int",
+     "default": 1,
+     "min": 1
+    },
+    "gas_limit": {
+     "type": "int",
+     "default": 60000000,
+     "min": 0,
+     "values": [
+      60000000,
+      200000000,
+      300000000
+     ],
+     "max": 300000000
+    },
+    "profile": {
+     "type": "choice",
+     "default": "baseline",
+     "values": [
+      "optimistic",
+      "baseline",
+      "pessimistic"
+     ]
+    },
+    "uplinks": {
+     "type": "choice",
+     "default": "uniform",
+     "values": [
+      "uniform",
+      "heterogeneous"
+     ]
+    },
+    "nodes": {
+     "type": "int",
+     "default": 40,
+     "min": 12,
+     "max": 24
+    },
+    "measured_slots": {
+     "type": "int",
+     "default": 4,
+     "min": 1,
+     "max": 4
+    },
+    "seed": {
+     "type": "int",
+     "default": 0,
+     "min": 0
+    },
+    "mode": {
+     "type": "choice",
+     "default": "capacity",
+     "values": [
+      "run",
+      "capacity"
+     ]
+    },
+    "network": {
+     "type": "choice",
+     "default": "v2",
+     "values": [
+      "v2",
+      "v1"
+     ]
+    }
+   },
+   "limits": {
+    "min_nodes": 12,
+    "max_nodes": 24,
+    "max_measured_slots": 4,
+    "max_gas_limit": 300000000,
+    "est_s": 10,
+    "browser_defaults": {
+     "nodes": 12
+    }
+   },
+   "explore_only": false,
+   "browser_defaults": {
+    "nodes": 12
+   }
+  },
+  {
+   "id": "F1",
+   "configuration": "F1",
+   "default": true,
+   "class": "pcs",
+   "mode": "capacity",
+   "pricing": "leanPCS-4905424d/7976",
+   "variant": "bundle=1;queue=supersede;rate=1/2;node=eip7870",
+   "gas_limit": 60000000,
+   "profile": "baseline",
+   "uplinks": "heterogeneous",
+   "models": [
+    "agg_models:pcs_model_hw",
+    "bench.leansphincs.models:leanvm_limited",
+    "models_agg:verify_cost"
+   ],
+   "settings": {
+    "candidate": {
+     "type": "choice",
+     "default": "B0",
+     "values": [
+      "B0",
+      "P99r",
+      "P99a",
+      "S24-minB",
+      "S22-minP-5K",
+      "S22-minB-5K",
+      "N2",
+      "N3r"
+     ],
+     "more_values": 94
+    },
+    "sig_bytes": {
+     "type": "int",
+     "default": 7740,
+     "min": 1,
+     "swept": [
+      2000,
+      10000
+     ],
+     "follows": "candidate"
+    },
+    "perms": {
+     "type": "int",
+     "default": 515,
+     "min": 1,
+     "swept": [
+      150,
+      1000
+     ],
+     "follows": "candidate"
+    },
+    "k": {
+     "type": "int",
+     "default": 1,
+     "min": 1
+    },
+    "gas_limit": {
+     "type": "int",
+     "default": 60000000,
+     "min": 0,
+     "values": [
+      60000000,
+      200000000,
+      300000000
+     ],
+     "max": 300000000
+    },
+    "profile": {
+     "type": "choice",
+     "default": "baseline",
+     "values": [
+      "optimistic",
+      "baseline",
+      "pessimistic"
+     ]
+    },
+    "uplinks": {
+     "type": "choice",
+     "default": "heterogeneous",
+     "values": [
+      "uniform",
+      "heterogeneous"
+     ]
+    },
+    "nodes": {
+     "type": "int",
+     "default": 40,
+     "min": 12,
+     "max": 24
+    },
+    "measured_slots": {
+     "type": "int",
+     "default": 4,
+     "min": 1,
+     "max": 4
+    },
+    "seed": {
+     "type": "int",
+     "default": 0,
+     "min": 0
+    },
+    "mode": {
+     "type": "choice",
+     "default": "capacity",
+     "values": [
+      "run",
+      "capacity"
+     ]
+    },
+    "network": {
+     "type": "choice",
+     "default": "v2",
+     "values": [
+      "v2",
+      "v1"
+     ]
+    },
+    "client_proofs": {
+     "type": "choice",
+     "default": "merge",
+     "values": [
+      "merge",
+      "draft",
+      "relay"
+     ]
+    }
+   },
+   "limits": {
+    "min_nodes": 12,
+    "max_nodes": 24,
+    "max_measured_slots": 4,
+    "max_gas_limit": 300000000,
+    "est_s": 11,
+    "browser_defaults": {
+     "nodes": 12
+    }
+   },
+   "explore_only": false,
+   "browser_defaults": {
+    "nodes": 12
+   }
+  },
+  {
+   "id": "F2",
+   "configuration": "F2",
+   "default": true,
+   "class": "pcs",
+   "mode": "capacity",
+   "pricing": "leanPCS-4905424d/7976",
+   "variant": "bundle=1;queue=supersede;rate=1/2;node=eip7870",
+   "gas_limit": 60000000,
+   "profile": "baseline",
+   "uplinks": "heterogeneous",
+   "models": [
+    "agg_models:pcs_model_hw",
+    "bench.leansphincs.models:leanvm_limited",
+    "models_agg:verify_cost"
+   ],
+   "settings": {
+    "candidate": {
+     "type": "choice",
+     "default": "B0",
+     "values": [
+      "B0",
+      "P99r",
+      "P99a",
+      "S24-minB",
+      "S22-minP-5K",
+      "S22-minB-5K",
+      "N2",
+      "N3r"
+     ],
+     "more_values": 94
+    },
+    "sig_bytes": {
+     "type": "int",
+     "default": 7740,
+     "min": 1,
+     "swept": [
+      2000,
+      10000
+     ],
+     "follows": "candidate"
+    },
+    "perms": {
+     "type": "int",
+     "default": 515,
+     "min": 1,
+     "swept": [
+      150,
+      1000
+     ],
+     "follows": "candidate"
+    },
+    "k": {
+     "type": "int",
+     "default": 1,
+     "min": 1
+    },
+    "gas_limit": {
+     "type": "int",
+     "default": 60000000,
+     "min": 0,
+     "values": [
+      60000000,
+      200000000,
+      300000000
+     ],
+     "max": 300000000
+    },
+    "profile": {
+     "type": "choice",
+     "default": "baseline",
+     "values": [
+      "optimistic",
+      "baseline",
+      "pessimistic"
+     ]
+    },
+    "uplinks": {
+     "type": "choice",
+     "default": "heterogeneous",
+     "values": [
+      "uniform",
+      "heterogeneous"
+     ]
+    },
+    "nodes": {
+     "type": "int",
+     "default": 40,
+     "min": 12,
+     "max": 24
+    },
+    "measured_slots": {
+     "type": "int",
+     "default": 4,
+     "min": 1,
+     "max": 4
+    },
+    "seed": {
+     "type": "int",
+     "default": 0,
+     "min": 0
+    },
+    "mode": {
+     "type": "choice",
+     "default": "capacity",
+     "values": [
+      "run",
+      "capacity"
+     ]
+    },
+    "network": {
+     "type": "choice",
+     "default": "v2",
+     "values": [
+      "v2",
+      "v1"
+     ]
+    },
+    "client_proofs": {
+     "type": "choice",
+     "default": "merge",
+     "values": [
+      "merge",
+      "draft",
+      "relay"
+     ]
+    }
+   },
+   "limits": {
+    "min_nodes": 12,
+    "max_nodes": 24,
+    "max_measured_slots": 4,
+    "max_gas_limit": 300000000,
+    "est_s": 11,
+    "browser_defaults": {
+     "nodes": 12
+    }
+   },
+   "explore_only": false,
+   "browser_defaults": {
+    "nodes": 12
+   }
+  },
+  {
+   "id": "F3",
+   "configuration": "F3",
+   "default": true,
+   "class": "pcs",
+   "mode": "capacity",
+   "pricing": "leanPCS-4905424d/7976",
+   "variant": "bundle=124;queue=supersede;rate=1/2;node=eip7870",
+   "gas_limit": 60000000,
+   "profile": "baseline",
+   "uplinks": "uniform",
+   "models": [
+    "agg_models:pcs_model_hw",
+    "bench.leansphincs.models:leanvm_limited",
+    "models_agg:verify_cost"
+   ],
+   "settings": {
+    "candidate": {
+     "type": "choice",
+     "default": "B0",
+     "values": [
+      "B0",
+      "P99r",
+      "P99a",
+      "S24-minB",
+      "S22-minP-5K",
+      "S22-minB-5K",
+      "N2",
+      "N3r"
+     ],
+     "more_values": 94
+    },
+    "sig_bytes": {
+     "type": "int",
+     "default": 7740,
+     "min": 1,
+     "swept": [
+      2000,
+      10000
+     ],
+     "follows": "candidate"
+    },
+    "perms": {
+     "type": "int",
+     "default": 515,
+     "min": 1,
+     "swept": [
+      150,
+      1000
+     ],
+     "follows": "candidate"
+    },
+    "k": {
+     "type": "int",
+     "default": 124,
+     "min": 1,
+     "follows": "perms: 65536 // (perms + 10)"
+    },
+    "gas_limit": {
+     "type": "int",
+     "default": 60000000,
+     "min": 0,
+     "values": [
+      60000000,
+      200000000,
+      300000000
+     ],
+     "max": 300000000
+    },
+    "profile": {
+     "type": "choice",
+     "default": "baseline",
+     "values": [
+      "optimistic",
+      "baseline",
+      "pessimistic"
+     ]
+    },
+    "uplinks": {
+     "type": "choice",
+     "default": "uniform",
+     "values": [
+      "uniform",
+      "heterogeneous"
+     ]
+    },
+    "nodes": {
+     "type": "int",
+     "default": 40,
+     "min": 12,
+     "max": 40
+    },
+    "measured_slots": {
+     "type": "int",
+     "default": 4,
+     "min": 1,
+     "max": 4
+    },
+    "seed": {
+     "type": "int",
+     "default": 0,
+     "min": 0
+    },
+    "mode": {
+     "type": "choice",
+     "default": "capacity",
+     "values": [
+      "run",
+      "capacity"
+     ]
+    },
+    "network": {
+     "type": "choice",
+     "default": "v2",
+     "values": [
+      "v2",
+      "v1"
+     ]
+    },
+    "client_proofs": {
+     "type": "choice",
+     "default": "merge",
+     "values": [
+      "merge",
+      "draft",
+      "relay"
+     ]
+    }
+   },
+   "limits": {
+    "min_nodes": 12,
+    "max_nodes": 40,
+    "max_measured_slots": 4,
+    "max_gas_limit": 300000000,
+    "est_s": 6,
+    "browser_defaults": {
+     "nodes": 40
+    }
+   },
+   "explore_only": false,
+   "browser_defaults": {
+    "nodes": 40
+   }
+  }
+ ]
+}

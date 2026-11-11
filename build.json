@@ -1,0 +1,135 @@
+{
+ "simulator": {
+  "commit": "582169c15d085dc8449bd0f5dd039d0cb7c44ff4",
+  "branch": "leansphincs",
+  "commit_date": "2026-11-10T19:25:19+01:00",
+  "subject": "Docstrings: the candidate names, the phase-2b flags, load_basis"
+ },
+ "pyodide": {
+  "version": "314.0.7",
+  "python": "3.14",
+  "source": "https://registry.npmjs.org/pyodide/-/pyodide-314.0.7.tgz",
+  "sha256": "66b7949e5a0cba2250b586d7e368bf12fb482800748d182c4618254b685ffaa0"
+ },
+ "bundle": {
+  "path": "engine/leansphincs-bundle.zip",
+  "root": "/leansphincs",
+  "files": 85,
+  "unpacked_bytes": 1050228
+ },
+ "site_bytes": 15066616,
+ "files": {
+  ".nojekyll": {
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "bytes": 0
+  },
+  "app.css": {
+   "sha256": "10b41913f3d37a1fdec759e1e567e02ef0bd16cdf96415a9dff27ff25ed1733b",
+   "bytes": 14723
+  },
+  "data/candidates.json": {
+   "sha256": "c491886ca15a453e09bde46d49311ec8dfa3d93a1a5387d545a017a67e24705b",
+   "bytes": 24367
+  },
+  "data/scenarios.json": {
+   "sha256": "8461ec4f04a52027c636464874b7be4f1598fcdcf38e398ef8435a34a4dc157c",
+   "bytes": 88538
+  },
+  "data/summary.json": {
+   "sha256": "1f1e5eb74bdb5ef8c026f2e84e98d987b17a1286db0e2671856858c88bd1d6cf",
+   "bytes": 31326
+  },
+  "data/table_agg.json": {
+   "sha256": "025833ccc6f43bb500ebdb961f7db81b4a0890f57a100af3036359bc42d6c493",
+   "bytes": 320963
+  },
+  "data/table_noagg.json": {
+   "sha256": "9fff6a4d048c3d06f89537f18a7ddaf0c14a22b76b6e589a658eae0081c1c93d",
+   "bytes": 514676
+  },
+  "engine-test.html": {
+   "sha256": "07cdb52d498e9a48da29a507bdbef1a6c3afca52c61d10a5d4b5f31c8703f03b",
+   "bytes": 7128
+  },
+  "engine/engine.mjs": {
+   "sha256": "cdfbe6b9b7269a03d8896855d73a590cd3181118fe9bd13891d1c29291fd7a31",
+   "bytes": 4153
+  },
+  "engine/leansphincs-bundle.zip": {
+   "sha256": "8d51f899686e22275413c518230a37f715fccfa233bb985b741a6e39943c558c",
+   "bytes": 339739
+  },
+  "engine/pyodide/pyodide-lock.json": {
+   "sha256": "5dc2fc119108bc148c7457dc86e7675b5c87e1cafd420b9c34c1eaef7b36c010",
+   "bytes": 119077
+  },
+  "engine/pyodide/pyodide.asm.mjs": {
+   "sha256": "f7cdc8ece80678ceb712f8e65ebe6d3a83203a180c399865f49612a051693635",
+   "bytes": 1250344
+  },
+  "engine/pyodide/pyodide.asm.wasm": {
+   "sha256": "cc36e3cab04fdfc9a63ff13eb52eae2b911bf46c025cc7b281f394bd3de1d5e6",
+   "bytes": 9598218
+  },
+  "engine/pyodide/pyodide.mjs": {
+   "sha256": "6f1d60f7bf529beb300f0f47983c921d3982363640ba20af0e38efdddbc66109",
+   "bytes": 17931
+  },
+  "engine/pyodide/python_stdlib.zip": {
+   "sha256": "fa1957e5777068fc4f7437f96d860ae2fbe9c19732ba06c84e004ec16dd7dd7a",
+   "bytes": 2545637
+  },
+  "engine/worker.mjs": {
+   "sha256": "9ea65b37391a1da3aa5614e4bfaa67199a3bfa90be054e5b5c15f2c942d8ef8f",
+   "bytes": 3631
+  },
+  "favicon.svg": {
+   "sha256": "3379d178a410c5559c3deaccb9dac0678b64fbca20b35e15544ba7ae9b94e51a",
+   "bytes": 177
+  },
+  "fonts/README.txt": {
+   "sha256": "0045268d846117d8b064858f930f5712cf106fc9125a99451ea3734a23249c90",
+   "bytes": 652
+  },
+  "fonts/inter-var.woff2": {
+   "sha256": "3100e775e8616cd2611beecfa23a4263d7037586789b43f035236a2e6fbd4c62",
+   "bytes": 48256
+  },
+  "fonts/plex-mono-400.woff2": {
+   "sha256": "08949f728dc52d528e69b1667d15c89a5686a4ee9a296ff90983985f99c380f7",
+   "bytes": 14708
+  },
+  "fonts/plex-mono-500.woff2": {
+   "sha256": "01d285447409c8a588692162439a038b8cbd7871309ee20267b0d2d91c6e8e22",
+   "bytes": 14888
+  },
+  "fonts/space-grotesk-var.woff2": {
+   "sha256": "0640890476fc1198ab4de571fb658de443c4d85b66466ec09534a8737ab1ce9d",
+   "bytes": 22288
+  },
+  "index.html": {
+   "sha256": "d3539c307967b41b5d9564edbebd8ea24c5b602a3c37a05189e23849876e029f",
+   "bytes": 21079
+  },
+  "js/about.mjs": {
+   "sha256": "19d66f23bb243c29965a6cb01c3ad3008e338f7c41f7064878d526ef3d557748",
+   "bytes": 4318
+  },
+  "js/explore.mjs": {
+   "sha256": "f28a10f00e4ff8e042a9ecee465f15d8eac1dfffd39d4f5004cb40688b7271cc",
+   "bytes": 24149
+  },
+  "js/main.mjs": {
+   "sha256": "0dea698836a02e5028b5b3e283616fff4a9e3e3398eba4afdc9348885dfdf42f",
+   "bytes": 3976
+  },
+  "js/simulate.mjs": {
+   "sha256": "fda3ba42a374a668ebd06ebfe3531022fa93c5999e7191afe4b5bc65bb0f8d9e",
+   "bytes": 26370
+  },
+  "js/util.mjs": {
+   "sha256": "fb24694d925bd6ddba1ba3e790b1ba1d7aff58170a3569f1ef7d73a3e7697bf2",
+   "bytes": 5304
+  }
+ }
+}
