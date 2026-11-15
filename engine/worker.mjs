@@ -1,5 +1,5 @@
 // The engine: a module Web Worker that runs bench.leansphincs in Pyodide.
-// API: web/ENGINE.md. Nothing is fetched from outside this folder.
+// API: web-v3/ENGINE.md (v3: lsweb3.py, runner.execute). Nothing is fetched from outside this folder.
 //
 //   page -> worker   {id, method, args}
 //   worker -> page   {type: "boot", stage, ms}            while starting
@@ -15,7 +15,7 @@
 import { loadPyodide } from "./pyodide/pyodide.mjs";
 
 const BUNDLE_ROOT = "/leansphincs";
-const BUNDLE = "leansphincs-bundle.zip";
+const BUNDLE = "leansphincs-v3.zip";
 const base = new URL("./", import.meta.url);
 
 let lsweb = null;
@@ -41,10 +41,10 @@ async function start() {
   pyodide.unpackArchive(buffer, "zip", { extractDir: BUNDLE_ROOT });
   stage("unpacked");
   pyodide.runPython(
-    `import sys\nsys.path.insert(0, "${BUNDLE_ROOT}/web")\nimport lsweb\nlsweb.setup()\n` +
-    // Import the harness now, so the first call does not pay for it.
-    "import bench.leansphincs.__main__\n");
-  lsweb = pyodide.pyimport("lsweb");
+    `import sys\nsys.path.insert(0, "${BUNDLE_ROOT}/web")\nimport lsweb3\nlsweb3.setup()\n` +
+    // Import the runner now, so the first call does not pay for it.
+    "import starksim.v3.runner, bench.leansphincs.cli3\n");
+  lsweb = pyodide.pyimport("lsweb3");
   lsweb.set_progress((text) => {
     if (current !== null) {
       postMessage({ type: "progress", id: current, event: JSON.parse(text) });

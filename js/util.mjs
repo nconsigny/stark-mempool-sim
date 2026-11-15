@@ -1,9 +1,7 @@
-// Small helpers shared by the three views: DOM building, number formats,
-// evidence chips.
+// Helpers shared by the views: DOM building, number formats, evidence chips.
 
 export const $ = (selector, root = document) => root.querySelector(selector);
 
-// el("td", {class: "n", "data-x": 1}, "text", node, ...)
 export function el(tag, attrs = {}, ...children) {
   const node = document.createElement(tag);
   for (const [key, value] of Object.entries(attrs || {})) {
@@ -26,127 +24,129 @@ export function clear(node) {
   return node;
 }
 
+export const isNum = (v) => typeof v === "number" && Number.isFinite(v);
 const MINUS = "−";
-const isNumber = (value) => typeof value === "number" && Number.isFinite(value);
 
-// 4,420
-export function fmtInt(value) {
-  if (!isNumber(value)) return "n/a";
-  return Math.round(value).toLocaleString("en-US");
+// Significant-digit format used for every figure of the site (the UI test
+// recomputes it from the JSON with the same function).
+export function fmt(value, digits = 3) {
+  if (!isNum(value)) return "n/a";
+  const abs = Math.abs(value);
+  let text;
+  if (abs >= 1000) text = Math.round(value).toLocaleString("en-US");
+  else if (abs === 0) text = "0";
+  else {
+    const d = Math.max(0, digits - 1 - Math.floor(Math.log10(abs)));
+    text = value.toFixed(Math.min(d, 4));
+  }
+  return text.replace("-", MINUS);
 }
 
-// Throughput: two decimals below 100, one above (as the report writes it).
-export function fmtTps(value) {
-  if (!isNumber(value) || value < 0) return "n/a";
-  const digits = value >= 100 ? 1 : 2;
-  return value.toLocaleString("en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+export function fmtSigned(value, digits = 2) {
+  if (!isNum(value)) return "n/a";
+  return (value > 0 ? "+" : "") + fmt(value, digits);
 }
 
-export function fmtFixed(value, digits) {
-  if (!isNumber(value) || value < 0) return "n/a";
-  return value.toLocaleString("en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits });
-}
-
-// A change in percent: "−8.5%", "0", "+8.1%".
-export function fmtPct(value) {
-  if (!isNumber(value)) return "n/a";
-  if (Math.abs(value) < 0.005) return "0";
-  const digits = Math.abs(value) < 1 ? 2 : 1;
-  const body = Math.abs(value).toFixed(digits) + "%";
-  return (value < 0 ? MINUS : "+") + body;
-}
-
-// A share between 0 and 1 as a percentage: "77.0%".
 export function fmtShare(value) {
-  if (!isNumber(value) || value < 0) return "n/a";
+  if (!isNum(value)) return "n/a";
   return (value * 100).toFixed(1) + "%";
 }
 
-// 60000000 -> "60 M"
 export function fmtGas(value) {
-  if (!isNumber(value)) return "n/a";
+  if (!isNum(value)) return "n/a";
   if (value === 0) return "no limit";
-  if (value % 1e6 === 0) return (value / 1e6).toLocaleString("en-US") + " M";
-  return value.toLocaleString("en-US");
+  return (value / 1e6).toLocaleString("en-US") + " M";
 }
 
-export function fmtBytesMB(value) {
-  if (!isNumber(value) || value < 0) return "n/a";
-  return (value / 1e6).toFixed(2) + " MB";
-}
-
-// Evidence chips, in the form the one-page summary uses: solid = measured,
-// outlined accent = counted, outlined neutral = simulated, dashed = modelled.
-const CHIPS = {
-  measured: ["m", "Measured: gas from Forge tests on a real verifier"],
-  counted: ["c", "Counted: exact leanVM row counts from real runs"],
-  simulated: ["", "Simulated: a count from the network simulator, on modelled gas, prover prices and uplinks"],
-  modelled: ["o", "Modelled: derived from EIP text or from a timing or prover model"],
+// Evidence chips. A status string from the data files (E, R, M, C, Mo, A,
+// PR, E-draft, Rc, with or without brackets, possibly compound) maps to the
+// chip of its first tag; the full string is the chip's title.
+const KINDS = {
+  measured: ["m", "Measured on a real network, chain or device"],
+  counted: ["c", "Counted: exact counts from real runs"],
+  spec: ["s", "Read in a specification, EIP or pull request"],
+  read: ["s", "Read in code or a cited source"],
+  simulated: ["", "Simulated: a count from the v3 network simulator, on the modelled and measured inputs listed in About"],
+  modelled: ["o", "Modelled: a formula or model, not a measurement"],
+  assumed: ["o a", "Assumed: a default with no source; varied as a sensitivity"],
+  recalled: ["o a", "Recalled, not checked"],
+  derived: ["o", "Derived: computed from simulated values under a stated assumption"],
+  unsourced: ["o a", "No status in the data file"],
+  fixture: ["fx", "FIXTURE: a placeholder made from the row schema, not a simulation result"],
 };
 
-export function chip(kind, title) {
-  const [cls, fallback] = CHIPS[kind];
-  return el("span", { class: ("ev " + cls).trim(), title: title || fallback }, kind);
-}
+// Every tag in the string counts and the WEAKEST one picks the chip (a
+// compound status such as "M (V) / Mo (module ...)" or "E-draft / A" is only
+// as strong as its weakest part); the full string is in the chip's title.
+const TAGS = [  // [regexp on a token, kind], token = a run of letters, '-' and '/'
+  [/^(M|M-ext)$/, "measured"], [/^C$/, "counted"], [/^(E|E-draft|PR)$/, "spec"],
+  [/^R$/, "read"], [/^Mo$/, "modelled"], [/^A$/, "assumed"], [/^Rc$/, "recalled"],
+  [/^conj$/, "assumed"],
+];
+const STRENGTH = ["measured", "counted", "spec", "read", "modelled", "assumed", "recalled"];
 
-// "2^24" -> 2<sup>24</sup>
-export function withExponent(text) {
-  const match = /^(.*?)2\^([\d.]+)(.*)$/.exec(String(text));
-  if (!match) return document.createTextNode(String(text));
-  const span = el("span", {}, match[1] + "2", el("sup", {}, match[2]), match[3]);
-  return span;
-}
-
-// "Lifetime 2^22" -> "Lifetime 2²²", for labels in plain-text places.
-const SUPERSCRIPT = { 0: "\u2070", 1: "\u00b9", 2: "\u00b2", 3: "\u00b3", 4: "\u2074", 5: "\u2075", 6: "\u2076", 7: "\u2077", 8: "\u2078", 9: "\u2079" };
-export function setLabel(text) {
-  return String(text).replace(/2\^(\d+)/g, (_all, digits) => "2" + [...digits].map((d) => SUPERSCRIPT[d]).join(""));
-}
-
-// Campaign prose with its own bracket tags ([C], [Mo], [M ...]): the tags
-// are kept as written and set in the data face.
-export function taggedProse(text) {
-  const out = document.createDocumentFragment();
-  const parts = String(text).split(/(\[(?:C|Mo|M|E|R|inferred|not simulated)[^\]]*\])/);
-  for (const part of parts) {
-    if (!part) continue;
-    if (part.startsWith("[") && part.endsWith("]")) out.append(el("span", { class: "rawtag" }, part));
-    else out.append(part);
+export function statusKind(status) {
+  const text = String(status ?? "").trim();
+  if (/^FIXTURE/i.test(text)) return "fixture";
+  const kinds = [];
+  for (const token of text.replace(/[\[\](),;+:]/g, " ").split(/[\s/]+/)) {
+    for (const [re, kind] of TAGS) if (re.test(token)) kinds.push(kind);
   }
-  return out;
+  if (!kinds.length) return "unsourced";
+  return kinds.reduce((a, b) => (STRENGTH.indexOf(b) > STRENGTH.indexOf(a) ? b : a));
 }
 
-export const CLASS_NAMES = {
-  noagg: "no aggregation",
-  agg8288: "EIP-8288 aggregation",
-  pcs: "signature inside a user-side proof (leanPCS claims)",
-};
-
-// The throughput a class is reported in: transactions per second with one
-// signature each where nothing is aggregated, signatures per second otherwise.
-export function unitOf(cls) {
-  return cls === "noagg" ? { key: "tps_tx", unit: "tx/s" } : { key: "tps_sig", unit: "sig/s" };
+// `label` (optional) replaces the visible text, e.g. "simulated · 200 nodes · 3 seeds";
+// data-chip always holds the kind.
+export function chip(kind, title, label) {
+  const [cls, fallback] = KINDS[kind] || KINDS.modelled;
+  return el("span", { class: ("ev " + cls).trim(), title: title || fallback, "data-chip": kind }, label || kind);
 }
 
-// Plain names for the campaign's pricing codes (the codes stay in the data).
-const PRICING_NAMES = {
-  "7623": "calldata as today (EIP-7623)",
-  "7976": "calldata after Glamsterdam (EIP-7976)",
-  "8141+7976": "frame transaction, Glamsterdam calldata",
-  "8288:3000+30000/dep": "EIP-8288: 33,000 gas per signature",
-  "leanPCS-draft:3000/dep": "leanPCS draft: 3,000 gas per signature",
-  "leanPCS-4905424d/7976": "user-side proof checked through leanPCS claims",
-};
-export function pricingName(code) {
-  return PRICING_NAMES[code] || code;
+// "200 nodes · 3 seeds" from a list of node counts and a seed count
+export function runSize(nodes, seeds) {
+  const n = Array.isArray(nodes) ? nodes.join("/") : nodes;
+  return `${n ?? "?"} nodes · ${seeds} seed${seeds === 1 ? "" : "s"}`;
 }
 
-export function scenarioLabel(entry) {
-  return entry.name + (entry.route ? ": " + entry.route : "") + " (" + entry.id + ")";
+// The interval text of a {mean, lo, hi, n, min, max} summary.
+export function intervalText(ci, digits = 3) {
+  if (!ci) return null;
+  if (ci.n === 1) return "1 seed: no interval";
+  if (ci.n === 2) return `2 seeds: ${fmt(ci.min, digits)} to ${fmt(ci.max, digits)} (a t-interval on 2 seeds is too wide to show)`;
+  return `95 % CI ${fmt(ci.lo, digits)} to ${fmt(ci.hi, digits)}`;
+}
+
+export function statusChip(status, source) {
+  const kind = statusKind(status);
+  const title = `${KINDS[kind][1]}. Status: ${status ?? "none"}${source ? ". Source: " + source : ""}`;
+  return chip(kind, title);
 }
 
 export async function fetchJson(path) {
   const response = await fetch(path);
   if (!response.ok) throw new Error(`${path}: HTTP ${response.status}`);
   return response.json();
+}
+
+// A segmented control: options [{value, label, title}], onChange(value).
+export function segmented(name, options, current, onChange) {
+  const box = el("div", { class: "seg", role: "group", "aria-label": name });
+  for (const opt of options) {
+    const button = el("button", {
+      type: "button", "aria-pressed": String(opt.value === current),
+      "data-value": String(opt.value), title: opt.title || null,
+      onclick: () => onChange(opt.value),
+    }, opt.label);
+    box.append(button);
+  }
+  return box;
+}
+
+export function control(label, node) {
+  return el("div", { class: "ctl" }, el("span", { class: "lbl" }, label), node);
+}
+
+export function details(summary, ...children) {
+  return el("details", {}, el("summary", {}, summary), ...children);
 }

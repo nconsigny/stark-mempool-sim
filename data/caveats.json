@@ -1,0 +1,105 @@
+{
+ "schema": "leanSPHINCS/web-v3/caveats/2",
+ "source": "notes/phase4/verify-final.md (verification of notes/phase4/runs.md) and notes/phase4/runs-fix.md (the fix and the reruns), 2026-11-12",
+ "items": [
+  {
+   "id": "fixed-defect",
+   "applies": {
+    "list_only": true
+   },
+   "title": "I* records rerun after the ghost-ECDSA fix",
+   "text": "The verification found that the 8288 and leanPCS builder was offered again the ECDSA background already packed by the still-undecided parent block. The fix is merged on the simulator branch (e0bbff9) and every I* record on this page was rerun with it; the pre-fix I* records are not shown. H* (8141) records are from f827ca7, row-identical with the fix. The all-PQ pcs_client points have no ECDSA background and were carried over unchanged.",
+   "section": "runs-fix.md header and section A; verify-final.md section 2"
+  },
+  {
+   "id": "sixty-m-istar",
+   "applies": {
+    "step": "I*",
+    "branch": [
+     "8288",
+     "leanpcs"
+    ],
+    "gas_limit": 60000000
+   },
+   "title": "60 M gas does not bind at I*",
+   "text": "With the fix, the I* blocks at 60 M are not full, latency is that of 200 M and every offered PQ tx is included; only the fee is higher (the EIP-1559 base fee above the target). The pre-fix records that showed 60 M binding are superseded.",
+   "section": "runs-fix.md section 3"
+  },
+  {
+   "id": "fees",
+   "applies": {
+    "fees": true
+   },
+   "title": "Fees per PQ tx",
+   "text": "Fee = gas x (base fee + tip). Each point is a 12-slot run that starts from today's median base fee, so the base-fee part is a transient, not an EIP-1559 equilibrium; the gas ratio between 8141 and 8288 is the robust part. No prover cost is charged in 8288 or leanPCS.",
+   "section": "verify-final.md section 7; runs-fix.md section 2"
+  },
+  {
+   "id": "pool",
+   "applies": {
+    "beyond_tags": [
+     "beyond|8288|1G|off600|n50",
+     "beyond|leanpcs-dep|1G|off600|n50"
+    ]
+   },
+   "title": "The per-node pool limit is a client-config choice",
+   "text": "In 8288 and leanPCS past the gas limit the builder runs out of txs because every node, builders included, uses geth's legacy pool size and keeps the parent's txs until the parent is decided. That is a client configuration in the model, not a protocol limit: the eth/73 draft keeps dependency txs out of the tx pool and sizes no wrapper pool; a builder that resets its pool to the parent it builds on, or a larger builder pool, removes it.",
+   "section": "runs-fix.md section 4 item 2; verify-final.md section 3"
+  },
+  {
+   "id": "offer-limited",
+   "applies": {
+    "beyond_tags": [
+     "beyond|8141|nogas-nobytes|off300|n200",
+     "POOLX|8288|2G|off1200|n50|builder_p4",
+     "beyond|POOLX|8288|1G|off600|n50"
+    ]
+   },
+   "title": "Offer-limited: not a ceiling",
+   "text": "Each row shows the arrived offer and the share not included by the end. Where nearly everything that arrived was included, the run found no ceiling: 8141 with no byte cap, and 8288 with the pool lifted and 4 builder provers. Home links queue there (utilisation above 1) and the 8141 payload reaches 90 % of nodes after the 4 s attestation deadline, but no home-downlink or home-link ceiling is demonstrated.",
+   "section": "runs-fix.md section 4 items 1 and 4; verify-final.md section 3"
+  },
+  {
+   "id": "byte-cap-orphan",
+   "applies": {
+    "beyond_tags": [
+     "beyond|8141|nogas|sat|n200"
+    ]
+   },
+   "title": "EIP-7934 byte cap",
+   "text": "The byte cap binds (8 MiB per block over the PQ tx size, times the PQ share of the bytes); the second seed lost one block of its window to an orphan, which lowers its mean but is not a lower capacity.",
+   "section": "runs-fix.md section 4 item 1"
+  },
+  {
+   "id": "pcs-client-cap",
+   "applies": {
+    "step": "I*",
+    "branch": [
+     "leanpcs"
+    ],
+    "route": "pcs_client"
+   },
+   "title": "pcs_client cap: PQ tx/s at one builder prover",
+   "text": "At the all-PQ schedule pcs_client stops at the cap set by the lone builder's final proof over the client proofs of a block. The cap is in PQ transactions per second (sig/s is higher by the multisig share), with one builder prover (builder_p = 1, an assumption); it scales with the builder's provers. The client wrappers reach every node as the eth/73 draft reads; the client proof size is modelled, not built.",
+   "section": "runs-fix.md section 4 item 5"
+  },
+  {
+   "id": "builder-eps",
+   "applies": {
+    "beyond_eps_regime": "builder_proof"
+   },
+   "title": "Builder-proof elasticity: a step, pre-fix",
+   "text": "At the builder's final-proof point the response to permutations is a step, not a slope (the proof tree's leaf-size cliff), with one builder prover (an assumption) and the pool lifted. These arms ran at f827ca7, before the fix; the point itself moved slightly with the fix and the arms were not rerun.",
+   "section": "verify-final.md section 5; runs-fix.md sections 4 item 3 and 6"
+  },
+  {
+   "id": "network-regime",
+   "applies": {
+    "beyond_eps_regime": "network"
+   },
+   "title": "Network-bound regime: a separate study at f827ca7",
+   "text": "These elasticities come from a separate bandwidth study run at f827ca7. Its 8141 rows are row-identical with the fixed simulator. Its 8288 rows are pre-fix: gas does not bind there, so PQ throughput should not move with the fix, but their payloads carried the re-offered ECDSA bytes, which feed payload reach, downlink bytes and import time, so their downlink and payload-reach readings are not rechecked at the fixed commit.",
+   "section": "notes/phase4/runs-bandwidth.md section 2.2 and 4; notes/phase4/inbox.md (2026-11-12 ~19:05 UTC); runs-fix.md section 6"
+  }
+ ]
+}

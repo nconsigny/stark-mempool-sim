@@ -1,0 +1,66 @@
+{
+ "schema": "leanSPHINCS/web-v3/dropped/1",
+ "source": "notes/phase4/runs.md section 8, notes/phase4/runs-fix.md section 6, notes/phase4/runs-bandwidth.md section 1",
+ "items": [
+  {
+   "what": "leanPCS pcs_client at saturation (the past-the-gas-limit probes)",
+   "fate": "dropped: the runs were stopped without a row (each one took over an hour of compute)",
+   "instead": "the pcs_client limit shown here comes from the timeline's all-PQ points (200 nodes), where the builder's final proof binds in every slot",
+   "short": "dropped"
+  },
+  {
+   "what": "pcs_client elasticities (signature bytes, permutations)",
+   "fate": "not run (each saturated pcs_client run takes over an hour)",
+   "instead": "none",
+   "short": "not run"
+  },
+  {
+   "what": "shadow prices (what binds, by perturbing capacities)",
+   "fate": "2 seeds instead of 3; none for leanPCS or for the pool-lifted points; the 8288 point at 1,000 M gas was not rerun after the fix (shown as pre-fix)",
+   "instead": "the per-slot binding labels and utilisations",
+   "short": "2 seeds; none for leanPCS"
+  },
+  {
+   "what": "pcs_client and pcs_bundler grid cells; dependency cap 4,096; the six other candidate sets",
+   "fate": "seed 0 only: single-seed cells, shown with \"1 seed\" and no interval",
+   "instead": "none",
+   "short": "seed 0 only"
+  },
+  {
+   "what": "gas limit crossed with the PQ-share variants",
+   "fate": "not run: the low and all-PQ schedules exist at 200 M gas only",
+   "instead": "none",
+   "short": "200 M only"
+  },
+  {
+   "what": "8288 and leanPCS at 1,000 nodes",
+   "fate": "not run (infeasible on this box); 8141 at 1,000 nodes at one seed",
+   "instead": "throughput, binding and latency did not change between 50 and 200 nodes (notes/phase4/runs.md section 1)",
+   "short": "not run at 1,000 nodes"
+  },
+  {
+   "what": "home uplinks halved",
+   "fate": "run as every uplink class halved (the frozen code has no per-class key)",
+   "instead": "stated in the sensitivity table",
+   "short": "all classes halved"
+  },
+  {
+   "what": "lifting the per-node pool (geth's default slots) past the gas limit",
+   "fate": "not a spec setting: done with a driver hook, so those rows are tagged pool lifted and are not reproducible with the CLI alone",
+   "instead": "notes/phase4/runs-fix.md section 4 gives the reruns with the hook",
+   "short": "driver hook"
+  },
+  {
+   "what": "8288 past-gas elasticities (1,000 M gas; pool-lifted builder-proof arms)",
+   "fate": "not rerun after the ghost-ECDSA fix: shown marked pre-fix with their commit (f827ca7)",
+   "instead": "runs-fix.md section 6: gas does not bind there, so their PQ throughput is not expected to move",
+   "short": "pre-fix, not rerun"
+  },
+  {
+   "what": "the network-bound regime study (8288 and 8141 without gas limits)",
+   "fate": "run at f827ca7; its 8288 rows are pre-fix and not rechecked at e0bbff9 (8141 rows are row-identical); the 8288 permutation elasticity has two seeds",
+   "instead": "shown as a separate item with its commit and caveat",
+   "short": "pre-fix, separate study"
+  }
+ ]
+}

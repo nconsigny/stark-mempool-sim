@@ -1,11 +1,11 @@
 // The page's side of the engine: a small promise client for worker.mjs.
-// API: web/ENGINE.md.
+// API: web-v3/ENGINE.md.
 //
 //   import { Engine } from "./engine/engine.mjs";
 //   const engine = new Engine();
-//   const { scenarios } = await engine.scenarios();
-//   const { phase2_row } = await engine.run({ scenario: "A", nodes: 12 },
-//                                           { onProgress: console.log });
+//   const { keys, candidates } = await engine.describe();
+//   const { row } = await engine.run({ deployment: "8141", nodes: 16 },
+//                                    { onProgress: console.log });
 //   engine.cancel();   // terminates the worker; the next call starts a new one
 
 export class EngineCancelled extends Error {
@@ -92,13 +92,11 @@ export class Engine {
   }
 
   info() { return this.call("info"); }
-  scenarios() { return this.call("scenarios"); }
-  candidates(options = {}) { return this.call("candidates", options); }
+  describe() { return this.call("describe"); }
   checkLimits(config) { return this.call("check_limits", { config }); }
-  evaluateModel(config) { return this.call("evaluate_model", { config }); }
 
-  // Resolves with {row, phase2_row, row_text, phase2_text, argv, command,
-  // timing}; `timing.wall_ms` is the time the page waited.
+  // Resolves with {row, row_text, argv, command, spec_hash, spec, timing,
+  // trace?}; `timing.wall_ms` is the time the page waited.
   async run(config, options = {}) {
     const started = performance.now();
     const result = await this.call("run", { config }, options);

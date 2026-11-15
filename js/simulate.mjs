@@ -1,587 +1,242 @@
-// The Simulate view: a form built from the engine's scenario list, Run and
-// Cancel, progress, the headline figures next to the campaign's table cell,
-// the full row, the command line, and the last few runs.
+// Simulate: the v3 simulator in a Web Worker (Pyodide). The form builds the
+// same argv as the command line (lsweb3.argv_of); the result is the row the
+// command prints, shown as a few headline figures, the full row and the
+// command. Defaults and limits come from data/describe.json (the engine's
+// own `describe`), never from this file.
 
-import { EngineCancelled } from "../engine/engine.mjs";
-import { pricingName, $, el, clear, fmtInt, fmtTps, fmtFixed, fmtShare, fmtGas,
-         scenarioLabel, setLabel, CLASS_NAMES } from "./util.mjs";
+import { $, el, clear, fmt, fmtGas, isNum, chip, segmented, control, details } from "./util.mjs";
+import { animation } from "./anim.mjs";
 
-const STORE_KEY = "leansphincs-web-form-v1";
-const HISTORY_MAX = 6;
-const DASH = "—";
+let D = null;          // describe.json
+let engine = null;
+let setStatus = () => {};
+let anim = null;
+let OFFERED = [];
+let AXES = null;      // timeline.json axes (gas limits, dependency caps)
+let SIM = null;       // build.json simulator
+let CAMPAIGN_NODES = [];  // node counts of the precomputed runs
+const form = {};
 
-// The headline figures, in the order of the result table. `field` is the
-// column of the phase-2 row; the same column exists in the campaign's tables.
-export const HEADLINES = [
-  { field: "tps_tx", main: true, label: "Sustained throughput", sub: "transactions per second included over the measured slots", value: (v) => fmtTps(v), unit: "tx/s" },
-  { field: "tps_sig", label: "Sustained throughput, signatures", sub: "transactions times signatures per transaction", value: (v) => fmtTps(v), unit: "sig/s" },
-  { field: "tps_timely", label: "Timely throughput", sub: "transactions per second in blocks that reached the network in time", value: (v) => fmtTps(v), unit: "tx/s" },
-  { field: "binding", main: true, label: "What binds", sub: "the limit that set the sustained rate", value: (v) => String(v), unit: "" },
-  { field: "block_bytes", label: "Block size", sub: "mean bytes per block", value: (v) => fmtFixed(v / 1e6, 2), unit: "MB" },
-  { field: "t90_block_s", label: "Block reaches 90% of nodes", sub: "seconds after the slot starts", value: (v) => fmtFixed(v, 2), unit: "s" },
-  { field: "bw_node_mbit", label: "Bandwidth per node", sub: "mean upload", value: (v) => fmtFixed(v, 2), unit: "Mbit/s" },
-  { field: "dup_share", label: "Duplicates", sub: "share of bytes received more than once", value: (v) => fmtShare(v), unit: "of bytes" },
-  // Not simulated: the gas model's figures for one transaction of the run.
-  { field: "tx_gas", gas: true, main: true, label: "Gas per transaction", sub: "total, from the gas model (not simulated)", value: (v) => fmtInt(v), unit: "gas" },
-  { field: "tx_calldata_gas", gas: true, label: "Calldata gas per transaction", sub: "data bytes at the price that binds (gas model)", value: (v) => fmtInt(v), unit: "gas" },
+const DEPLOYMENTS = [["8141", "8141 full"], ["8288", "8288 full"], ["leanpcs", "leanPCS full"]];
+
+// Headline figures: each entry lists the row keys it can come from (the S4
+// row first, then the interim S3a row), with the label that matches that key.
+const HEADLINE = [
+  { id: "sig", alts: [["sig_per_s", "Included signatures", "sig/s"]] },
+  { id: "pq", alts: [["pq_tps", "Included PQ transactions", "tx/s"], ["included_pq_tps", "Included PQ transactions", "tx/s"]] },
+  { id: "all", alts: [["tps_included", "Included transactions, background apart", "tx/s"]] },
+  { id: "bg", alts: [["ecdsa_bg_tps", "ECDSA background included", "tx/s"]] },
+  { id: "ecdsa", alts: [["ecdsa_tps", "Explicit ECDSA transactions", "tx/s"], ["included_ecdsa_tps", "ECDSA transactions", "tx/s"]] },
+  { id: "binds", alts: [["binding", "What binds", ""], ["binding_counts", "What bound each payload", ""]] },
+  { id: "lat50", alts: [["incl_latency_pq1_p50_s", "PQ inclusion latency p50", "s"], ["inclusion_latency_ms.p50", "PQ inclusion latency p50", "ms"]] },
+  { id: "lat95", alts: [["incl_latency_pq1_p95_s", "PQ inclusion latency p95", "s"], ["inclusion_latency_ms.p95", "PQ inclusion latency p95", "ms"]] },
+  { id: "reach", alts: [["block_reach_t90_p50_ms", "Block reaches 90 % of nodes (median block)", "ms"],
+                        ["payload_reach90_from_slot_start_ms_p50", "Payload at 90 % of nodes, from slot start (median)", "ms"]] },
+  { id: "fee", alts: [["user_fee_pq_p50_gwei", "Fee per PQ transaction p50", "gwei"]] },
+  { id: "bw", alts: [["bw_home_up_mean_mbps", "Home node uplink, mean", "Mbit/s"]] },
 ];
 
-const NBSP = "\u00a0";
-const missing = (value) => value === null || value === undefined || value === "NA" || value === -1;
-
-// A value cell: the figure on one line, its unit (and a remark) on the
-// next. Every cell has both lines from the start, so a result does not
-// change the height of a row.
-function valueCell(td, text, under, dim = false) {
-  clear(td).append(el("span", { class: dim ? "v dim" : "v" }, text), el("span", { class: "sub" }, under || NBSP));
+function lookup(row, key) {
+  return key.split(".").reduce((o, k) => (o && typeof o === "object" ? o[k] : undefined), row);
 }
 
-// Variant suffixes a table row may carry beyond the configuration's own
-// variant and still be the same cell.
-const VARIANT_EXTRA = /^(deps=\d+|client_proofs=\w+|bundle=(law|repo)|phase2-cell)$/;
-
-// The campaign's table cell for a run's settings, or null. A cell is
-// identified as web/SCHEMA.md says; the tables are 40-node runs.
-export function findTableCell(tables, row, knobs, tableNodes) {
-  const matches = [];
-  for (const table of tables) {
-    for (const cell of table.rows) {
-      if (cell.scenario !== row.scenario || cell.pricing !== row.pricing) continue;
-      if (cell.gas_limit !== row.gas_limit || cell.profile !== row.profile) continue;
-      if (cell.uplinks !== row.uplinks || cell.candidate !== row.candidate) continue;
-      if (cell.k !== row.k || cell.nodes !== tableNodes) continue;
-      if (cell.variant !== row.variant) {
-        if (!cell.variant.startsWith(row.variant + ";")) continue;
-        const rest = cell.variant.slice(row.variant.length + 1).split(";");
-        if (!rest.every((token) => VARIANT_EXTRA.test(token))) continue;
+export function headline(row) {
+  const out = [];
+  for (const h of HEADLINE) {
+    for (const [key, label, unit] of h.alts) {
+      let v = lookup(row, key);
+      if (v === undefined) continue;
+      if (v && typeof v === "object") {
+        v = Object.entries(v).map(([k, n]) => `${k} (${n})`).join(", ");
       }
-      if (cell.mode && knobs && knobs.mode && cell.mode !== knobs.mode) continue;
-      if (cell.client_proofs && knobs && knobs.client_proofs && cell.client_proofs !== knobs.client_proofs) continue;
-      matches.push(cell);
+      out.push({ id: h.id, key, label, unit, value: v });
+      break;
     }
   }
-  matches.sort((a, b) => (b.headline || 0) - (a.headline || 0));
-  return matches[0] || null;
+  return out;
 }
 
-export function initSimulate(app) {
-  const { data, engine } = app;
-  const ids = data.scenarios.ids;
-  const idById = new Map(ids.map((entry) => [entry.id, entry]));
-  let configs = new Map(data.scenarios.configurations.map((entry) => [entry.configuration, entry]));
-  const candidates = new Map(data.candidates.candidates.map((entry) => [entry.name, entry]));
-  const tableNodes = data.scenarios.table_nodes;
+function limitsFor(dep) { return D.limits.deployments[dep]; }
 
-  const form = $("#sim-form");
-  const f = {
-    scenario: $("#sim-scenario"), config: $("#sim-config"), candidate: $("#sim-candidate"),
-    custom: $("#sim-custom"), bytes: $("#sim-bytes"), perms: $("#sim-perms"), gas: $("#sim-gas"),
-    profile: $("#sim-profile"), uplinks: $("#sim-uplinks"), nodes: $("#sim-nodes"),
-    slots: $("#sim-slots"), seed: $("#sim-seed"), k: $("#sim-k"),
+// A deployment's browser defaults (limits3.json), for the fields they name.
+function applyDefaults(dep) {
+  const d = limitsFor(dep).browser_defaults;
+  form.nodes = d.nodes;
+  form.measured = d["slots.measured"];
+  form.warmup = d["slots.warmup"];
+}
+
+function field(label, input, hint) {
+  return el("div", { class: "field" }, el("label", { for: input.id }, label), input,
+    hint ? el("span", { class: "small" }, hint) : null);
+}
+
+function keyMeta(key) { return D.keys.find((k) => k.key === key); }
+
+function renderForm() {
+  const box = clear($("#sim-fields"));
+  const dep = form.deployment;
+  const lim = limitsFor(dep);
+  box.append(control("Deployment", segmented("Deployment", DEPLOYMENTS.map(([v, l]) => ({ value: v, label: l })),
+    dep, (v) => { form.deployment = v; applyDefaults(v); renderForm(); })));
+  const grid = el("div", { class: "formgrid" });
+  const cand = el("select", { id: "f-cand", onchange: (e) => { form.candidate = e.target.value; } },
+    D.candidates.filter((c) => OFFERED.includes(c.name)).map((c) => el("option", { value: c.name, selected: c.name === form.candidate },
+      `${c.name} (${c.sig_bytes} B, ${c.perms} perms)`)));
+  grid.append(field("Parameter set", cand, `${D.candidates.length} sets on the CLI: candidate=<name> under More settings`));
+  const gas = el("select", { id: "f-gas", onchange: (e) => { form.gas_limit = Number(e.target.value); } },
+    AXES.gas_limit.filter((g) => g <= lim.max_gas_limit).map((g) =>
+      el("option", { value: g, selected: g === form.gas_limit }, fmtGas(g))));
+  grid.append(field("Gas limit", gas));
+  const nodes = el("input", { id: "f-nodes", type: "number", min: lim.min_nodes, max: lim.max_nodes,
+    value: form.nodes, oninput: (e) => { form.nodes = Number(e.target.value); } });
+  grid.append(field("Nodes", nodes, `${lim.min_nodes} to ${lim.max_nodes} here`));
+  const demand = el("select", { id: "f-demand", onchange: (e) => { form.demandMode = e.target.value; renderForm(); } },
+    el("option", { value: "saturate", selected: form.demandMode === "saturate" }, "saturate (capacity)"),
+    el("option", { value: "load", selected: form.demandMode === "load" }, "load (tx/s)"));
+  grid.append(field("Demand", demand));
+  if (form.demandMode === "load") {
+    grid.append(field("Offered tx/s, all kinds", el("input", { id: "f-level", type: "number", min: 0, step: "any",
+      value: form.level, oninput: (e) => { form.level = Number(e.target.value); } })));
+    const meta = keyMeta("demand.pq_share");
+    grid.append(field("PQ share", el("input", { id: "f-pq", type: "number", min: meta.min, max: meta.max, step: "0.01",
+      value: form.pq_share, oninput: (e) => { form.pq_share = Number(e.target.value); } })));
+  }
+  if (dep !== "8141") {
+    grid.append(field("Dependency cap", el("select", { id: "f-cap", onchange: (e) => { form.dep_cap = e.target.value === "none" ? null : Number(e.target.value); } },
+      AXES.dep_cap.map((c) => c ?? "none").map((c) => el("option", { value: c, selected: String(form.dep_cap ?? "none") === String(c) }, String(c))))));
+  }
+  if (dep === "leanpcs") {
+    const meta = keyMeta("agg.sig_route");
+    grid.append(field("Signature route", el("select", { id: "f-route", onchange: (e) => { form.sig_route = e.target.value; } },
+      meta.choices.map((c) => el("option", { value: c, selected: c === form.sig_route }, c)))));
+  }
+  grid.append(field("Seed", el("input", { id: "f-seed", type: "number", min: 0, value: form.seed,
+    oninput: (e) => { form.seed = Number(e.target.value); } })));
+  box.append(grid);
+  const more = el("div", { class: "formgrid" },
+    field("Measured slots", el("input", { id: "f-meas", type: "number", min: 1, max: lim.max_measured_slots,
+      value: form.measured, oninput: (e) => { form.measured = Number(e.target.value); } })),
+    field("Warm-up slots", el("input", { id: "f-warm", type: "number", min: 0, max: lim.max_measured_slots,
+      value: form.warmup, oninput: (e) => { form.warmup = Number(e.target.value); } })),
+    el("div", { class: "field check" }, el("input", { id: "f-trace", type: "checkbox", checked: form.trace,
+      onchange: (e) => { form.trace = e.target.checked; } }), el("label", { for: "f-trace" }, "Record the network replay")));
+  const sets = el("textarea", { id: "f-sets", rows: 3, placeholder: "net.idontwant=false",
+    oninput: (e) => { form.extra = e.target.value; } }, form.extra);
+  box.append(details("More settings", more, field("Other settings, one key=value per line (the CLI's --set; About lists the keys)", sets)));
+  $("#sim-limits").textContent = `Here: ${lim.min_nodes} to ${lim.max_nodes} nodes, at most ${lim.max_measured_slots} measured slots, stopped after ${D.limits.time_limit_s} s. The command line's default is ${D.limits.cli_default_nodes} nodes; the campaign's runs used ${CAMPAIGN_NODES.length ? CAMPAIGN_NODES.join(", ") : "other"} nodes.`;
+}
+
+export function configOf() {
+  const sets = {};
+  if (form.measured) sets["slots.measured"] = form.measured;
+  if (form.warmup !== null && form.warmup !== undefined) sets["slots.warmup"] = form.warmup;
+  if (form.deployment !== "8141" && form.dep_cap !== null) sets["chain.dep_cap"] = form.dep_cap;
+  if (form.deployment === "leanpcs") sets["agg.sig_route"] = form.sig_route;
+  if (form.demandMode === "load") sets["demand.pq_share"] = form.pq_share;
+  for (const line of (form.extra || "").split("\n")) {
+    const text = line.trim();
+    if (!text) continue;
+    const at = text.indexOf("=");
+    if (at < 1) throw new Error(`"${text}": expected key=value`);
+    const raw = text.slice(at + 1).trim();
+    let value;
+    try { value = JSON.parse(raw); } catch { value = raw; }
+    sets[text.slice(0, at).trim()] = value;
+  }
+  return {
+    deployment: form.deployment, candidate: form.candidate, gas_limit: form.gas_limit,
+    nodes: form.nodes, seed: form.seed,
+    demand: form.demandMode === "load" ? String(form.level) : "saturate",
+    sets, trace: form.trace,
   };
-  const runButton = $("#sim-run");
-  const cancelButton = $("#sim-cancel");
+}
+
+function resultView(res) {
+  const box = clear($("#sim-result"));
+  if (anim) anim.stop();
+  const sim = () => chip("simulated", `Simulated in this browser: ${res.row.nodes ?? form.nodes} nodes, seed ${res.row.seed}; a small network, not the campaign's ${CAMPAIGN_NODES.join("/")}-node runs`);
+  const items = headline(res.row);
+  box.append(el("dl", { class: "kpis", id: "sim-kpis" }, items.map((h) =>
+    el("div", { class: "kpi", "data-key": h.key },
+      el("dt", {}, h.label, " ", sim()),
+      el("dd", { title: `row key ${h.key}` },
+        el("span", { class: "v" }, isNum(h.value) ? fmt(h.value) : String(h.value ?? "n/a")),
+        h.unit ? el("span", { class: "unit" }, h.unit) : null)))));
+  box.append(el("p", { class: "small", id: "sim-run-line" },
+    `${res.row.deployment ?? form.deployment}, ${res.row.candidate ?? ""}, ${fmtGas(res.row.gas_limit)} gas, ${res.row.nodes} nodes, seed ${res.row.seed}; ${(res.timing.wall_ms / 1000).toFixed(1)} s in this browser. Row: ${Object.keys(res.row).length} columns${res.row.stage ? ` (${res.row.stage})` : ""}.`));
+  if (res.trace) {
+    anim = animation(res.trace);
+    box.append(details("Network replay of this run", anim.node));
+  }
+  box.append(details("Command line and full row",
+    el("p", { class: "small" }, "Run in the simulator this site was built from (", el("code", {},
+      SIM.kind === "ref" ? `sims/stark-mempool-sim-v2 at ${SIM.ref} ${SIM.commit.slice(0, 9)}` : `${SIM.tree} at ${SIM.commit.slice(0, 9)}${SIM.dirty.length ? " plus uncommitted changes" : ""}`),
+      "), this command prints the same row, wall-time fields aside (test/determinism.mjs checks it):"),
+    el("pre", { class: "cmd", id: "sim-command" }, res.command),
+    el("pre", { id: "sim-row", style: "max-height:420px" }, res.row_text)));
+}
+
+export function initSimulate(describe, eng, onStatus, { offered, axes, simulator, campaignNodes }) {
+  CAMPAIGN_NODES = campaignNodes || [];
+  D = describe;
+  OFFERED = offered;
+  AXES = axes;
+  SIM = simulator;
+  engine = eng;
+  setStatus = onStatus;
+  const defaults = D.deployment_defaults["8141"];
+  form.deployment = "8141";
+  form.candidate = defaults.candidate?.value || "P99r";
+  form.gas_limit = defaults["chain.gas_limit"]?.value;
+
+  form.seed = 0;
+  form.demandMode = "saturate";
+  form.level = 30;
+  form.pq_share = keyMeta("demand.pq_share").default;
+  form.dep_cap = null;
+  form.sig_route = keyMeta("agg.sig_route").default;
+  applyDefaults("8141");
+  form.trace = true;
+  form.extra = "";
+  $("#sim-intro").textContent = "The v3 simulator runs in your browser (Pyodide); its row is the one the command line prints for the same settings. Small networks only.";
+  renderForm();
   const status = $("#sim-status");
+  const run = $("#sim-run");
+  const cancel = $("#sim-cancel");
   const progress = $("#sim-progress");
-  const progressText = $("#sim-progress-text");
-  const resultBody = $("#sim-result tbody");
-  const moreBody = $("#sim-result-more tbody");
-  const resultRow = (field) => document.querySelector(`#sim-result tr[data-field="${field}"], #sim-result-more tr[data-field="${field}"]`);
-  const history = [];
-  let running = null;      // {started, timer, label, last}
-
-  const currentConfig = () => configs.get(f.config.value);
-
-  function setStatus(text, isError = false) {
-    status.textContent = text;
-    status.classList.toggle("error", isError);
-  }
-
-  function fillSelect(select, values, label = (value) => value) {
-    const before = select.value;
-    clear(select);
-    for (const value of values) select.append(el("option", { value }, label(value)));
-    if (values.map(String).includes(before)) select.value = before;
-  }
-
-  // ------------------------------------------------------------- the form
-  fillSelect(f.scenario, ids.map((entry) => entry.id), (id) => {
-    const entry = idById.get(id);
-    return scenarioLabel(entry) + (entry.explore_only ? " · tables only" : "");
-  });
-
-  function onScenario() {
-    const entry = idById.get(f.scenario.value);
-    const names = [entry.default_configuration,
-      ...entry.configurations.filter((name) => name !== entry.default_configuration)];
-    clear(f.config);
-    for (const name of names) {
-      const config = configs.get(name);
-      const text = name + (name === entry.default_configuration ? " (default)" : "") +
-        (config ? " · " + pricingName(config.pricing) : "");
-      f.config.append(el("option", { value: name }, text));
-    }
-    f.config.disabled = names.length < 2;
-    applyConfig();
-  }
-
-  function followCandidate() {
-    const entry = candidates.get(f.candidate.value);
-    f.bytes.disabled = f.perms.disabled = !f.custom.checked;
-    f.bytes.required = f.perms.required = f.custom.checked;
-    if (!f.custom.checked && entry) {
-      f.bytes.value = entry.sig_bytes;
-      f.perms.value = entry.perms;
-    }
-    $("label[for=sim-candidate]").textContent = f.custom.checked ? "Base set (its verifier model)" : "Parameter set";
-  }
-
-  function applyConfig() {
-    const config = currentConfig();
-    const entry = idById.get(config.id);
-    const settings = config.settings;
-    const mode = config.mode === "capacity"
-      ? "a capacity search: up to 8 simulations for the highest sustained rate"
-      : "one simulation at the offered load";
-    clear($("#sim-scenario-note")).append(
-      entry.description, " When: ", entry.when, ". Class: ", CLASS_NAMES[config.class] || config.class,
-      ". Pricing: ", pricingName(config.pricing), ". Mode: ", mode, ".");
-
-    if (app.scenarioHelp) { app.scenarioHelp.simHelp(); }
-    const exploreOnly = $("#sim-explore-only");
-    const fields = $("#sim-fields");
-    if (config.explore_only) {
-      fields.hidden = true;
-      exploreOnly.hidden = false;
-      clear(exploreOnly).append(
-        el("h3", {}, config.configuration + " is not run in the browser"),
-        el("p", { id: "sim-explore-only-reason" }, "Reason: " + config.limits.reason + "."),
-        el("p", {}, "Its tables are in ", el("a", { href: "#explore" }, "Explore"),
-          ". To run it yourself, from the simulator checkout:"),
-        el("pre", { class: "cmd", tabindex: "0" }, "python3 -m bench.leansphincs run --scenario " +
-          (config.default ? config.id : config.configuration) +
-          " --network-params ../../data/phase2b/network_params_v2.json"));
-      updateButtons();
-      return;
-    }
-    fields.hidden = false;
-    exploreOnly.hidden = true;
-
-    fillSelect(f.candidate, settings.candidate.values, (name) => {
-      const set = candidates.get(name);
-      return set ? `${setLabel(set.label)} · ${name} (${fmtInt(set.sig_bytes)} B, ${set.perms} perms)` : name;
-    });
-    if (!f.candidate.dataset.touched && settings.candidate.values.includes("P99r")) f.candidate.value = "P99r";
-    followCandidate();
-
-    fillSelect(f.gas, settings.gas_limit.values, (value) => fmtGas(Number(value)) + " gas");
-    if (!f.gas.dataset.touched || !settings.gas_limit.values.includes(Number(f.gas.value))) {
-      f.gas.value = settings.gas_limit.values.includes(config.gas_limit) ? config.gas_limit : settings.gas_limit.values[0];
-    }
-    f.gas.disabled = settings.gas_limit.values.length < 2;
-    fillSelect(f.profile, settings.profile.values);
-    if (!f.profile.dataset.touched) f.profile.value = settings.profile.default;
-    fillSelect(f.uplinks, settings.uplinks.values);
-    if (!f.uplinks.dataset.touched) f.uplinks.value = settings.uplinks.default;
-
-    const clamp = (value, lo, hi) => Math.min(hi, Math.max(lo, value));
-    f.nodes.min = settings.nodes.min;
-    f.nodes.max = settings.nodes.max;
-    const startNodes = (config.browser_defaults && config.browser_defaults.nodes) ?? settings.nodes.default;
-    f.nodes.value = f.nodes.dataset.touched && f.nodes.value !== ""
-      ? clamp(Number(f.nodes.value), settings.nodes.min, settings.nodes.max)
-      : clamp(startNodes, settings.nodes.min, settings.nodes.max);
-    f.slots.min = settings.measured_slots.min;
-    f.slots.max = settings.measured_slots.max;
-    f.slots.value = f.slots.dataset.touched && f.slots.value !== ""
-      ? clamp(Number(f.slots.value), settings.measured_slots.min, settings.measured_slots.max)
-      : clamp(settings.measured_slots.default, settings.measured_slots.min, settings.measured_slots.max);
-    f.seed.min = settings.seed.min;
-    if (f.seed.value === "") f.seed.value = settings.seed.default;
-
-    const kField = $("#sim-k-field");
-    kField.hidden = !settings.k;
-    if (settings.k) {
-      f.k.min = settings.k.min;
-      const label = config.class === "agg8288" ? "Signatures (dependencies) per transaction"
-        : config.class === "pcs" ? "Signatures per transaction (bundle)" : "Signatures per transaction";
-      $("#sim-k-label").textContent = label;
-      if (settings.k.follows) {
-        f.k.placeholder = "auto: " + settings.k.default + " for today's set";
-        f.k.required = false;
-        if (!f.k.dataset.touched) f.k.value = "";
-        f.k.title = "Left empty, it follows the permutations: " + settings.k.follows.replace(/^perms:\s*/, "");
-      } else {
-        f.k.placeholder = "";
-        f.k.title = "";
-        f.k.required = true;
-        if (!f.k.dataset.touched || f.k.value === "") f.k.value = settings.k.default;
-      }
-    }
-
-    const limits = config.limits;
-    const gasText = settings.gas_limit.values.length < 2
-      ? `a gas limit of ${fmtGas(limits.max_gas_limit)} only`
-      : `gas limits up to ${fmtGas(limits.max_gas_limit)}`;
-    const limitsLine = clear($("#sim-limits"));
-    limitsLine.append(`Browser limits: ${limits.min_nodes} to ${limits.max_nodes} nodes, ` +
-      `1 to ${limits.max_measured_slots} measured slots, ${gasText}; the engine stops any run after ${data.scenarios.time_limit_s} s.`);
-    limitsLine.title = (limits.reason ? `Why: ${limits.reason}. ` : "") +
-      `The heaviest run takes about ${limits.est_s} s on the build machine, under about ${data.scenarios.budget_s} s on a slower laptop.`;
-    updateButtons();
-    save();
-  }
-
-  // The configuration sent to the engine: the harness's knob names.
-  function readConfig() {
-    const config = currentConfig();
-    const out = {
-      scenario: config.default ? config.id : config.configuration,
-      candidate: f.candidate.value,
-    };
-    if (f.custom.checked) {
-      out.sig_bytes = Number(f.bytes.value);
-      out.perms = Number(f.perms.value);
-    }
-    out.gas_limit = Number(f.gas.value);
-    out.profile = f.profile.value;
-    out.uplinks = f.uplinks.value;
-    out.nodes = Number(f.nodes.value);
-    out.measured_slots = Number(f.slots.value);
-    out.seed = Number(f.seed.value);
-    if (config.settings.k && f.k.value !== "") out.k = Number(f.k.value);
-    return out;
-  }
-
-  function firstInvalid() {
-    for (const input of [f.bytes, f.perms, f.nodes, f.slots, f.seed, f.k]) {
-      if (input.disabled || input.closest("[hidden]")) continue;
-      if (!input.checkValidity() || (input.value !== "" && !Number.isInteger(Number(input.value)))) {
-        const label = $(`label[for=${input.id}]`).textContent;
-        const range = input.min && input.max ? `a whole number from ${input.min} to ${input.max}`
-          : input.min ? `a whole number of at least ${input.min}` : "a whole number";
-        return { input, message: `${label}: enter ${range}.` };
-      }
-    }
-    return null;
-  }
-
-  // ------------------------------------------------ remembered form values
-  let restored = false;   // nothing is written before the stored form was read
-  function save() {
-    if (!restored) return;
-    try {
-      const values = { scenario: f.scenario.value, configuration: f.config.value };
-      for (const [name, input] of Object.entries(f)) {
-        if (name === "scenario" || name === "config") continue;
-        values[name] = input.type === "checkbox" ? input.checked : input.value;
-      }
-      localStorage.setItem(STORE_KEY, JSON.stringify(values));
-    } catch { /* storage is optional */ }
-  }
-
-  function restore() {
-    let values = null;
-    try { values = JSON.parse(localStorage.getItem(STORE_KEY) || "null"); } catch { values = null; }
-    if (!values || !idById.has(values.scenario)) return;
-    f.scenario.value = values.scenario;
-    onScenario();
-    if (configs.has(values.configuration) && configs.get(values.configuration).id === values.scenario) {
-      f.config.value = values.configuration;
-    }
-    for (const [name, input] of Object.entries(f)) {
-      if (name === "scenario" || name === "config" || values[name] === undefined) continue;
-      if (input.type === "checkbox") input.checked = Boolean(values[name]);
-      else if (input.tagName === "SELECT") {
-        if ([...input.options].some((option) => option.value === String(values[name]))) input.value = values[name];
-      } else input.value = values[name];
-      input.dataset.touched = "1";
-    }
-    applyConfig();
-  }
-
-  // ------------------------------------------------------------ run state
-  function updateButtons() {
-    const config = currentConfig();
-    const ready = app.engineState.state === "ready";
-    runButton.disabled = !ready || Boolean(running) || !config || config.explore_only;
-    cancelButton.disabled = !running;
-  }
-
-  function showProgress() {
-    if (!running) return;
-    const elapsed = (performance.now() - running.started) / 1000;
-    const last = running.last;
-    let text = `${elapsed.toFixed(1)} s elapsed`;
-    if (last) {
-      const inRun = last.horizon_ms ? Math.min(1, (last.sim_ms || 0) / last.horizon_ms) : 0;
-      progress.value = Math.min(1, (last.probe - 1 + inRun) / last.max_probes);
-      const which = last.max_probes > 1 ? `Simulation ${last.probe} of at most ${last.max_probes}` : "Simulation";
-      const simulated = last.horizon_ms
-        ? `, simulated ${((last.sim_ms || 0) / 1000).toFixed(1)} of ${(last.horizon_ms / 1000).toFixed(0)} s` : "";
-      text = `${which}${simulated} · ${text}`;
-    } else {
-      text = "Starting · " + text;
-    }
-    progressText.textContent = text;
-  }
-
-  function onProgress(event) {
-    if (!running) return;
-    running.last = { ...(running.last || {}), ...event };
-    if (event.event === "probe") running.last.sim_ms = 0;
-    running.events += 1;
-    showProgress();
-  }
-
-  async function run() {
-    if (running) return;
-    const invalid = firstInvalid();
-    if (invalid) {
-      setStatus(invalid.message, true);
-      invalid.input.focus();
-      return;
-    }
-    const cfg = currentConfig();
-    const config = readConfig();
-    save();
-    running = { started: performance.now(), last: null, events: 0, timer: 0 };
-    updateButtons();
-    setStatus("Checking the limits…");
-    progress.value = 0;
+  const ptext = $("#sim-progress-text");
+  $("#sim-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    let config;
+    try { config = configOf(); } catch (error) { status.textContent = error.message; status.classList.add("error"); return; }
+    status.classList.remove("error");
+    status.textContent = "Starting the simulator…";
+    run.disabled = true; cancel.disabled = false;
+    progress.hidden = false; progress.value = 0; ptext.textContent = "";
     try {
       const { reasons } = await engine.checkLimits(config);
-      if (reasons.length) {
-        setStatus("Not run: " + reasons.join("; ") + ".", true);
-        return;
-      }
-      running.started = performance.now();
-      running.timer = setInterval(showProgress, 200);
-      const label = `${config.scenario}, ${config.candidate}${config.sig_bytes ? " custom" : ""}, ${config.nodes} nodes`;
-      app.setEngineState("running", "running " + label);
-      setStatus("Running " + label + "…");
-      form.dataset.state = "running";
-      const result = await engine.run(config, { onProgress });
-      // The gas model's split of one transaction of this run (web/ENGINE.md,
-      // gas_breakdown). A failure leaves the two gas rows empty.
-      let gas = null;
-      try {
-        const point = { scenario: config.scenario, candidate: config.candidate, gas_limit: config.gas_limit };
-        for (const key of ["sig_bytes", "perms", "k"]) if (config[key] !== undefined && config[key] !== null) point[key] = config[key];
-        gas = await engine.call("gas_breakdown", { config: point });
-      } catch (error) {
-        console.warn("gas breakdown failed", error);
-      }
-      progress.value = 1;
-      const took = result.timing.wall_ms / 1000;
-      const runs = result.timing.probes;
-      progressText.textContent = `Finished: ${runs} simulation${runs === 1 ? "" : "s"} in ${took.toFixed(1)} s.`;
-      setStatus(`Done in ${took.toFixed(1)} s.`);
-      showResult(result, config, cfg, gas);
-      form.dataset.state = "done";
-    } catch (error) {
-      if (error instanceof EngineCancelled) {
-        const after = ((performance.now() - running.started) / 1000).toFixed(1);
-        setStatus(`Cancelled after ${after} s. The simulator restarts in about a second.`);
-        progressText.textContent = "Cancelled.";
-        form.dataset.state = "cancelled";
-      } else {
-        setStatus("The run failed. " + (error && error.message ? error.message : String(error)), true);
-        progressText.textContent = "Failed.";
-        form.dataset.state = "failed";
-        console.warn("run failed", error && error.traceback ? error.traceback : error);
-      }
-    } finally {
-      clearInterval(running.timer);
-      running = null;
-      if (app.engineState.state === "running") {
-        const boot = app.engineState.boot;
-        app.setEngineState("ready", boot
-          ? `ready (Pyodide ${boot.pyodide_version}, simulator ${String(boot.info.simulator_commit).slice(0, 7)})`
-          : "ready");
-      }
-      updateButtons();
-    }
-  }
-
-  function cancel() {
-    if (!running) return;
-    app.restartEngine();
-  }
-
-  // ------------------------------------------------------------ the result
-  function buildResultRows() {
-    clear(resultBody);
-    clear(moreBody);
-    for (const spec of HEADLINES) {
-      const runCell = el("td", { class: "n run" });
-      const tableCell = el("td", { class: "n cell" });
-      valueCell(runCell, DASH, spec.unit);
-      valueCell(tableCell, DASH, spec.unit);
-      (spec.main ? resultBody : moreBody).append(el("tr", { "data-field": spec.field },
-        spec.main ? el("th", { scope: "row", title: spec.sub }, spec.label)
-          : el("th", { scope: "row" }, spec.label, el("span", { class: "sub" }, spec.sub)), runCell, tableCell));
-    }
-    $("#sim-col-table-sub").textContent = `${tableNodes} nodes`;
-  }
-
-  function showResult(result, config, cfg, gas) {
-    const row = result.phase2_row;
-    const knobs = result.row.knobs || {};
-    const cell = findTableCell([data.noagg, data.agg], row, knobs, tableNodes);
-    // The gas rows: this run's transaction from the engine, and the same
-    // model at the named set from data/gas.json (none for a custom size).
-    const gasRun = gas ? { tx_gas: result.row.tx_gas ?? gas.total, tx_calldata_gas: gas.parts.calldata } : {};
-    const gasRow = config.sig_bytes ? null : data.gas.rows.find((item) =>
-      item.configuration === cfg.configuration && item.candidate === config.candidate && item.k === row.k);
-    const gasTable = gasRow ? { tx_gas: gasRow.total, tx_calldata_gas: gasRow.parts.calldata } : null;
-    for (const spec of HEADLINES) {
-      const tr = resultRow(spec.field);
-      const runCell = tr.querySelector("td.run");
-      const tableCell = tr.querySelector("td.cell");
-      if (spec.gas) {
-        const value = gasRun[spec.field];
-        valueCell(runCell, missing(value) ? "n/a" : spec.value(value), spec.unit);
-        runCell.dataset.value = JSON.stringify(value ?? null);
-        delete tableCell.dataset.value;
-        if (!gasTable) {
-          valueCell(tableCell, "no cell", "", true);
-        } else {
-          valueCell(tableCell, spec.value(gasTable[spec.field]), spec.unit);
-          tableCell.dataset.value = JSON.stringify(gasTable[spec.field]);
+      if (reasons.length) throw new Error(reasons.join("; "));
+      setStatus("running");
+      status.textContent = "Running…";
+      const res = await engine.run(config, { onProgress: (ev) => {
+        if (ev.event === "tick") {
+          progress.value = ev.sim_ms / ev.horizon_ms;
+          ptext.textContent = `simulated ${(ev.sim_ms / 1000).toFixed(1)} of ${(ev.horizon_ms / 1000).toFixed(0)} s · ${ev.elapsed_s.toFixed(1)} s elapsed`;
         }
-        continue;
-      }
-      const value = row[spec.field];
-      valueCell(runCell, missing(value) ? "n/a" : spec.value(value), spec.unit);
-      runCell.dataset.value = JSON.stringify(value);
-      delete tableCell.dataset.value;
-      if (!cell) {
-        valueCell(tableCell, "no cell", "", true);
-        continue;
-      }
-      const cellValue = cell[spec.field];
-      let under = spec.unit;
-      if (spec.field === "tps_tx" || spec.field === "tps_sig") {
-        const lo = cell.tps_min ?? cell.tps_tx_min;
-        const hi = cell.tps_max ?? cell.tps_tx_max;
-        const factor = spec.field === "tps_sig" ? cell.k : 1;
-        const spread = cell.seeds > 1 && lo !== null && lo !== undefined && hi !== lo;
-        under += spread ? `, ${fmtTps(lo * factor)}\u2013${fmtTps(hi * factor)} over ${cell.seeds} seeds`
-          : `, ${cell.seeds || 1} seed${cell.seeds > 1 ? "s" : ""}`;
-      }
-      valueCell(tableCell, missing(cellValue) ? "n/a" : spec.value(cellValue), under);
-      tableCell.dataset.value = JSON.stringify(cellValue);
-    }
-    $("#sim-col-run-sub").textContent = `${row.nodes} nodes`;
-    const what = `${row.scenario} (${cfg.configuration}), ${row.candidate}, ${fmtGas(row.gas_limit)} gas, ` +
-      `${row.profile} profile, ${row.uplinks} uplinks, ${row.nodes} nodes, ${config.measured_slots} measured slot${config.measured_slots === 1 ? "" : "s"}, ` +
-      `seed ${config.seed}, ${row.k} signature${row.k === 1 ? "" : "s"} per transaction`;
-    const lead = clear($("#sim-result-lead"));
-    lead.append(el("strong", {}, "This run: "), what + ". ");
-    if (cell) {
-      const tableSlots = cell.measured_slots ?? cfg.settings.measured_slots.default;
-      const differs = [row.nodes === tableNodes ? null : `${row.nodes} nodes`, "one seed",
-        config.measured_slots === tableSlots ? null : `${config.measured_slots} measured slot${config.measured_slots === 1 ? "" : "s"} against ${tableSlots}`]
-        .filter(Boolean).join(", ");
-      lead.append(`The table column is the campaign's cell for the same settings at ${tableNodes} nodes` +
-        (cell.seeds > 1 ? `, a mean over ${cell.seeds} seeds` : cell.seeds === 1 ? ", one seed" : "") +
-        `. This run has ${differs}, so the two can differ. `);
-    } else {
-      const why = config.sig_bytes ? "a custom size has no cell"
-        : "the campaign did not run this combination at " + tableNodes + " nodes";
-      lead.append(`The campaign's tables have no cell for these settings (${why}). ` +
-        (row.nodes === tableNodes ? "" : `A browser run is a smaller network than the tables' ${tableNodes} nodes. `));
-    }
-    if (gas) {
-      lead.append(`One transaction costs ${fmtInt(gasRun.tx_gas)} gas in the gas model, ${fmtInt(gas.parts.calldata)} of it (${(gas.calldata_share * 100).toFixed(1)}%) calldata; the ` +
-        `${gas.binds === "floor" ? "calldata floor" : "standard path"} binds` +
-        (gas.signature_on_chain ? ". " : ", and the signature bytes are not on chain. "));
-    }
-    lead.append(`Took ${(result.timing.wall_ms / 1000).toFixed(1)} s here (simulation ${result.timing.runtime_s.toFixed(1)} s, ` +
-      `${result.timing.probes} simulation${result.timing.probes === 1 ? "" : "s"}).`);
-    $("#sim-command").textContent = result.command;
-    $("#sim-row-phase2").textContent = JSON.stringify(row, null, 1);
-    $("#sim-row-full").textContent = JSON.stringify(result.row, null, 1);
-    $("#sim-result").dataset.run = String(history.length + 1);
-
-    history.unshift({ row, config, cfg, timing: result.timing });
-    if (history.length > HISTORY_MAX) history.pop();
-    renderHistory();
-    app.lastRun = { config, result, cell, gas };
-    if (app.scenarioHelp) app.scenarioHelp.simBaseline(row);
-  }
-
-  function renderHistory() {
-    const body = clear($("#sim-history tbody"));
-    for (const item of history) {
-      const row = item.row;
-      body.append(el("tr", {},
-        el("th", { scope: "row" }, row.scenario, el("span", { class: "sub" }, item.cfg.configuration)),
-        el("td", {}, row.candidate, el("span", { class: "sub" }, `${fmtInt(row.B)} B, ${row.P} perms, k ${row.k}`)),
-        el("td", { class: "n" }, fmtGas(row.gas_limit)),
-        el("td", {}, row.profile, el("span", { class: "sub" }, row.uplinks)),
-        el("td", { class: "n" }, row.nodes),
-        el("td", { class: "n" }, item.config.measured_slots),
-        el("td", { class: "n" }, item.config.seed),
-        el("td", { class: "n" }, fmtTps(row.tps_tx), el("span", { class: "sub" }, row.k === 1 ? "tx/s" : fmtTps(row.tps_sig) + " sig/s")),
-        el("td", { class: "n" }, fmtTps(row.tps_timely)),
-        el("td", {}, row.binding),
-        el("td", { class: "n" }, row.t90_block_s >= 0 ? fmtFixed(row.t90_block_s, 2) + " s" : "n/a"),
-        el("td", { class: "n" }, (item.timing.wall_ms / 1000).toFixed(1) + " s")));
-    }
-    if (!history.length) body.append(el("tr", { class: "empty" }, el("td", { colspan: "12" }, "No run yet.")));
-    $("#sim-history-h").textContent = `Recent runs of this visit (${history.length})`;
-  }
-
-  // --------------------------------------------------------------- wiring
-  f.scenario.addEventListener("change", () => {
-    for (const input of [f.gas, f.profile, f.uplinks, f.nodes, f.slots, f.k]) delete input.dataset.touched;
-    onScenario();
-  });
-  f.config.addEventListener("change", () => {
-    for (const input of [f.gas, f.profile, f.uplinks, f.nodes, f.slots, f.k]) delete input.dataset.touched;
-    applyConfig();
-  });
-  f.candidate.addEventListener("change", () => { f.candidate.dataset.touched = "1"; followCandidate(); save(); });
-  f.custom.addEventListener("change", () => { followCandidate(); save(); });
-  for (const input of [f.bytes, f.perms, f.gas, f.profile, f.uplinks, f.nodes, f.slots, f.seed, f.k]) {
-    input.addEventListener("change", () => { input.dataset.touched = "1"; save(); });
-  }
-  form.addEventListener("submit", (event) => { event.preventDefault(); run(); });
-  cancelButton.addEventListener("click", cancel);
-
-  buildResultRows();
-  onScenario();
-  restore();
-  restored = true;
-
-  app.onEngineState((state) => {
-    updateButtons();
-    if (running) return;
-    if (state.state === "loading") setStatus("The simulator is loading. Run becomes available when it is ready.");
-    else if (state.state === "ready") {
-      if (!form.dataset.state || form.dataset.state === "cancelled") setStatus("Ready.");
-    } else if (state.state === "failed") {
-      clear(status).append("The simulator could not start: " + state.message.replace(/^failed to start\.\s*/, "") + " ",
-        el("button", { type: "button", class: "link", onclick: () => app.restartEngine() }, "Try again"));
+      } });
+      progress.value = 1;
+      ptext.textContent = `finished in ${(res.timing.wall_ms / 1000).toFixed(1)} s`;
+      status.textContent = "Done.";
+      resultView(res);
+      document.dispatchEvent(new CustomEvent("sim-result", { detail: res }));
+    } catch (error) {
       status.classList.add("error");
+      status.textContent = error.name === "EngineCancelled" ? "Cancelled." : `The simulator stopped: ${error.message}`;
+    } finally {
+      run.disabled = false; cancel.disabled = true;
+      setStatus("ready");
     }
   });
-
-  // The form is drawn from data/scenarios.json so that it is there at once;
-  // that file is the engine's own list. Once the engine answers, its list
-  // replaces the file's.
-  let listed = false;
-  app.onEngineState((state) => {
-    if (state.state !== "ready" || listed) return;
-    listed = true;
-    engine.scenarios().then((listing) => {
-      const fresh = new Map(listing.scenarios.map((entry) => [entry.configuration, entry]));
-      const same = JSON.stringify([...fresh.values()]) === JSON.stringify([...configs.values()]);
-      configs = fresh;
-      form.dataset.listing = same ? "engine (equal to data/scenarios.json)" : "engine";
-      if (!same && !running) applyConfig();
-    }).catch(() => { listed = false; });
-  });
+  cancel.addEventListener("click", () => { engine.cancel(); setStatus("loading"); engine.start().then(() => setStatus("ready"), () => setStatus("failed")); });
 }
