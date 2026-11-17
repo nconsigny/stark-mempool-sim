@@ -19,9 +19,10 @@
      "8288",
      "leanpcs"
     ],
-    "gas_limit": 60000000
+    "gas_limit": 60000000,
+    "demand_only": true
    },
-   "title": "60 M gas does not bind at I*",
+   "title": "At the assumed demand, 60 M does not bind at I*",
    "text": "With the fix, the I* blocks at 60 M are not full, latency is that of 200 M and every offered PQ tx is included; only the fee is higher (the EIP-1559 base fee above the target). The pre-fix records that showed 60 M binding are superseded.",
    "section": "runs-fix.md section 3"
   },
@@ -39,8 +40,10 @@
    "applies": {
     "beyond_tags": [
      "beyond|8288|1G|off600|n50",
-     "beyond|leanpcs-dep|1G|off600|n50"
-    ]
+     "beyond|leanpcs-dep|1G|off600|n50",
+     "capx|P99r|300M|8288|-|capnone|n50|POOLX"
+    ],
+    "cap_pool": true
    },
    "title": "The per-node pool limit is a client-config choice",
    "text": "In 8288 and leanPCS past the gas limit the builder runs out of txs because every node, builders included, uses geth's legacy pool size and keeps the parent's txs until the parent is decided. That is a client configuration in the model, not a protocol limit: the eth/73 draft keeps dependency txs out of the tx pool and sizes no wrapper pool; a builder that resets its pool to the parent it builds on, or a larger builder pool, removes it.",
@@ -100,6 +103,19 @@
    "title": "Network-bound regime: a separate study at f827ca7",
    "text": "These elasticities come from a separate bandwidth study run at f827ca7. Its 8141 rows are row-identical with the fixed simulator. Its 8288 rows are pre-fix: gas does not bind there, so PQ throughput should not move with the fix, but their payloads carried the re-offered ECDSA bytes, which feed payload reach, downlink bytes and import time, so their downlink and payload-reach readings are not rechecked at the fixed commit.",
    "section": "notes/phase4/runs-bandwidth.md section 2.2 and 4; notes/phase4/inbox.md (2026-11-12 ~19:05 UTC); runs-fix.md section 6"
+  },
+  {
+   "id": "bundler-fleet",
+   "applies": {
+    "step": "I*",
+    "branch": [
+     "leanpcs"
+    ],
+    "route": "pcs_bundler"
+   },
+   "title": "pcs_bundler: unbounded prover fleet, no 60 M cells",
+   "text": "In the model every bundle is proved on its own prover: the bundlers' fleet has no size limit (an assumption), and the simulated peak was 32 to 40 concurrent proving jobs for P99r at 200 M (more at 300 M and for B0). Its capacity is therefore gas-bound by construction. The capacity campaign ran pcs_bundler at 200 M and 300 M with 2 seeds and 50 nodes; there are no 60 M cells.",
+   "section": "runs-capacity.md sections 1 and 5 item 4"
   }
  ]
 }

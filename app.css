@@ -401,3 +401,8 @@ table .ev { white-space: normal; }
   .kpi dt .ev { display: inline-block; }
 }
 .box p, .box h4 { overflow-wrap: anywhere; }
+
+.secondary { border-top: 1px dashed var(--rule); padding-top: 12px; margin-top: 4px; }
+.secondary h4::after { content: " (secondary)"; color: var(--muted); font-weight: 400; font-size: 0.8rem; }
+.howto ul { gap: 6px; }
+section[data-capacity] h4 { font-size: 1rem; }

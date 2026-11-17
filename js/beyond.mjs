@@ -55,7 +55,7 @@ function epsCard(e) {
       : `ε supply not defined (${e.resource ? "binding " + resourceName(e.resource) : "no single binding resource"}: ${e.resource_rule || "see the record"})`));
 }
 
-export function initBeyond(B, dropped) {
+export function initBeyond(B, dropped, capacity) {
   const box = clear($("#tl-beyond"));
   if (!B) {
     box.append(el("p", { class: "small dim" }, "No past-the-gas-limit runs in this build."));
@@ -141,4 +141,11 @@ export function initBeyond(B, dropped) {
     details("Why, and what stands in", el("ul", { class: "plain" }, dropped.items.map((d) =>
       el("li", {}, el("strong", {}, d.what), `: ${d.fate}.`, d.instead !== "none" ? ` Instead: ${d.instead}.` : "")))),
     el("p", { class: "note" }, `Source: ${dropped.source}. Single-seed figures say "1 seed: no interval" beside them.`));
+  const capDropped = capacity?.dropped || [];
+  if (capDropped.length) {
+    const label = (k) => `${k.step} ${k.branch}${k.sig_route ? " " + k.sig_route : ""}, ${k.candidate}, ${fmtGas(k.gas_limit)} gas, cap ${k.dep_cap ?? "none"}`;
+    drop.append(details(`Capacity cells not run (${capDropped.length})`,
+      el("ul", { class: "plain small", "data-cap-dropped": String(capDropped.length) }, capDropped.map((d) => el("li", {}, `${label(d.key)}: ${d.reason}`))),
+      el("p", { class: "note" }, "From data/phase4/runs/cap_index.json. These cells show \"not run\" instead of a figure.")));
+  }
 }

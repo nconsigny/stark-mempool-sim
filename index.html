@@ -34,10 +34,23 @@
 
 <main id="view-timeline" class="view" data-view="timeline" hidden>
   <p class="fixture-banner" id="fixture-banner" hidden></p>
+  <section aria-labelledby="tl-read-h" class="howto">
+    <h2 id="tl-read-h">How to read this page</h2>
+    <ul class="plain small">
+      <li><strong>Capacity</strong> (each step's headline): what the simulated network includes when more post-quantum transactions are offered than fit, at that step's gas limit, with today's ECDSA traffic alongside. This is the result.</li>
+      <li><strong>At an assumed demand</strong> (below it, secondary): the network at a load we assume (today's traffic grown a little each year, a PQ adoption ramp). Throughput there is the input echoed back; read only how full blocks are, latency and bandwidth.</li>
+      <li><strong>Past the gas limit</strong>: what binds next when the gas limit is raised or removed, and the elasticities: how throughput moves with signature bytes and permutations.</li>
+      <li><strong>Fees</strong>: gas per transaction and its ratios between deployments are solid; a fee in gwei is your base fee times that gas.</li>
+    </ul>
+  </section>
   <section aria-labelledby="tl-h">
     <h2 id="tl-h">The path</h2>
     <div id="tl-global" class="ctls"></div>
     <div id="tl-path" class="path"></div>
+  </section>
+  <section aria-labelledby="tl-gas-h">
+    <h2 id="tl-gas-h">Gas per transaction, and a fee example</h2>
+    <div id="tl-gas" class="stack"></div>
   </section>
   <section aria-labelledby="tl-eps-h">
     <h2 id="tl-eps-h">Elasticity of throughput</h2>

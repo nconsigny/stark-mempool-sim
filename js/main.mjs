@@ -92,8 +92,10 @@ async function main() {
         "The timeline figures are placeholders generated from the simulator's row schema, not simulation results; every one is chipped ",
         el("span", { class: "ev fx" }, "fixture"), ". The precomputed v3 runs replace them before any release.");
     }
-    initTimeline(timeline);
-    initBeyond(beyond, dropped);
+    const capacity = build.files["data/capacity.json"] ? await fetchJson("data/capacity.json") : { cells: {} };
+    data.capacity = capacity;
+    initTimeline(timeline, capacity);
+    initBeyond(beyond, dropped, data.capacity);
     initAbout(data);
     const sim = build.simulator || {};
     $("#build-line").textContent = `Simulator ${sim.kind === "ref" ? sim.ref : sim.tree} @ ${(sim.commit || "").slice(0, 9)}${sim.dirty && sim.dirty.length ? " + uncommitted" : ""} · timeline runs: ${build.runs_source.kind} · static site, nothing is sent anywhere.`;
